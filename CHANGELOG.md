@@ -8,6 +8,8 @@ All notable changes to OpenMaster are documented in this file.
 
 - Balance-preserving aligned stem-group mastering with one shared automatic policy and
   one linked group sample-peak limiter envelope.
+- Local stem-group mastering CLI with atomic named WAV exports and a serialized shared
+  decision record.
 
 ## [1.2.0] - 2026-07-19
 

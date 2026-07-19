@@ -96,6 +96,8 @@ then emits the complete versioned comparison document as JSON.
 It applies the same static gain and same per-frame group limiter envelope to every stem.
 The rendered stems therefore preserve their group balance and sum to the protected group
 mix. Misaligned sample rates, frame counts, or channel layouts are rejected.
+The `python -m packages.stem_mastering` CLI writes each named output atomically and
+returns the full shared decision alongside the output paths as JSON.
 
 ## Analysis pipeline
 

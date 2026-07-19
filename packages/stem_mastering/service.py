@@ -9,7 +9,7 @@ import numpy as np
 
 from packages.analysis_engine import AnalysisResult
 from packages.audio_core import DecodedAudio, FloatSamples
-from packages.dsp_engine import AutomaticMasteringService, MasteringPolicy
+from packages.dsp_engine import AutomaticMasteringService, MasteringDecision, MasteringPolicy
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,6 +26,7 @@ class StemMasteringResult:
 
     stems: tuple[MasteredStem, ...]
     sample_rate_hz: int
+    decision: MasteringDecision
     decision_policy: MasteringPolicy
     applied_processors: tuple[str, ...]
 
@@ -59,6 +60,7 @@ class StemGroupMasteringService:
         return StemMasteringResult(
             stems=rendered_stems,
             sample_rate_hz=sample_rate_hz,
+            decision=decision,
             decision_policy=effective_policy,
             applied_processors=("shared_gain", "group_sample_peak_limiter"),
         )

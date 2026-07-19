@@ -1,5 +1,11 @@
 """Tests for deterministic balance-preserving stem-group mastering."""
 
+import json
+import subprocess
+import sys
+import wave
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -24,6 +30,7 @@ def test_stem_group_mastering_limits_the_sum_with_one_shared_envelope() -> None:
     assert np.max(np.abs(rendered_sum)) == pytest.approx(10 ** (-1.0 / 20.0))
     assert rendered["drums"] == pytest.approx(rendered["music"])
     assert result.decision_policy == policy
+    assert result.decision.settings.ceiling_dbfs == -1.0
 
 
 def test_stem_group_mastering_rejects_misaligned_stems() -> None:
@@ -34,6 +41,42 @@ def test_stem_group_mastering_rejects_misaligned_stems() -> None:
 
     with pytest.raises(ValueError, match="same frame and channel shape"):
         StemGroupMasteringService().master(stems, _analysis())
+
+
+def test_stem_mastering_command_line_interface_exports_named_wavs(tmp_path: Path) -> None:
+    mix_path = tmp_path / "mix.wav"
+    drums_path = tmp_path / "drums.wav"
+    music_path = tmp_path / "music.wav"
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    for path, amplitude in ((mix_path, 3_000), (drums_path, 1_000), (music_path, 2_000)):
+        _write_wav(path, amplitude)
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "packages.stem_mastering",
+            "--mix",
+            str(mix_path),
+            "--stem",
+            f"drums={drums_path}",
+            "--stem",
+            f"music={music_path}",
+            "--output-dir",
+            str(output_dir),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    payload = json.loads(completed.stdout)
+    assert payload["processors"] == ["shared_gain", "group_sample_peak_limiter"]
+    assert {Path(path).name for path in payload["outputs"]} == {"drums.wav", "music.wav"}
+    assert (output_dir / "drums.wav").is_file()
+    assert (output_dir / "music.wav").is_file()
 
 
 def _decoded(samples: np.ndarray) -> DecodedAudio:
@@ -67,3 +110,12 @@ def _analysis() -> AnalysisResult:
         phase_correlation=1.0,
         spectral_centroid_hz=1_000.0,
     )
+
+
+def _write_wav(path: Path, amplitude: int) -> None:
+    with wave.open(str(path), "wb") as output:
+        output.setnchannels(2)
+        output.setsampwidth(2)
+        output.setframerate(48_000)
+        samples = np.full((48_000, 2), amplitude, dtype="<i2")
+        output.writeframes(samples.tobytes())

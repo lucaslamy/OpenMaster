@@ -78,6 +78,19 @@ python -m packages.reference_matching mix.wav reference.wav
 The selected reference can never force a target outside the configured LUFS range or
 an unbounded gain correction.
 
+## Stem-group mastering
+
+Aligned stems can be rendered with one shared gain decision and one group limiter
+envelope, retaining their balance in the resulting group mix:
+
+```bash
+python -m packages.stem_mastering --mix mix.wav \
+  --stem drums=drums.wav --stem music=music.wav --output-dir mastered-stems
+```
+
+All stems must have identical sample rate, frame count, and channel layout. Existing
+outputs require `--overwrite` explicitly.
+
 ## Development
 
 Requires Python 3.12+ and the dependencies declared in `pyproject.toml`.

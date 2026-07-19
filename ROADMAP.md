@@ -127,6 +127,7 @@ without weakening deterministic CPU execution.
 
 In progress: aligned stem groups can be rendered with one shared loudness decision and
 one group peak-limiter envelope, preserving their sample-by-sample sum and balance.
+The local CLI exports every named stem and its common decision record.
 
 ## Planning rules
 
