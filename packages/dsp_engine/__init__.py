@@ -2,7 +2,16 @@
 
 from .gain import GainProcessor
 from .limiter import LimiterProcessor
+from .mastering import DeterministicMasteringService, MasteringResult, MasteringSettings
 from .pipeline import DspPipeline
 from .processor import DspProcessor
 
-__all__ = ["DspPipeline", "DspProcessor", "GainProcessor", "LimiterProcessor"]
+__all__ = [
+    "DeterministicMasteringService",
+    "DspPipeline",
+    "DspProcessor",
+    "GainProcessor",
+    "LimiterProcessor",
+    "MasteringResult",
+    "MasteringSettings",
+]

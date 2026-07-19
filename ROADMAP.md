@@ -63,6 +63,17 @@ Dependencies: typed API, authentication, storage, and job status from v0.7/v0.8.
 
 Goal: compose validated DSP processors into an auditable automatic-mastering workflow.
 
+In progress: the baseline orchestration exposes its full ordered processor trace and
+uses explicit gain and ceiling settings. It does not yet infer settings from analysis;
+that requires validated processor-control policy and additional DSP processors.
+
+Exit criteria:
+
+- Every automatic decision is serialized, bounded, and reproducible from analysis.
+- The render trace identifies processor order and effective settings.
+- Output validation covers peak safety, deterministic repeatability, and target
+  loudness behavior.
+
 ## v1.1 — AI Master Assistant
 
 Goal: recommend deterministic processor settings with explainable confidence and no
