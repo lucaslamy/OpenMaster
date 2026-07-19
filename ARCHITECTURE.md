@@ -80,6 +80,13 @@ The `python -m packages.mastering_assistant` CLI exposes the same read-only work
 decode once, analyse once, then serialize analysis and its recommendation as JSON.
 Recommendation documents carry an explicit schema version for integration compatibility.
 
+## Reference matching
+
+`packages/reference_matching` compares immutable input and reference analyses. It clamps
+the reference loudness to an explicit safe range, delegates the resulting gain decision
+to the v1.1 assistant, and serializes every comparison delta and finding. Spectral and
+stereo differences are advisory only: no EQ or imaging is silently introduced.
+
 ## Analysis pipeline
 
 1. Validate a regular local input file and recognized format.

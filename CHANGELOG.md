@@ -4,6 +4,11 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Local reference-matching service with bounded reference-loudness targets, serialized
+  comparison metrics, and explainable spectral and stereo review findings.
+
 ## [1.1.0] - 2026-07-19
 
 ### Added

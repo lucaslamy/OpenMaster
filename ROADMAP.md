@@ -104,6 +104,10 @@ bounded by this explicit recommendation contract and preserve offline determinis
 Goal: compare an input with a selected reference and produce bounded, explainable DSP
 recommendations.
 
+In progress: a local reference-matching service compares loudness, dynamic range,
+spectral centroid, and stereo metrics. It derives only a policy-bounded loudness target;
+spectral and stereo differences remain review findings until dedicated processors exist.
+
 ## v2.0 — Stems, acceleration, plugins
 
 Goal: support stem mastering, optional GPU acceleration, and an isolated plugin system
