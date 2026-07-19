@@ -60,6 +60,8 @@ The ceiling is a sample-peak guard, not a true-peak compliance guarantee.
 `audio_core.encode_wav` writes a normalized float buffer as 16-, 24-, or 32-bit PCM
 WAV through an atomic same-directory replacement. It rejects non-finite or out-of-range
 samples and protects an existing destination unless replacement is explicitly requested.
+`AutomaticMasteringService.master_to_wav` composes this export with the rendered audio
+and returns both the output path and the full mastering decision record.
 
 ## Analysis pipeline
 

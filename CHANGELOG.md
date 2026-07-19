@@ -14,6 +14,8 @@ All notable changes to OpenMaster are documented in this file.
   avoidable limiter engagement.
 - Atomic PCM WAV export for 16-, 24-, and 32-bit mastered output with overwrite and
   normalized-sample safety checks.
+- End-to-end automatic-mastering WAV export returning the render trace and decision
+  record alongside the committed destination.
 
 ## [0.9.0] - 2026-07-19
 

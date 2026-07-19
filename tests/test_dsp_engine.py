@@ -1,9 +1,12 @@
 """Tests for deterministic DSP processor contracts."""
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 
 from packages.analysis_engine.models import AnalysisResult
+from packages.audio_core import decode_wav
 from packages.dsp_engine import (
     AutomaticMasteringService,
     DeterministicMasteringService,
@@ -95,6 +98,23 @@ def test_automatic_mastering_keeps_loudness_gain_when_peak_has_sufficient_headro
     assert decision.settings.input_gain_db == pytest.approx(4.0)
     assert decision.peak_headroom_gain_db == pytest.approx(11.0)
     assert decision.limited_by_peak_headroom is False
+
+
+def test_automatic_mastering_exports_auditable_wav(tmp_path: Path) -> None:
+    output_path = tmp_path / "master.wav"
+
+    exported = AutomaticMasteringService().master_to_wav(
+        np.array([[0.25], [-0.25]], dtype=np.float64),
+        48_000,
+        _analysis_result(lufs=-18.0, peak_dbfs=-12.0),
+        output_path,
+    )
+
+    decoded = decode_wav(output_path)
+
+    assert exported.output_path == output_path
+    assert exported.mastering.decision.settings.input_gain_db == pytest.approx(4.0)
+    assert decoded.samples == pytest.approx(exported.mastering.render.samples, abs=1.5e-7)
 
 
 def _analysis_result(lufs: float | None, peak_dbfs: float = -3.0) -> AnalysisResult:

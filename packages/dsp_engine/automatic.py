@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from pathlib import Path
 
 from packages.analysis_engine.models import AnalysisResult
-from packages.audio_core import FloatSamples
+from packages.audio_core import FloatSamples, encode_wav
 
 from .mastering import DeterministicMasteringService, MasteringResult, MasteringSettings
 
@@ -50,6 +51,14 @@ class AutomaticMasteringResult:
 
     render: MasteringResult
     decision: MasteringDecision
+
+
+@dataclass(frozen=True, slots=True)
+class ExportedMasteringResult:
+    """An automatic mastering result committed to a WAV destination."""
+
+    mastering: AutomaticMasteringResult
+    output_path: Path
 
 
 class AutomaticMasteringService:
@@ -105,3 +114,24 @@ class AutomaticMasteringService:
             render=self._renderer.master(samples, sample_rate_hz, decision.settings),
             decision=decision,
         )
+
+    def master_to_wav(
+        self,
+        samples: FloatSamples,
+        sample_rate_hz: int,
+        analysis: AnalysisResult,
+        output_path: str | Path,
+        *,
+        bit_depth: int = 24,
+        overwrite: bool = False,
+    ) -> ExportedMasteringResult:
+        """Render an automatic master and atomically export it as PCM WAV."""
+        mastering = self.master(samples, sample_rate_hz, analysis)
+        written_path = encode_wav(
+            output_path,
+            mastering.render.samples,
+            sample_rate_hz,
+            bit_depth=bit_depth,
+            overwrite=overwrite,
+        )
+        return ExportedMasteringResult(mastering=mastering, output_path=written_path)

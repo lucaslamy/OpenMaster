@@ -3,6 +3,7 @@
 from .automatic import (
     AutomaticMasteringResult,
     AutomaticMasteringService,
+    ExportedMasteringResult,
     MasteringDecision,
     MasteringPolicy,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "DeterministicMasteringService",
     "DspPipeline",
     "DspProcessor",
+    "ExportedMasteringResult",
     "GainProcessor",
     "LimiterProcessor",
     "MasteringDecision",
