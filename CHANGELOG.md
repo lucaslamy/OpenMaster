@@ -10,6 +10,8 @@ All notable changes to OpenMaster are documented in this file.
   a non-root multi-stage API image.
 - Initial k3s Helm chart foundation with secret-free values, Vault-managed Secret name
   validation, non-sensitive ConfigMap, and hardened ServiceAccount.
+- Dedicated Helm deployments for the retry-safe analysis, mastering, and export Celery
+  queues with isolated resource and concurrency settings.
 
 ## [2.0.0] - 2026-07-19
 

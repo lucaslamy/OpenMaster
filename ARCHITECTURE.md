@@ -54,6 +54,8 @@ The `helm/openmaster` chart currently owns non-sensitive configuration and the e
 reference to the Kubernetes Secret managed by Vault/External Secrets. It never renders
 secret values. API, worker, data-service, and ingress workloads are being added in the
 same deployment release.
+Dedicated Celery deployments consume the `analysis`, `mastering`, and `export` queues;
+their commands and resource profiles are rendered from chart values.
 
 ## Automatic mastering baseline
 
