@@ -10,7 +10,7 @@ All notable changes to OpenMaster are documented in this file.
 - JSON command-line interface for deterministic local audio analysis.
 - Controlled-signal regression coverage for BPM and musical-key estimation.
 - FFmpeg/FFprobe decoder for AIFF, FLAC, M4A, MP3, OGG, and Opus input.
-- End-to-end FLAC decoder regression coverage when FFmpeg is installed.
+- End-to-end format-matrix coverage for all FFmpeg-supported input formats.
 - FFmpeg decode duration bound derived from validated FFprobe metadata.
 - IEEE-float 32/64-bit WAV decoding with finite-sample validation.
 - GitHub Actions quality workflow for formatting, linting, typing, and tests.

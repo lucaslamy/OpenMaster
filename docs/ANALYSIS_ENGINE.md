@@ -33,7 +33,7 @@ The regression suite synthesizes stereo, mono-silence, and 24-bit PCM WAV fixtur
 It verifies level accuracy, metadata extraction, unavailable measurements for silence,
 tempo and key estimation on controlled signals, and typed failure modes for missing or
 unsupported files. When FFmpeg is available, it also validates an end-to-end FLAC
-decode before signal analysis.
+decode for AIFF, FLAC, M4A, MP3, OGG, and Opus before signal analysis.
 
 ## Command line
 

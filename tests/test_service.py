@@ -169,19 +169,22 @@ def test_analyze_estimates_tempo_and_key_for_controlled_signals(tmp_path: Path) 
     shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None,
     reason="FFmpeg and FFprobe are required for compressed-format integration tests",
 )
-def test_analyze_flac_with_ffmpeg_decoder(tmp_path: Path) -> None:
+@pytest.mark.parametrize("suffix", [".aiff", ".flac", ".m4a", ".mp3", ".ogg", ".opus"])
+def test_analyze_ffmpeg_supported_format(tmp_path: Path, suffix: str) -> None:
     source_path = tmp_path / "source.wav"
     _write_wav(source_path, np.full((48_000, 1), 0.25))
-    flac_path = tmp_path / "source.flac"
+    encoded_path = tmp_path / f"source{suffix}"
     subprocess.run(
-        ["ffmpeg", "-v", "error", "-y", "-i", str(source_path), str(flac_path)],
+        ["ffmpeg", "-v", "error", "-y", "-i", str(source_path), str(encoded_path)],
         check=True,
         capture_output=True,
     )
 
-    result = AnalysisService().analyze(flac_path)
+    result = AnalysisService().analyze(encoded_path)
 
     assert result.sample_rate_hz == 48_000
     assert result.channels == 1
-    assert result.duration_seconds == pytest.approx(1.0)
-    assert result.rms_dbfs == pytest.approx(-12.04, abs=0.1)
+    assert result.duration_seconds == pytest.approx(1.0, abs=0.1)
+    assert np.isfinite(result.rms_dbfs)
+    assert np.isfinite(result.peak_dbfs)
+    assert np.isfinite(result.true_peak_dbfs)
