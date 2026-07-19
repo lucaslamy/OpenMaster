@@ -34,6 +34,7 @@ returns an immutable `AnalysisResult`. It has no network, database, or API depen
 | `packages/analysis_engine` | Decode orchestration and deterministic measurements | Implemented |
 | `packages/dsp_engine` | Deterministic processor contracts, pipelines, and gain staging | v0.8 in progress |
 | `apps/openmaster-worker` | Invoke analysis from a worker caller | Minimal adapter |
+| `apps/web` | Vue frontend and typed analysis-job client | v0.9 in progress |
 | `apps/openmaster-api` | HTTP boundary | Scaffold; requires service and persistence refactor |
 | `packages/audio_core` | Reusable audio contracts, input safety, WAV and FFmpeg decoding | Implemented |
 | `packages/job_store` | Pure retry-safe analysis-job lifecycle contracts | Initial extraction |

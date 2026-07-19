@@ -48,6 +48,15 @@ python -m mypy packages
 
 The same checks run on every push and pull request in GitHub Actions using Python 3.12.
 
+The Vue client lives in `apps/web` and uses Node.js 22:
+
+```bash
+cd apps/web
+npm ci
+npm run test
+npm run build
+```
+
 ## Current limits
 
 Compressed and lossless formats require the `ffmpeg` and `ffprobe` executables. Their

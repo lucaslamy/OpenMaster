@@ -51,6 +51,8 @@ Dependencies: completed v0.7 reference validation and `audio-core` extraction.
 Goal: deliver a Vue user interface for upload, job progress, analysis visualization,
 and deterministic mastering controls.
 
+In progress: typed Vue client and analysis-job submission screen.
+
 Dependencies: typed API, authentication, storage, and job status from v0.7/v0.8.
 
 ## v1.0 — Automatic mastering
