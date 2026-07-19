@@ -15,6 +15,8 @@ All notable changes to OpenMaster are documented in this file.
 - Production web image and Helm workload, plus Traefik routing for the frontend root.
 - Internal PostgreSQL, Redis, and MinIO Helm services with persistent state where
   required, probes, and hardened pod security defaults.
+- Reversible Alembic baseline migration and Helm Job for serialized database upgrades
+  using the Vault-managed runtime Secret.
 
 ## [2.0.0] - 2026-07-19
 

@@ -1,0 +1,13 @@
+apiVersion: batch/v1
+kind: Job
+metadata: {name: {{ include "openmaster.fullname" . }}-migrate}
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: migrate
+        image: {{ default (include "openmaster.image" .) .Values.api.image | quote }}
+        command: [alembic, upgrade, head]
+        envFrom: [{secretRef: {name: {{ include "openmaster.secretName" . }}}}]
