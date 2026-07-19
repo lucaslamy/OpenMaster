@@ -83,10 +83,21 @@ a lookahead true-peak limiter. v1.0 is not a loudness-compliance or true-peak gu
 Goal: recommend deterministic processor settings with explainable confidence and no
 hidden DSP decisions.
 
-In progress: a local recommendation service converts analysis into an explicit mastering
-policy, effective settings, confidence score, and human-readable findings. It does not
-invoke an external model or alter audio; rendering remains an explicit v1.0 operation.
-The local assistant CLI exposes this recommendation as a stable JSON document.
+Released: `1.1.0`. Its supported scope is a deterministic local mastering assistant,
+not remote or generative model inference.
+
+Completed:
+
+- Explicit recommended policy and effective v1.0 settings derived from immutable
+  analysis results.
+- Deterministic confidence score with documented deductions for unavailable loudness,
+  constrained peak headroom, and unavailable stereo evidence.
+- Human-readable loudness, safety-bound, headroom, and phase findings; no hidden DSP
+  processing or settings.
+- Versioned recommendation JSON schema and local one-decode assistant CLI.
+
+Post-release assistant work: optional model-backed natural-language advice must remain
+bounded by this explicit recommendation contract and preserve offline deterministic use.
 
 ## v1.2 — Reference matching
 

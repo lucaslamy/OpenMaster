@@ -33,6 +33,7 @@ returns an immutable `AnalysisResult`. It has no network, database, or API depen
 | --- | --- | --- |
 | `packages/analysis_engine` | Decode orchestration and deterministic measurements | Implemented |
 | `packages/dsp_engine` | Deterministic processors and auditable automatic-mastering workflow | v1.0 implemented |
+| `packages/mastering_assistant` | Explainable, deterministic recommendation and confidence layer | v1.1 implemented |
 | `apps/openmaster-worker` | Invoke analysis from a worker caller | Minimal adapter |
 | `apps/web` | Vue frontend and typed analysis-job client | v0.9 in progress |
 | `apps/openmaster-api` | HTTP boundary | Scaffold; requires service and persistence refactor |

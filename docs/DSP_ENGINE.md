@@ -1,4 +1,4 @@
-# DSP engine (v1.0)
+# DSP engine (v1.1)
 
 ## Processor contract
 
@@ -19,6 +19,10 @@ derives a bounded gain decision, constrains it by measured sample-peak headroom,
 the ordered gain/limiter chain, and can atomically export the result as PCM WAV. The
 decision record includes its full policy, effective settings, processor trace, and
 headroom constraint so an identical input and policy reproduce the same output.
+
+The v1.1 mastering assistant is advisory only. It produces the same explicit policy
+and decision contract with confidence and findings; it does not bypass this workflow
+or introduce hidden processor settings.
 
 ## Limiter limitation
 

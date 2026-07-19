@@ -4,6 +4,8 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-19
+
 ### Added
 
 - Deterministic mastering-assistant recommendations with serialized policy and settings,

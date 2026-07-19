@@ -1,8 +1,8 @@
-# OpenMaster v1.0.0
+# OpenMaster v1.1.0
 
-OpenMaster is an open-source professional audio mastering platform. v1.0 adds an
-auditable, deterministic automatic-mastering workflow to the local analysis, DSP, and
-web-client foundations.
+OpenMaster is an open-source professional audio mastering platform. v1.1 adds an
+explainable local mastering assistant to the auditable, deterministic automatic-
+mastering workflow and web-client foundations.
 
 ## Current capability
 
