@@ -8,6 +8,10 @@ IEEE-float WAV decoding to `wav_reader`, other supported formats to the isolated
 the immutable `AnalysisResult` model. This keeps worker and future API code free of
 DSP logic and makes every calculation directly unit-testable.
 
+Reusable input-path validation, typed input errors, and resource limits live in
+`packages.audio_core`. The analysis engine owns orchestration and measurements; this
+boundary lets future worker, export, and storage packages apply the same safety policy.
+
 ## Measurements
 
 Levels are expressed in dBFS except integrated loudness (LUFS). True peak uses 4x

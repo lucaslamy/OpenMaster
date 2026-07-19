@@ -7,10 +7,11 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.io import wavfile
 
+from packages.audio_core import MAX_SAMPLE_VALUES, validate_audio_path
+
 from .exceptions import InvalidAudioFileError, UnsupportedAudioFormatError
 
 FloatSamples = NDArray[np.float64]
-MAX_SAMPLE_VALUES = 120_000_000
 
 
 def read_wav(path: str | Path) -> tuple[FloatSamples, int, int]:
@@ -66,14 +67,6 @@ def _read_wav_with_scipy(path: Path, original_error: wave.Error) -> tuple[FloatS
     if not np.isfinite(normalized).all():
         raise InvalidAudioFileError("WAV file contains non-finite samples")
     return normalized, int(sample_rate), samples.dtype.itemsize * 8
-
-
-def validate_audio_path(path: str | Path) -> Path:
-    """Validate that an input points to a regular local file."""
-    audio_path = Path(path)
-    if not audio_path.is_file():
-        raise InvalidAudioFileError(f"Audio file does not exist: {audio_path}")
-    return audio_path
 
 
 def _decode_pcm(raw: bytes, sample_width: int) -> FloatSamples:

@@ -7,8 +7,10 @@ from typing import Any
 
 import numpy as np
 
+from packages.audio_core import MAX_SAMPLE_VALUES, validate_audio_path
+
 from .exceptions import InvalidAudioFileError, UnsupportedAudioFormatError
-from .wav_reader import MAX_SAMPLE_VALUES, FloatSamples, validate_audio_path
+from .wav_reader import FloatSamples
 
 SUPPORTED_FORMATS = frozenset({".aif", ".aiff", ".flac", ".m4a", ".mp3", ".ogg", ".opus"})
 _PROCESS_TIMEOUT_SECONDS = 120

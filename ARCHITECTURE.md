@@ -35,7 +35,7 @@ returns an immutable `AnalysisResult`. It has no network, database, or API depen
 | `packages/dsp_engine` | Ordered mastering-stage definition | Scaffold; v0.8 scope |
 | `apps/openmaster-worker` | Invoke analysis from a worker caller | Minimal adapter |
 | `apps/openmaster-api` | HTTP boundary | Scaffold; requires service and persistence refactor |
-| `packages/audio-core` | Reusable decoding, validation, and export primitives | Planned |
+| `packages/audio_core` | Reusable input validation and resource limits | Initial extraction |
 | Database, storage, auth, AI | Persistent platform concerns | Planned |
 
 Applications may depend on packages. Packages must not depend on applications. FastAPI
@@ -63,8 +63,9 @@ components may recommend settings but must not conceal or mutate processor behav
 ### FFmpeg is an adapter, not business logic
 
 The FFmpeg invocation is contained in `ffmpeg_decoder.py`. Its process output is never
-exposed directly to callers; callers receive typed domain errors. A future `audio-core`
-package can own this adapter without changing analysis metrics.
+exposed directly to callers; callers receive typed domain errors. `audio_core` already
+owns input validation, typed input errors, and resource limits; future extraction can
+move this adapter without changing analysis metrics.
 
 ### Current limitations
 
