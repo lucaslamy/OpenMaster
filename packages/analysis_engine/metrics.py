@@ -123,6 +123,16 @@ def estimate_bpm(mono: FloatArray, sample_rate: int) -> float | None:
     if maximum_lag <= minimum_lag:
         return None
     lag = minimum_lag + int(np.argmax(autocorrelation[minimum_lag : maximum_lag + 1]))
+    half_lag = round(lag / 2)
+    if minimum_lag <= half_lag <= maximum_lag:
+        harmonic_peak = max(
+            autocorrelation[max(minimum_lag, half_lag - 1) : min(maximum_lag, half_lag + 1) + 1]
+        )
+        if harmonic_peak >= autocorrelation[lag] * 0.8:
+            candidate_offsets = np.arange(
+                max(minimum_lag, half_lag - 1), min(maximum_lag, half_lag + 1) + 1
+            )
+            lag = int(candidate_offsets[np.argmax(autocorrelation[candidate_offsets])])
     return round(60.0 * sample_rate / (lag * hop), 2)
 
 

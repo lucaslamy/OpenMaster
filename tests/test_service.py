@@ -13,6 +13,7 @@ from scipy.io import wavfile
 
 from packages.analysis_engine import AnalysisService
 from packages.analysis_engine.exceptions import InvalidAudioFileError, UnsupportedAudioFormatError
+from packages.analysis_engine.metrics import estimate_bpm
 
 
 def _write_wav(path: Path, samples: np.ndarray, sample_rate: int = 48_000) -> None:
@@ -179,6 +180,19 @@ def test_analyze_estimates_tempo_and_key_for_controlled_signals(tmp_path: Path) 
 
     assert tempo_result.bpm == pytest.approx(120.0, abs=1.0)
     assert key_result.musical_key == "C major"
+
+
+@pytest.mark.parametrize("expected_bpm", [60, 90, 100, 120, 150, 180, 200])
+def test_tempo_estimator_avoids_half_tempo_for_click_tracks(expected_bpm: int) -> None:
+    sample_rate = 48_000
+    click_track = np.zeros(sample_rate * 8)
+    period = round(sample_rate * 60 / expected_bpm)
+    for start in range(0, click_track.size, period):
+        click_track[start : start + 500] = np.hanning(500)
+
+    estimated_bpm = estimate_bpm(click_track, sample_rate)
+
+    assert estimated_bpm == pytest.approx(expected_bpm, abs=2.0)
 
 
 @pytest.mark.skipif(

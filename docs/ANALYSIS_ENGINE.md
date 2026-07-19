@@ -22,7 +22,8 @@ for mono. Phase correlation is the left/right Pearson coefficient.
 
 BPM is derived from spectral-flux autocorrelation in the 60–200 BPM range. Key uses
 pitch-class energy matched to Krumhansl major/minor profiles. Both may be unavailable
-when a clip is too short or has insufficient musical content.
+when a clip is too short or has insufficient musical content. The BPM estimator applies
+a constrained half-tempo correction when the harmonic peak is sufficiently strong.
 
 ## Input safety and limits
 

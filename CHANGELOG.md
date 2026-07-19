@@ -12,6 +12,7 @@ All notable changes to OpenMaster are documented in this file.
 - Moved PCM and IEEE-float WAV decoder ownership into `audio_core` with a compatible
   analysis-engine adapter.
 - Corrected stereo integrated-loudness energy summation.
+- Corrected half-tempo selection for controlled high-tempo click tracks.
 
 ## [0.7.0-rc.1] - 2026-07-19
 
