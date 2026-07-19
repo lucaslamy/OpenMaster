@@ -37,6 +37,7 @@ class MasteringPolicy:
 class MasteringDecision:
     """A serializable explanation of settings derived from analysis."""
 
+    policy: MasteringPolicy
     settings: MasteringSettings
     requested_gain_db: float | None
     gain_was_bounded: bool
@@ -72,6 +73,7 @@ class AutomaticMasteringService:
         """Return an auditable gain decision without changing audio."""
         if analysis.lufs is None:
             return MasteringDecision(
+                policy=self._policy,
                 settings=MasteringSettings(ceiling_dbfs=self._policy.ceiling_dbfs),
                 requested_gain_db=None,
                 gain_was_bounded=False,
@@ -89,8 +91,12 @@ class AutomaticMasteringService:
             min(self._policy.maximum_gain_adjustment_db, requested_gain_db),
         )
         peak_headroom_gain_db = self._policy.ceiling_dbfs - analysis.peak_dbfs
-        input_gain_db = min(policy_bounded_gain_db, peak_headroom_gain_db)
+        input_gain_db = max(
+            -self._policy.maximum_gain_adjustment_db,
+            min(policy_bounded_gain_db, peak_headroom_gain_db),
+        )
         return MasteringDecision(
+            policy=self._policy,
             settings=MasteringSettings(
                 input_gain_db=input_gain_db,
                 ceiling_dbfs=self._policy.ceiling_dbfs,

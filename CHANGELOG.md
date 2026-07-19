@@ -18,6 +18,9 @@ All notable changes to OpenMaster are documented in this file.
   record alongside the committed destination.
 - Local automatic-mastering CLI that decodes once, analyses, renders, exports WAV, and
   emits a stable JSON audit record.
+- Automatic mastering decision records now include the complete policy that produced
+  them, and regression coverage verifies deterministic target-loudness rendering and
+  sample-peak safety.
 
 ### Changed
 

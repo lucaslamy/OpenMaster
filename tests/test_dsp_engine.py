@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from packages.analysis_engine.metrics import integrated_lufs
 from packages.analysis_engine.models import AnalysisResult
 from packages.audio_core import decode_wav
 from packages.dsp_engine import (
@@ -98,6 +99,29 @@ def test_automatic_mastering_keeps_loudness_gain_when_peak_has_sufficient_headro
     assert decision.settings.input_gain_db == pytest.approx(4.0)
     assert decision.peak_headroom_gain_db == pytest.approx(11.0)
     assert decision.limited_by_peak_headroom is False
+
+
+def test_automatic_mastering_is_repeatable_safe_and_reaches_target_when_unbounded() -> None:
+    sample_rate_hz = 48_000
+    time = np.arange(sample_rate_hz * 5) / sample_rate_hz
+    samples = (0.1 * np.sin(2 * np.pi * 1_000 * time))[:, np.newaxis]
+    policy = MasteringPolicy(target_lufs=-14.0)
+    analysis = _analysis_result(
+        lufs=integrated_lufs(samples, sample_rate_hz),
+        peak_dbfs=-20.0,
+    )
+    service = AutomaticMasteringService(policy)
+
+    first = service.master(samples, sample_rate_hz, analysis)
+    second = service.master(samples, sample_rate_hz, analysis)
+
+    assert first.decision.policy == policy
+    assert first.decision.gain_was_bounded is False
+    assert np.array_equal(first.render.samples, second.render.samples)
+    assert np.max(np.abs(first.render.samples)) <= 10 ** (policy.ceiling_dbfs / 20.0)
+    assert integrated_lufs(first.render.samples, sample_rate_hz) == pytest.approx(
+        policy.target_lufs, abs=0.1
+    )
 
 
 def test_automatic_mastering_exports_auditable_wav(tmp_path: Path) -> None:

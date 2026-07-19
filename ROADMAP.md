@@ -76,7 +76,7 @@ that retains the associated decision record.
 The local CLI exposes the same one-decode workflow and returns a stable JSON audit
 record for automation.
 
-Exit criteria:
+Release-validation criteria:
 
 - Every automatic decision is serialized, bounded, and reproducible from analysis.
 - The render trace identifies processor order and effective settings.
