@@ -77,6 +77,7 @@ audio processing and does not require an external model or network connection.
 
 The `python -m packages.mastering_assistant` CLI exposes the same read-only workflow:
 decode once, analyse once, then serialize analysis and its recommendation as JSON.
+Recommendation documents carry an explicit schema version for integration compatibility.
 
 ## Analysis pipeline
 

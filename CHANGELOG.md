@@ -10,6 +10,7 @@ All notable changes to OpenMaster are documented in this file.
   bounded confidence, and explicit loudness, headroom, and phase findings.
 - Local assistant CLI that emits analysis and reviewable mastering recommendations as
   stable JSON without modifying audio.
+- Versioned assistant-recommendation JSON schema for explicit automation compatibility.
 
 ## [1.0.0] - 2026-07-19
 

@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 from packages.analysis_engine import AnalysisResult
-from packages.mastering_assistant import MasteringAssistant
+from packages.mastering_assistant import RECOMMENDATION_SCHEMA_VERSION, MasteringAssistant
 
 
 def test_assistant_returns_serialized_policy_and_peak_limited_reasoning() -> None:
@@ -24,7 +24,9 @@ def test_assistant_returns_serialized_policy_and_peak_limited_reasoning() -> Non
         "gain_bounded",
         "peak_headroom_limited",
     ]
-    assert recommendation.to_dict()["decision"]["policy"]["ceiling_dbfs"] == -1.0
+    serialized = recommendation.to_dict()
+    assert serialized["schema_version"] == RECOMMENDATION_SCHEMA_VERSION
+    assert serialized["decision"]["policy"]["ceiling_dbfs"] == -1.0
 
 
 def test_assistant_reports_low_confidence_when_loudness_is_unavailable() -> None:

@@ -8,6 +8,8 @@ from typing import Any
 from packages.analysis_engine import AnalysisResult
 from packages.dsp_engine import AutomaticMasteringService, MasteringDecision, MasteringPolicy
 
+RECOMMENDATION_SCHEMA_VERSION = "1.1"
+
 
 @dataclass(frozen=True, slots=True)
 class AssistantFinding:
@@ -27,7 +29,7 @@ class MasteringRecommendation:
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-ready recommendation including all effective settings."""
-        return asdict(self)
+        return {"schema_version": RECOMMENDATION_SCHEMA_VERSION, **asdict(self)}
 
 
 class MasteringAssistant:
