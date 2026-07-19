@@ -4,6 +4,11 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- FastAPI production boundary with Kubernetes-safe liveness and readiness endpoints and
+  a non-root multi-stage API image.
+
 ## [2.0.0] - 2026-07-19
 
 ### Added

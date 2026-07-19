@@ -40,7 +40,7 @@ returns an immutable `AnalysisResult`. It has no network, database, or API depen
 | `packages/plugin_system` | Timeout-bounded isolated external DSP plugin execution | v2.0 implemented |
 | `apps/openmaster-worker` | Invoke analysis from a worker caller | Minimal adapter |
 | `apps/web` | Vue frontend and typed analysis-job client | v0.9 in progress |
-| `apps/openmaster-api` | HTTP boundary | Scaffold; requires service and persistence refactor |
+| `apps/api` | FastAPI HTTP boundary and Kubernetes health probes | Initial production boundary |
 | `packages/audio_core` | Reusable audio contracts, input safety, WAV and FFmpeg decoding | Implemented |
 | `packages/job_store` | Pure retry-safe analysis-job lifecycle contracts | Initial extraction |
 | Database, storage, auth, AI | Persistent platform concerns | Planned |
@@ -151,7 +151,8 @@ move this adapter without changing analysis metrics.
 - LUFS, true-peak, tempo, and key estimates require reference-corpus validation before
   compliance claims.
 - API, database, storage, Celery orchestration, and observability are not implemented.
-- The current API route is only a scaffold and must be replaced before production use.
+- API health endpoints report process liveness and completed application startup; business
+  routes, persistence, and asynchronous orchestration remain to be implemented.
 
 ## Planned deployment flow
 

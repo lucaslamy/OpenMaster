@@ -1,0 +1,1 @@
+"""OpenMaster HTTP API application."""

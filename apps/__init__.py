@@ -1,0 +1,1 @@
+"""OpenMaster application entry points."""

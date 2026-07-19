@@ -8,7 +8,7 @@ version = "2.0.0"
 description = "Open-source audio mastering platform"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["numpy>=1.26", "scipy>=1.11"]
+dependencies = ["fastapi>=0.115", "numpy>=1.26", "scipy>=1.11", "uvicorn>=0.30"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.6", "black>=24.0", "mypy>=1.11"]
