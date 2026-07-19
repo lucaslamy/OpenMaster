@@ -36,6 +36,21 @@ def test_reference_matching_bounds_target_and_reuses_explicit_assistant_settings
     assert result.to_dict()["schema_version"] == "1.2"
 
 
+def test_reference_matching_is_repeatable_and_never_exceeds_gain_bound() -> None:
+    policy = ReferenceMatchPolicy(maximum_gain_adjustment_db=3.0)
+    input_analysis = _analysis(lufs=-30.0, peak_dbfs=-20.0)
+    reference_analysis = _analysis(lufs=-14.0, peak_dbfs=-3.0)
+    service = ReferenceMatchingService()
+
+    first = service.match(input_analysis, reference_analysis, policy)
+    second = service.match(input_analysis, reference_analysis, policy)
+
+    assert first == second
+    assert first.assistant_recommendation is not None
+    assert first.assistant_recommendation.decision.settings.input_gain_db == pytest.approx(3.0)
+    assert first.assistant_recommendation.decision.policy.maximum_gain_adjustment_db == 3.0
+
+
 def test_reference_matching_refuses_to_infer_a_target_without_reference_loudness() -> None:
     result = ReferenceMatchingService().match(
         _analysis(lufs=-20.0, peak_dbfs=-12.0),

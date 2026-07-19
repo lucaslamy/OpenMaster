@@ -109,6 +109,15 @@ spectral centroid, and stereo metrics. It derives only a policy-bounded loudness
 spectral and stereo differences remain review findings until dedicated processors exist.
 The local CLI serializes both analyses and the complete versioned recommendation.
 
+Release-validation criteria:
+
+- Input/reference comparisons and recommendations are reproducible for the same
+  immutable analyses and policy.
+- Reference loudness never escapes the configured target range; gain never escapes its
+  configured adjustment bound.
+- Every derived loudness setting, comparison delta, and non-gain review finding is
+  serialized; no EQ or stereo change is applied implicitly.
+
 ## v2.0 — Stems, acceleration, plugins
 
 Goal: support stem mastering, optional GPU acceleration, and an isolated plugin system
