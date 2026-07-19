@@ -15,6 +15,7 @@ from scipy.io import wavfile
 from packages.analysis_engine import AnalysisService
 from packages.analysis_engine.exceptions import InvalidAudioFileError, UnsupportedAudioFormatError
 from packages.analysis_engine.metrics import estimate_bpm
+from packages.audio_core import decode_audio
 
 
 def _ffmpeg_ebur128_summary(path: Path) -> tuple[float, float]:
@@ -90,6 +91,14 @@ def test_analyze_stereo_sine_returns_signal_measurements(tmp_path: Path) -> None
     assert result.spectral_centroid_hz == pytest.approx(440, abs=20)
     assert result.musical_key is not None
     assert result.to_dict()["sample_rate_hz"] == sample_rate
+
+
+def test_analyze_decoded_matches_path_analysis_without_a_second_decode(tmp_path: Path) -> None:
+    audio_path = tmp_path / "tone.wav"
+    _write_wav(audio_path, np.full((48_000, 1), 0.25))
+    decoded = decode_audio(audio_path)
+
+    assert AnalysisService().analyze_decoded(decoded) == AnalysisService().analyze(audio_path)
 
 
 def test_integrated_loudness_sums_dual_mono_channel_energy(tmp_path: Path) -> None:

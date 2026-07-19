@@ -72,6 +72,9 @@ and returns both the output path and the full mastering decision record.
 4. Compute independent numerical metrics from normalized float64 samples.
 5. Return `AnalysisResult`, or raise a typed `AnalysisError` for expected failures.
 
+Consumers that already own a validated `DecodedAudio` can call
+`AnalysisService.analyze_decoded` to avoid decoding the same input twice.
+
 The CLI serializes successful results as JSON. Expected analysis errors become JSON on
 standard error with exit code 2.
 

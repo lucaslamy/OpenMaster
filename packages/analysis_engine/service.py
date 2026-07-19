@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from packages.audio_core import decode_audio
+from packages.audio_core import DecodedAudio, decode_audio
 
 from .metrics import (
     dynamic_range_db,
@@ -25,7 +25,10 @@ class AnalysisService:
 
     def analyze(self, path: str | Path) -> AnalysisResult:
         """Validate and analyse one audio file, returning all available v0.7 measurements."""
-        decoded = decode_audio(path)
+        return self.analyze_decoded(decode_audio(path))
+
+    def analyze_decoded(self, decoded: DecodedAudio) -> AnalysisResult:
+        """Analyse a decoded stream without repeating input decoding and validation."""
         samples = decoded.samples
         metadata = decoded.metadata
         sample_rate = metadata.sample_rate_hz

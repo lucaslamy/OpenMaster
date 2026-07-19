@@ -17,6 +17,11 @@ All notable changes to OpenMaster are documented in this file.
 - End-to-end automatic-mastering WAV export returning the render trace and decision
   record alongside the committed destination.
 
+### Changed
+
+- Analysis service can analyse an already decoded stream, eliminating redundant decoding
+  for composed workflows such as automatic mastering.
+
 ## [0.9.0] - 2026-07-19
 
 ### Added
