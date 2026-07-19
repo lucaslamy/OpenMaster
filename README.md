@@ -1,8 +1,8 @@
-# OpenMaster v1.2.0
+# OpenMaster v2.0.0
 
-OpenMaster is an open-source professional audio mastering platform. v1.2 adds bounded,
-explainable reference matching to the auditable automatic-mastering workflow, assistant,
-and web-client foundations.
+OpenMaster is an open-source professional audio mastering platform. v2.0 adds
+balance-preserving stem-group mastering, explicit optional GPU compute, and isolated DSP
+plugins to the deterministic automatic-mastering workflow.
 
 ## Current capability
 
@@ -90,6 +90,13 @@ python -m packages.stem_mastering --mix mix.wav \
 
 All stems must have identical sample rate, frame count, and channel layout. Existing
 outputs require `--overwrite` explicitly.
+
+## Optional GPU and plugins
+
+The CPU float64 backend remains the reproducible reference. A CuPy backend is available
+only when explicitly selected by an integrator and when CuPy is installed; it never
+silently replaces CPU rendering. External DSP plugins execute in a timeout-bounded
+subprocess using validated NPY audio buffers and JSON configuration.
 
 ## Development
 

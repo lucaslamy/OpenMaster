@@ -35,6 +35,9 @@ returns an immutable `AnalysisResult`. It has no network, database, or API depen
 | `packages/dsp_engine` | Deterministic processors and auditable automatic-mastering workflow | v1.0 implemented |
 | `packages/mastering_assistant` | Explainable, deterministic recommendation and confidence layer | v1.1 implemented |
 | `packages/reference_matching` | Bounded reference comparison and recommendation layer | v1.2 implemented |
+| `packages/stem_mastering` | Balance-preserving aligned stem-group mastering | v2.0 implemented |
+| `packages/compute_backends` | Explicit CPU reference and optional GPU group-limiter backends | v2.0 implemented |
+| `packages/plugin_system` | Timeout-bounded isolated external DSP plugin execution | v2.0 implemented |
 | `apps/openmaster-worker` | Invoke analysis from a worker caller | Minimal adapter |
 | `apps/web` | Vue frontend and typed analysis-job client | v0.9 in progress |
 | `apps/openmaster-api` | HTTP boundary | Scaffold; requires service and persistence refactor |

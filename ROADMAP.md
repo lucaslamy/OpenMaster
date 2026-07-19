@@ -125,13 +125,22 @@ consume these review findings only through new explicit, independently tested se
 Goal: support stem mastering, optional GPU acceleration, and an isolated plugin system
 without weakening deterministic CPU execution.
 
-In progress: aligned stem groups can be rendered with one shared loudness decision and
-one group peak-limiter envelope, preserving their sample-by-sample sum and balance.
-The local CLI exports every named stem and its common decision record.
-The CPU float64 backend remains the canonical implementation; an optional CuPy backend
-can be selected explicitly for the same group-limiter operation.
-External processors run through an isolated NPY/JSON subprocess protocol with explicit
-manifest identity, timeout, and output validation.
+Released: `2.0.0`. Its supported scope is aligned stem-group rendering, explicit optional
+GPU execution of the group limiter, and external plugin isolation.
+
+Completed:
+
+- Named, aligned stem groups receive one shared automatic decision and sample-peak
+  limiter envelope; their sum and balance are preserved and CLI outputs are atomic WAVs.
+- NumPy float64 CPU backend remains canonical; an optional CuPy GPU implementation must
+  be selected explicitly and fails clearly when its dependency is unavailable.
+- Explicit plugin manifests run commands in timeout-bounded subprocesses using NPY audio
+  and JSON configuration; host-side validation rejects malformed, non-finite, or
+  shape-changing output.
+
+Post-release v2 work: validate CPU/GPU equivalence on supported GPU hardware, add signed
+plugin distribution and permissions, and broaden stem session metadata without weakening
+the alignment and deterministic-rendering contracts.
 
 ## Planning rules
 

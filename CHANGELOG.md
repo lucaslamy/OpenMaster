@@ -4,6 +4,8 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-07-19
+
 ### Added
 
 - Balance-preserving aligned stem-group mastering with one shared automatic policy and

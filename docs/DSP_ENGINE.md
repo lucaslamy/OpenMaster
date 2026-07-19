@@ -1,4 +1,4 @@
-# DSP engine (v1.2)
+# DSP engine (v2.0)
 
 ## Processor contract
 
@@ -27,6 +27,14 @@ or introduce hidden processor settings.
 The v1.2 reference matcher derives a loudness target only within its configured safe
 range, and preserves the assistant's gain bound. Its spectral and stereo comparisons
 are review findings, not unimplemented hidden DSP operations.
+
+## v2.0 execution extensions
+
+Stem-group mastering applies one static gain and one per-frame limiter envelope across
+all aligned stems, so their rendered sum stays protected without independent stem
+limiter balance shifts. The CPU NumPy implementation is canonical; CuPy acceleration is
+optional and explicit. External plugins run in a separate process over an NPY/JSON
+protocol and have their output shape and finite values validated by the host.
 
 ## Limiter limitation
 
