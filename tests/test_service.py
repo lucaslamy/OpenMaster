@@ -120,3 +120,26 @@ def test_command_line_interface_serializes_result_and_input_errors(tmp_path: Pat
     assert json.loads(success.stdout)["channels"] == 1
     assert failure.returncode == 2
     assert "does not exist" in json.loads(failure.stderr)["error"]
+
+
+def test_analyze_estimates_tempo_and_key_for_controlled_signals(tmp_path: Path) -> None:
+    sample_rate = 48_000
+    click_track = np.zeros(sample_rate * 10)
+    for start in range(0, click_track.size, sample_rate // 2):
+        click_track[start : start + 500] = np.hanning(500)
+    tempo_path = tmp_path / "clicks.wav"
+    _write_wav(tempo_path, click_track[:, np.newaxis])
+
+    time = np.arange(sample_rate * 4) / sample_rate
+    c_major = (
+        sum(np.sin(2 * np.pi * frequency * time) for frequency in (261.6256, 329.6276, 391.9954))
+        / 3
+    )
+    key_path = tmp_path / "c-major.wav"
+    _write_wav(key_path, c_major[:, np.newaxis])
+
+    tempo_result = AnalysisService().analyze(tempo_path)
+    key_result = AnalysisService().analyze(key_path)
+
+    assert tempo_result.bpm == pytest.approx(120.0, abs=1.0)
+    assert key_result.musical_key == "C major"

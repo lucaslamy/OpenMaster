@@ -29,7 +29,8 @@ client-safe HTTP responses.
 
 The regression suite synthesizes stereo, mono-silence, and 24-bit PCM WAV fixtures.
 It verifies level accuracy, metadata extraction, unavailable measurements for silence,
-and the typed failure modes for missing or unsupported files.
+tempo and key estimation on controlled signals, and typed failure modes for missing or
+unsupported files.
 
 ## Command line
 
