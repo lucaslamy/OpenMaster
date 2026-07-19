@@ -9,6 +9,7 @@ import numpy as np
 
 from packages.analysis_engine import AnalysisResult
 from packages.audio_core import DecodedAudio, FloatSamples
+from packages.compute_backends import ComputeBackend, NumpyComputeBackend
 from packages.dsp_engine import AutomaticMasteringService, MasteringDecision, MasteringPolicy
 
 
@@ -34,6 +35,10 @@ class StemMasteringResult:
 class StemGroupMasteringService:
     """Master aligned stems while preserving their sample-by-sample group balance."""
 
+    def __init__(self, backend: ComputeBackend | None = None) -> None:
+        """Use the explicit CPU reference backend unless another backend is selected."""
+        self._backend = backend or NumpyComputeBackend()
+
     def master(
         self,
         stems: Mapping[str, DecodedAudio],
@@ -45,17 +50,16 @@ class StemGroupMasteringService:
         effective_policy = policy or MasteringPolicy()
         decision = AutomaticMasteringService(effective_policy).decide(mix_analysis)
         gain = 10.0 ** (decision.settings.input_gain_db / 20.0)
-        gained_stems = tuple((name, audio.samples * gain) for name, audio in ordered_stems)
-        group_mix = np.sum([samples for _, samples in gained_stems], axis=0, dtype=np.float64)
         ceiling = 10.0 ** (decision.settings.ceiling_dbfs / 20.0)
-        frame_peaks = np.max(np.abs(group_mix), axis=1, keepdims=True)
-        group_gains = np.minimum(
-            1.0,
-            ceiling / np.maximum(frame_peaks, np.finfo(np.float64).tiny),
+        names = tuple(name for name, _ in ordered_stems)
+        rendered_samples = self._backend.render_group(
+            tuple(audio.samples for _, audio in ordered_stems),
+            gain=gain,
+            ceiling=ceiling,
         )
         rendered_stems = tuple(
-            MasteredStem(name, np.asarray(samples * group_gains, dtype=np.float64))
-            for name, samples in gained_stems
+            MasteredStem(name, samples)
+            for name, samples in zip(names, rendered_samples, strict=True)
         )
         return StemMasteringResult(
             stems=rendered_stems,

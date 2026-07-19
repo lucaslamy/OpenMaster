@@ -99,6 +99,13 @@ mix. Misaligned sample rates, frame counts, or channel layouts are rejected.
 The `python -m packages.stem_mastering` CLI writes each named output atomically and
 returns the full shared decision alongside the output paths as JSON.
 
+## Compute backends
+
+`packages/compute_backends` defines the group-limiter operation used by stem mastering.
+NumPy float64 on CPU is the canonical reference. CuPy is an explicitly requested,
+optional GPU backend; its absence raises a typed error and never silently changes a
+render to another device.
+
 ## Analysis pipeline
 
 1. Validate a regular local input file and recognized format.

@@ -10,6 +10,8 @@ All notable changes to OpenMaster are documented in this file.
   one linked group sample-peak limiter envelope.
 - Local stem-group mastering CLI with atomic named WAV exports and a serialized shared
   decision record.
+- Explicit CPU reference and optional CuPy GPU compute backends for the shared stem-group
+  limiter operation, with no implicit device fallback.
 
 ## [1.2.0] - 2026-07-19
 

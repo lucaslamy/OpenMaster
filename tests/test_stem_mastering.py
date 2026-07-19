@@ -11,6 +11,7 @@ import pytest
 
 from packages.analysis_engine import AnalysisResult
 from packages.audio_core import AudioMetadata, DecodedAudio
+from packages.compute_backends import BackendUnavailableError, resolve_compute_backend
 from packages.dsp_engine import MasteringPolicy
 from packages.stem_mastering import StemGroupMasteringService
 
@@ -41,6 +42,18 @@ def test_stem_group_mastering_rejects_misaligned_stems() -> None:
 
     with pytest.raises(ValueError, match="same frame and channel shape"):
         StemGroupMasteringService().master(stems, _analysis())
+
+
+def test_compute_backend_selection_is_explicit_and_cpu_is_available() -> None:
+    assert resolve_compute_backend().name == "cpu"
+    with pytest.raises(ValueError, match="cpu.*gpu"):
+        resolve_compute_backend("unknown")
+    try:
+        backend = resolve_compute_backend("gpu")
+    except BackendUnavailableError:
+        pass
+    else:
+        assert backend.name == "gpu"
 
 
 def test_stem_mastering_command_line_interface_exports_named_wavs(tmp_path: Path) -> None:
