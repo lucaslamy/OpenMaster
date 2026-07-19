@@ -16,6 +16,8 @@ All notable changes to OpenMaster are documented in this file.
   normalized-sample safety checks.
 - End-to-end automatic-mastering WAV export returning the render trace and decision
   record alongside the committed destination.
+- Local automatic-mastering CLI that decodes once, analyses, renders, exports WAV, and
+  emits a stable JSON audit record.
 
 ### Changed
 

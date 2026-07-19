@@ -63,6 +63,11 @@ samples and protects an existing destination unless replacement is explicitly re
 `AutomaticMasteringService.master_to_wav` composes this export with the rendered audio
 and returns both the output path and the full mastering decision record.
 
+The `python -m packages.dsp_engine` CLI is a local application boundary over that
+workflow. It decodes once, passes the decoded stream to analysis, and emits a stable
+JSON audit record; expected input, policy, and output failures use JSON stderr with
+exit code 2.
+
 ## Analysis pipeline
 
 1. Validate a regular local input file and recognized format.

@@ -40,6 +40,17 @@ python -m packages.analysis_engine mix.wav
 It prints a stable JSON object to standard output. Invalid or unsupported input is
 reported as JSON on standard error and exits with status code 2.
 
+The v1.0 work-in-progress automatic mastering flow is also available locally. It
+decodes the input once, analyses it, makes a bounded and auditable gain decision, and
+writes a protected PCM WAV output:
+
+```bash
+python -m packages.dsp_engine mix.wav master.wav --target-lufs -14
+```
+
+The command prints the analysis, policy decision, output path, and ordered processor
+trace as stable JSON. Existing output files require `--overwrite` explicitly.
+
 ## Development
 
 Requires Python 3.12+ and the dependencies declared in `pyproject.toml`.

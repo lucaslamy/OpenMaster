@@ -73,6 +73,8 @@ Measured sample-peak headroom further constrains upward gain before rendering.
 The audio core can now atomically export the validated render as integer PCM WAV.
 The automatic-mastering service exposes this as a single render-and-export operation
 that retains the associated decision record.
+The local CLI exposes the same one-decode workflow and returns a stable JSON audit
+record for automation.
 
 Exit criteria:
 

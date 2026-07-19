@@ -215,6 +215,34 @@ def test_command_line_interface_serializes_result_and_input_errors(tmp_path: Pat
     assert "does not exist" in json.loads(failure.stderr)["error"]
 
 
+def test_mastering_command_line_interface_exports_auditable_wav(tmp_path: Path) -> None:
+    audio_path = tmp_path / "mix.wav"
+    output_path = tmp_path / "master.wav"
+    _write_wav(audio_path, np.full((48_000, 1), 0.25))
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "packages.dsp_engine",
+            str(audio_path),
+            str(output_path),
+            "--target-lufs",
+            "-16",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    payload = json.loads(completed.stdout)
+
+    assert completed.returncode == 0
+    assert payload["output_path"] == str(output_path)
+    assert payload["processors"] == ["gain", "sample_peak_limiter"]
+    assert output_path.is_file()
+
+
 def test_analyze_estimates_tempo_and_key_for_controlled_signals(tmp_path: Path) -> None:
     sample_rate = 48_000
     click_track = np.zeros(sample_rate * 10)
