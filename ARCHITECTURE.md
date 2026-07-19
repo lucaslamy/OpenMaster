@@ -36,6 +36,7 @@ returns an immutable `AnalysisResult`. It has no network, database, or API depen
 | `apps/openmaster-worker` | Invoke analysis from a worker caller | Minimal adapter |
 | `apps/openmaster-api` | HTTP boundary | Scaffold; requires service and persistence refactor |
 | `packages/audio_core` | Reusable audio contracts, input safety, WAV and FFmpeg decoding | Implemented |
+| `packages/job_store` | Pure retry-safe analysis-job lifecycle contracts | Initial extraction |
 | Database, storage, auth, AI | Persistent platform concerns | Planned |
 
 Applications may depend on packages. Packages must not depend on applications. FastAPI
