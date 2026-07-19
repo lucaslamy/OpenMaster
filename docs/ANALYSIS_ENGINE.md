@@ -15,7 +15,8 @@ boundary lets future worker, export, and storage packages apply the same safety 
 ## Measurements
 
 Levels are expressed in dBFS except integrated loudness (LUFS). True peak uses 4x
-polyphase oversampling. Dynamic range is the 95th–10th percentile of 400 ms,
+polyphase oversampling. Integrated loudness sums the energy of mono or stereo channels
+before absolute and relative gating. Dynamic range is the 95th–10th percentile of 400 ms,
 75%-overlapped RMS windows. Stereo width is the side/mid RMS ratio; it is unavailable
 for mono. Phase correlation is the left/right Pearson coefficient.
 

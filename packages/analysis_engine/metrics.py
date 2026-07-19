@@ -93,7 +93,9 @@ def integrated_lufs(samples: FloatArray, sample_rate: int) -> float | None:
         return None
     hop = max(1, block // 4)
     starts = np.arange(0, weighted.shape[0] - block + 1, hop)
-    energies = np.array([np.mean(np.square(weighted[start : start + block])) for start in starts])
+    energies = np.array(
+        [np.sum(np.mean(np.square(weighted[start : start + block]), axis=0)) for start in starts]
+    )
     loudness = -0.691 + 10.0 * np.log10(np.maximum(energies, _EPSILON))
     absolute = energies[loudness >= -70.0]
     if absolute.size == 0:

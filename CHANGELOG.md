@@ -11,6 +11,7 @@ All notable changes to OpenMaster are documented in this file.
 - Added typed decoded-audio metadata and configurable decode-limit contracts.
 - Moved PCM and IEEE-float WAV decoder ownership into `audio_core` with a compatible
   analysis-engine adapter.
+- Corrected stereo integrated-loudness energy summation.
 
 ## [0.7.0-rc.1] - 2026-07-19
 

@@ -63,6 +63,22 @@ def test_analyze_stereo_sine_returns_signal_measurements(tmp_path: Path) -> None
     assert result.to_dict()["sample_rate_hz"] == sample_rate
 
 
+def test_integrated_loudness_sums_dual_mono_channel_energy(tmp_path: Path) -> None:
+    sample_rate = 48_000
+    time = np.arange(sample_rate * 5) / sample_rate
+    sine = 0.5 * np.sin(2 * np.pi * 1_000 * time)
+    mono_path = tmp_path / "mono.wav"
+    stereo_path = tmp_path / "dual-mono.wav"
+    _write_wav(mono_path, sine[:, np.newaxis])
+    _write_wav(stereo_path, np.column_stack((sine, sine)))
+
+    mono_lufs = AnalysisService().analyze(mono_path).lufs
+    stereo_lufs = AnalysisService().analyze(stereo_path).lufs
+
+    assert mono_lufs is not None
+    assert stereo_lufs == pytest.approx(mono_lufs + 3.0103, abs=0.02)
+
+
 def test_analyze_rejects_missing_and_unsupported_files(tmp_path: Path) -> None:
     service = AnalysisService()
     with pytest.raises(InvalidAudioFileError):
