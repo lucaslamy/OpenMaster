@@ -106,6 +106,13 @@ NumPy float64 on CPU is the canonical reference. CuPy is an explicitly requested
 optional GPU backend; its absence raises a typed error and never silently changes a
 render to another device.
 
+## Isolated plugins
+
+`packages/plugin_system` runs each explicitly configured plugin command in a temporary
+subprocess workspace. Audio crosses this boundary as non-pickled NPY buffers and
+configuration as finite JSON; output must retain the input shape and finite values.
+The host imposes a timeout and never imports third-party plugin code into its process.
+
 ## Analysis pipeline
 
 1. Validate a regular local input file and recognized format.

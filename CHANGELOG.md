@@ -12,6 +12,8 @@ All notable changes to OpenMaster are documented in this file.
   decision record.
 - Explicit CPU reference and optional CuPy GPU compute backends for the shared stem-group
   limiter operation, with no implicit device fallback.
+- Isolated external DSP plugin processor with explicit manifests, timeout-bounded
+subprocess execution, and strict NPY/JSON input-output validation.
 
 ## [1.2.0] - 2026-07-19
 

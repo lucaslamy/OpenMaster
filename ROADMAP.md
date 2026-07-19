@@ -130,6 +130,8 @@ one group peak-limiter envelope, preserving their sample-by-sample sum and balan
 The local CLI exports every named stem and its common decision record.
 The CPU float64 backend remains the canonical implementation; an optional CuPy backend
 can be selected explicitly for the same group-limiter operation.
+External processors run through an isolated NPY/JSON subprocess protocol with explicit
+manifest identity, timeout, and output validation.
 
 ## Planning rules
 
