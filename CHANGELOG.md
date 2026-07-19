@@ -4,6 +4,8 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-07-19
+
 ### Added
 
 - Traceable deterministic mastering baseline that applies explicit gain staging and

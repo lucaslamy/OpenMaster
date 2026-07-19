@@ -1,7 +1,8 @@
-# OpenMaster v0.9.0
+# OpenMaster v1.0.0
 
-OpenMaster is an open-source professional audio mastering platform. v0.9 adds the
-first stable Vue web-client foundation to the local analysis and DSP packages.
+OpenMaster is an open-source professional audio mastering platform. v1.0 adds an
+auditable, deterministic automatic-mastering workflow to the local analysis, DSP, and
+web-client foundations.
 
 ## Current capability
 

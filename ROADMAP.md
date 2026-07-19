@@ -63,25 +63,20 @@ Dependencies: typed API, authentication, storage, and job status from v0.7/v0.8.
 
 Goal: compose validated DSP processors into an auditable automatic-mastering workflow.
 
-In progress: the baseline orchestration exposes its full ordered processor trace and
-uses explicit gain and ceiling settings. It does not yet infer settings from analysis;
-that requires validated processor-control policy and additional DSP processors.
+Released: `1.0.0`. Its supported scope is deterministic automatic gain staging from
+integrated loudness, bounded by policy and sample-peak headroom, followed by a linked
+sample-peak safety limiter and PCM WAV export.
 
-Implemented policy slice: integrated loudness produces a target-gain recommendation,
-bounded by a configurable safety limit and recorded with its requested value and reason.
-Measured sample-peak headroom further constrains upward gain before rendering.
-The audio core can now atomically export the validated render as integer PCM WAV.
-The automatic-mastering service exposes this as a single render-and-export operation
-that retains the associated decision record.
-The local CLI exposes the same one-decode workflow and returns a stable JSON audit
-record for automation.
+Completed:
 
-Release-validation criteria:
+- One-decode local workflow: analysis, bounded decision, render, and atomic WAV export.
+- Serialized policy, requested and effective gain, peak-headroom constraint, and ordered
+  processor trace in the result and CLI JSON audit record.
+- Deterministic repeatability, sample-peak safety, and controlled-signal target-loudness
+  regression coverage.
 
-- Every automatic decision is serialized, bounded, and reproducible from analysis.
-- The render trace identifies processor order and effective settings.
-- Output validation covers peak safety, deterministic repeatability, and target
-  loudness behavior.
+Post-release mastering work: parametric EQ, compressor, stereo imager, saturation, and
+a lookahead true-peak limiter. v1.0 is not a loudness-compliance or true-peak guarantee.
 
 ## v1.1 — AI Master Assistant
 
