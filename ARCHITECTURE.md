@@ -48,6 +48,13 @@ returns an immutable `AnalysisResult`. It has no network, database, or API depen
 Applications may depend on packages. Packages must not depend on applications. FastAPI
 routes must call services; DSP and analysis logic must remain in packages.
 
+## Deployment foundation
+
+The `helm/openmaster` chart currently owns non-sensitive configuration and the explicit
+reference to the Kubernetes Secret managed by Vault/External Secrets. It never renders
+secret values. API, worker, data-service, and ingress workloads are being added in the
+same deployment release.
+
 ## Automatic mastering baseline
 
 `AutomaticMasteringService` consumes an immutable `AnalysisResult`, derives a bounded

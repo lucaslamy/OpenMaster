@@ -1,0 +1,36 @@
+global:
+  environment: development
+  imagePullSecrets: []
+
+externalSecrets:
+  enabled: false
+  existingSecretName: ""
+
+image:
+  registry: registry.example.com
+  repository: openmaster
+  tag: "2.0.0"
+  pullPolicy: IfNotPresent
+
+api:
+  image: ""
+  replicaCount: 1
+  service:
+    port: 8000
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+
+config:
+  logLevel: INFO
+  maxUploadBytes: "2147483648"
+  corsOrigins: ""
+  processingRetries: "3"
+
+ingress:
+  enabled: false
+  className: traefik
+  host: ""
+  tls:
+    enabled: false
+    secretName: ""

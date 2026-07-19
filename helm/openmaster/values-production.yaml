@@ -1,0 +1,14 @@
+global:
+  environment: production
+
+externalSecrets:
+  enabled: true
+  existingSecretName: openmaster-secrets
+
+ingress:
+  enabled: true
+  className: traefik
+  host: REPLACE_WITH_DOMAIN
+  tls:
+    enabled: true
+    secretName: openmaster-tls

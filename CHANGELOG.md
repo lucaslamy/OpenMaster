@@ -8,6 +8,8 @@ All notable changes to OpenMaster are documented in this file.
 
 - FastAPI production boundary with Kubernetes-safe liveness and readiness endpoints and
   a non-root multi-stage API image.
+- Initial k3s Helm chart foundation with secret-free values, Vault-managed Secret name
+  validation, non-sensitive ConfigMap, and hardened ServiceAccount.
 
 ## [2.0.0] - 2026-07-19
 
