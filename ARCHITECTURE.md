@@ -68,6 +68,13 @@ workflow. It decodes once, passes the decoded stream to analysis, and emits a st
 JSON audit record; expected input, policy, and output failures use JSON stderr with
 exit code 2.
 
+## Mastering assistant
+
+`packages/mastering_assistant` is a deterministic advisory layer over immutable
+analysis and the v1.0 policy. It returns the exact policy and effective decision it
+recommends, a bounded confidence score, and individual findings. It performs no hidden
+audio processing and does not require an external model or network connection.
+
 ## Analysis pipeline
 
 1. Validate a regular local input file and recognized format.

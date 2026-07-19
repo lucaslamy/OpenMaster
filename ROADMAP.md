@@ -83,6 +83,10 @@ a lookahead true-peak limiter. v1.0 is not a loudness-compliance or true-peak gu
 Goal: recommend deterministic processor settings with explainable confidence and no
 hidden DSP decisions.
 
+In progress: a local recommendation service converts analysis into an explicit mastering
+policy, effective settings, confidence score, and human-readable findings. It does not
+invoke an external model or alter audio; rendering remains an explicit v1.0 operation.
+
 ## v1.2 — Reference matching
 
 Goal: compare an input with a selected reference and produce bounded, explainable DSP

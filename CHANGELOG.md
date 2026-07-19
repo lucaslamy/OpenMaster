@@ -4,6 +4,11 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Deterministic mastering-assistant recommendations with serialized policy and settings,
+  bounded confidence, and explicit loudness, headroom, and phase findings.
+
 ## [1.0.0] - 2026-07-19
 
 ### Added
