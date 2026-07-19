@@ -8,6 +8,7 @@ All notable changes to OpenMaster are documented in this file.
 
 - Initial Vue and TypeScript web client with typed analysis-job submission flow.
 - Node 22 CI checks for the Vue client test and production build.
+- Automatic analysis-job polling and result rendering in the Vue client.
 
 ## [0.8.0] - 2026-07-19
 

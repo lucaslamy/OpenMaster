@@ -8,6 +8,10 @@ export interface AnalysisJob {
   error_message?: string;
 }
 
+export function isTerminalStatus(status: AnalysisJob["status"]): boolean {
+  return status === "succeeded" || status === "failed";
+}
+
 export class AnalysisApiClient {
   public constructor(private readonly baseUrl = "/v1") {}
 

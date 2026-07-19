@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { AnalysisApiClient } from "./analysis";
+import { AnalysisApiClient, isTerminalStatus } from "./analysis";
 
 describe("AnalysisApiClient", () => {
   it("submits an upload with the idempotency key", async () => {
@@ -17,5 +17,11 @@ describe("AnalysisApiClient", () => {
       "/v1/analysis-jobs",
       expect.objectContaining({ headers: { "Idempotency-Key": "key-1" }, method: "POST" }),
     );
+  });
+
+  it("identifies terminal job states", () => {
+    expect(isTerminalStatus("queued")).toBe(false);
+    expect(isTerminalStatus("succeeded")).toBe(true);
+    expect(isTerminalStatus("failed")).toBe(true);
   });
 });
