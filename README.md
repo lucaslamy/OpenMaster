@@ -1,7 +1,7 @@
-# OpenMaster v0.7.0-alpha.1
+# OpenMaster v0.7.0-rc.1
 
-OpenMaster is an open-source professional audio mastering platform. This first v0.7
-increment replaces the analysis scaffold with a deterministic CPU analysis engine.
+OpenMaster is an open-source professional audio mastering platform. The v0.7 release
+candidate provides a deterministic CPU analysis engine for evaluation and integration.
 
 ## Current capability
 

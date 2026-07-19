@@ -8,6 +8,9 @@ because a scaffold exists.
 
 Goal: provide a deterministic, locally executable analysis foundation.
 
+Current release: `0.7.0-rc.1`. It is suitable for evaluation, integration, and
+reference-corpus work; it is not a final mastering-compliance release.
+
 Completed:
 
 - Typed analysis result and input-error model.
