@@ -27,6 +27,13 @@ spec:
   - metadata: {name: data}
     spec: {accessModes: [ReadWriteOnce], resources: {requests: {storage: {{ .Values.postgresql.storage }}}}}
 {{- end }}
+{{- if not .Values.postgresql.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: {{ include "openmaster.fullname" . }}-postgres}
+spec: {type: ExternalName, externalName: {{ required "postgresql.externalHost is required when disabled" .Values.postgresql.externalHost }}}
+{{- end }}
 ---
 {{- if .Values.redis.enabled }}
 apiVersion: v1
@@ -50,6 +57,13 @@ spec:
         readinessProbe: {tcpSocket: {port: redis}}
         livenessProbe: {tcpSocket: {port: redis}}
         securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+{{- end }}
+{{- if not .Values.redis.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: {{ include "openmaster.fullname" . }}-redis}
+spec: {type: ExternalName, externalName: {{ required "redis.externalHost is required when disabled" .Values.redis.externalHost }}}
 {{- end }}
 ---
 {{- if .Values.minio.enabled }}
@@ -81,4 +95,11 @@ spec:
   volumeClaimTemplates:
   - metadata: {name: data}
     spec: {accessModes: [ReadWriteOnce], resources: {requests: {storage: {{ .Values.minio.storage }}}}}
+{{- end }}
+{{- if not .Values.minio.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: {{ include "openmaster.fullname" . }}-minio}
+spec: {type: ExternalName, externalName: {{ required "minio.externalHost is required when disabled" .Values.minio.externalHost }}}
 {{- end }}
