@@ -13,6 +13,8 @@ All notable changes to OpenMaster are documented in this file.
   analysis-engine adapter.
 - Corrected stereo integrated-loudness energy summation.
 - Corrected half-tempo selection for controlled high-tempo click tracks.
+- Moved FFmpeg decoding ownership into `audio_core` with a compatible analysis-engine
+  adapter.
 
 ## [0.7.0-rc.1] - 2026-07-19
 
