@@ -24,3 +24,9 @@ The decoder accepts regular local PCM WAV files only and caps an input at 120 mi
 sample values before allocation. Invalid input raises a typed analysis exception; it
 is never silently interpreted as audio. The API layer should map these exceptions to
 client-safe HTTP responses.
+
+## Verification
+
+The regression suite synthesizes stereo, mono-silence, and 24-bit PCM WAV fixtures.
+It verifies level accuracy, metadata extraction, unavailable measurements for silence,
+and the typed failure modes for missing or unsupported files.

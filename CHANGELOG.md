@@ -2,6 +2,12 @@
 
 All notable changes to OpenMaster are documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Regression coverage for silent mono and 24-bit PCM WAV analysis.
+
 ## [0.7.0-alpha.1] - 2026-07-19
 
 ### Added

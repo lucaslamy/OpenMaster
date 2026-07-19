@@ -19,6 +19,21 @@ def _write_wav(path: Path, samples: np.ndarray, sample_rate: int = 48_000) -> No
         target.writeframes(pcm.astype("<i2").tobytes())
 
 
+def _write_24_bit_wav(path: Path, samples: np.ndarray, sample_rate: int = 48_000) -> None:
+    """Write normalized samples as little-endian signed 24-bit PCM WAV."""
+    pcm = np.clip(samples, -1.0, 1.0 - 1 / 8388608) * 8388608
+    values = pcm.astype(np.int32).reshape(-1)
+    encoded = np.empty((values.size, 3), dtype=np.uint8)
+    encoded[:, 0] = values & 0xFF
+    encoded[:, 1] = (values >> 8) & 0xFF
+    encoded[:, 2] = (values >> 16) & 0xFF
+    with wave.open(str(path), "wb") as target:
+        target.setnchannels(samples.shape[1])
+        target.setsampwidth(3)
+        target.setframerate(sample_rate)
+        target.writeframes(encoded.tobytes())
+
+
 def test_analyze_stereo_sine_returns_signal_measurements(tmp_path: Path) -> None:
     sample_rate = 48_000
     time = np.arange(sample_rate * 2) / sample_rate
@@ -51,3 +66,31 @@ def test_analyze_rejects_missing_and_unsupported_files(tmp_path: Path) -> None:
     unsupported.write_bytes(b"not audio")
     with pytest.raises(UnsupportedAudioFormatError):
         service.analyze(unsupported)
+
+
+def test_analyze_mono_silence_has_safe_unavailable_measurements(tmp_path: Path) -> None:
+    audio_path = tmp_path / "silence.wav"
+    _write_wav(audio_path, np.zeros((48_000, 1)))
+
+    result = AnalysisService().analyze(audio_path)
+
+    assert result.channels == 1
+    assert result.lufs is None
+    assert result.bpm is None
+    assert result.musical_key is None
+    assert result.stereo_width is None
+    assert result.phase_correlation is None
+    assert result.dynamic_range_db == 0.0
+
+
+def test_analyze_24_bit_pcm_preserves_metadata_and_level(tmp_path: Path) -> None:
+    sample_rate = 48_000
+    time = np.arange(sample_rate) / sample_rate
+    audio_path = tmp_path / "tone-24.wav"
+    _write_24_bit_wav(audio_path, (0.25 * np.sin(2 * np.pi * 1_000 * time))[:, np.newaxis])
+
+    result = AnalysisService().analyze(audio_path)
+
+    assert result.bit_depth == 24
+    assert result.channels == 1
+    assert result.rms_dbfs == pytest.approx(-15.05, abs=0.1)
