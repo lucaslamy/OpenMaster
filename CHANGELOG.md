@@ -15,6 +15,7 @@ All notable changes to OpenMaster are documented in this file.
 - IEEE-float 32/64-bit WAV decoding with finite-sample validation.
 - GitHub Actions quality workflow for formatting, linting, typing, and tests.
 - Root-level roadmap and architecture documentation, plus completed agent guidance.
+- Explicit setuptools package discovery for installable shared Python packages.
 
 ## [0.7.0-alpha.1] - 2026-07-19
 

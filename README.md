@@ -33,6 +33,7 @@ reported as JSON on standard error and exits with status code 2.
 Requires Python 3.12+ and the dependencies declared in `pyproject.toml`.
 
 ```bash
+python -m pip install -e ".[dev]"
 python -m pytest
 python -m ruff check .
 python -m black --check .
