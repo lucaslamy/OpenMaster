@@ -1,4 +1,4 @@
-# DSP engine (v1.1)
+# DSP engine (v1.2)
 
 ## Processor contract
 
@@ -23,6 +23,10 @@ headroom constraint so an identical input and policy reproduce the same output.
 The v1.1 mastering assistant is advisory only. It produces the same explicit policy
 and decision contract with confidence and findings; it does not bypass this workflow
 or introduce hidden processor settings.
+
+The v1.2 reference matcher derives a loudness target only within its configured safe
+range, and preserves the assistant's gain bound. Its spectral and stereo comparisons
+are review findings, not unimplemented hidden DSP operations.
 
 ## Limiter limitation
 

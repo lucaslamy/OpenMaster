@@ -4,6 +4,8 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-19
+
 ### Added
 
 - Local reference-matching service with bounded reference-loudness targets, serialized

@@ -104,19 +104,21 @@ bounded by this explicit recommendation contract and preserve offline determinis
 Goal: compare an input with a selected reference and produce bounded, explainable DSP
 recommendations.
 
-In progress: a local reference-matching service compares loudness, dynamic range,
-spectral centroid, and stereo metrics. It derives only a policy-bounded loudness target;
-spectral and stereo differences remain review findings until dedicated processors exist.
-The local CLI serializes both analyses and the complete versioned recommendation.
+Released: `1.2.0`. Its supported scope is bounded local reference-aware loudness
+recommendation and reviewable measurement comparison.
 
-Release-validation criteria:
+Completed:
 
-- Input/reference comparisons and recommendations are reproducible for the same
-  immutable analyses and policy.
-- Reference loudness never escapes the configured target range; gain never escapes its
-  configured adjustment bound.
-- Every derived loudness setting, comparison delta, and non-gain review finding is
-  serialized; no EQ or stereo change is applied implicitly.
+- One-decode-per-file input/reference comparison for loudness, dynamic range, spectral
+  centroid, stereo width, and phase correlation.
+- Reference loudness target constrained to an explicit safe range; gain constrained by
+  the existing v1.1 assistant policy and peak safety limits.
+- Versioned comparison document and CLI containing every policy, delta, recommendation,
+  confidence score, and review finding.
+- Deterministic repeatability and policy-bound regression coverage.
+
+Post-release matching work: validated EQ, dynamics, and stereo-imaging processors may
+consume these review findings only through new explicit, independently tested settings.
 
 ## v2.0 — Stems, acceleration, plugins
 
