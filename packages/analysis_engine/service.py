@@ -2,7 +2,8 @@
 
 from pathlib import Path
 
-from .ffmpeg_decoder import SUPPORTED_FORMATS, read_with_ffmpeg
+from packages.audio_core import decode_audio
+
 from .metrics import (
     dynamic_range_db,
     estimate_bpm,
@@ -17,7 +18,6 @@ from .metrics import (
     true_peak_dbfs,
 )
 from .models import AnalysisResult
-from .wav_reader import FloatSamples, read_wav
 
 
 class AnalysisService:
@@ -25,24 +25,18 @@ class AnalysisService:
 
     def analyze(self, path: str | Path) -> AnalysisResult:
         """Validate and analyse one audio file, returning all available v0.7 measurements."""
-        audio_path = Path(path)
-        samples: FloatSamples
-        sample_rate: int
-        bit_depth: int | None
-        if audio_path.suffix.lower() in {".wav", ".wave"}:
-            samples, sample_rate, bit_depth = read_wav(audio_path)
-        elif audio_path.suffix.lower() in SUPPORTED_FORMATS:
-            samples, sample_rate, bit_depth = read_with_ffmpeg(audio_path)
-        else:
-            samples, sample_rate, bit_depth = read_wav(audio_path)
+        decoded = decode_audio(path)
+        samples = decoded.samples
+        metadata = decoded.metadata
+        sample_rate = metadata.sample_rate_hz
         mono = mono_mix(samples)
         rms = rms_dbfs(samples)
         peak = peak_dbfs(samples)
         return AnalysisResult(
-            duration_seconds=samples.shape[0] / sample_rate,
+            duration_seconds=metadata.duration_seconds,
             sample_rate_hz=sample_rate,
-            bit_depth=bit_depth,
-            channels=samples.shape[1],
+            bit_depth=metadata.bit_depth,
+            channels=metadata.channels,
             lufs=integrated_lufs(samples, sample_rate),
             rms_dbfs=rms,
             peak_dbfs=peak,

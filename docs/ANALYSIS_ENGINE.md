@@ -3,10 +3,10 @@
 ## Architecture
 
 `AnalysisService` is the application-facing coordinator. It delegates PCM and
-IEEE-float WAV decoding to `wav_reader`, other supported formats to the isolated
-`ffmpeg_decoder`, and independent numerical measurements to `metrics`, then returns
-the immutable `AnalysisResult` model. This keeps worker and future API code free of
-DSP logic and makes every calculation directly unit-testable.
+IEEE-float WAV decoding and other supported formats to `audio_core.decode_audio`, and
+independent numerical measurements to `metrics`, then returns the immutable
+`AnalysisResult` model. This keeps worker and future API code free of DSP logic and
+makes every calculation directly unit-testable.
 
 Reusable input-path validation, typed input errors, and resource limits live in
 `packages.audio_core`. The analysis engine owns orchestration and measurements; this

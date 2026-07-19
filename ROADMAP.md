@@ -25,8 +25,8 @@ Remaining release work:
 - Validate every measurement against an approved reference corpus and document error
   tolerances, especially LUFS, true peak, BPM, and musical key.
 - Stream long audio rather than retaining the entire decoded signal in memory.
-- Complete extraction of the reusable `audio_core` package for decoding and metadata
-  (input validation and resource limits have been extracted).
+- Complete long-file streaming and shared export primitives in `audio_core`; decoder,
+  metadata, input validation, and resource-limit contracts are now extracted.
 - Expose the analysis job through a typed API, persistent job model, and worker.
 
 Exit criteria: all measurements have reference-corpus coverage, analysis jobs are

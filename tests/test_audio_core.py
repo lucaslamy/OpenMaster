@@ -6,7 +6,15 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from packages.audio_core import AudioMetadata, DecodedAudio, DecodeLimits, decode_wav
+from packages.audio_core import (
+    AudioMetadata,
+    DecodedAudio,
+    DecodeLimits,
+    InvalidAudioFileError,
+    UnsupportedAudioFormatError,
+    decode_audio,
+    decode_wav,
+)
 
 
 def test_audio_metadata_derives_duration() -> None:
@@ -45,3 +53,12 @@ def test_decode_wav_returns_audio_core_contract(tmp_path: Path) -> None:
 
     assert decoded.samples.shape == (48_000, 1)
     assert decoded.metadata.duration_seconds == 1.0
+
+
+def test_decode_audio_validates_path_before_format(tmp_path: Path) -> None:
+    with pytest.raises(InvalidAudioFileError):
+        decode_audio(tmp_path / "missing.unknown")
+    unsupported = tmp_path / "audio.unknown"
+    unsupported.write_bytes(b"not audio")
+    with pytest.raises(UnsupportedAudioFormatError):
+        decode_audio(unsupported)
