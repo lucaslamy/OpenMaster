@@ -107,6 +107,7 @@ recommendations.
 In progress: a local reference-matching service compares loudness, dynamic range,
 spectral centroid, and stereo metrics. It derives only a policy-bounded loudness target;
 spectral and stereo differences remain review findings until dedicated processors exist.
+The local CLI serializes both analyses and the complete versioned recommendation.
 
 ## v2.0 — Stems, acceleration, plugins
 

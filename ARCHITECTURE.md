@@ -86,6 +86,8 @@ Recommendation documents carry an explicit schema version for integration compat
 the reference loudness to an explicit safe range, delegates the resulting gain decision
 to the v1.1 assistant, and serializes every comparison delta and finding. Spectral and
 stereo differences are advisory only: no EQ or imaging is silently introduced.
+The `python -m packages.reference_matching` CLI decodes and analyses both inputs once,
+then emits the complete versioned comparison document as JSON.
 
 ## Analysis pipeline
 

@@ -8,6 +8,8 @@ All notable changes to OpenMaster are documented in this file.
 
 - Local reference-matching service with bounded reference-loudness targets, serialized
   comparison metrics, and explainable spectral and stereo review findings.
+- Local reference-matching CLI that analyzes both files once and emits a versioned JSON
+  comparison document without applying implicit EQ or stereo processing.
 
 ## [1.1.0] - 2026-07-19
 

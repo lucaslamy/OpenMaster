@@ -1,5 +1,12 @@
 """Tests for bounded, explainable reference-matching recommendations."""
 
+import json
+import subprocess
+import sys
+import wave
+from pathlib import Path
+
+import numpy as np
 import pytest
 
 from packages.analysis_engine import AnalysisResult
@@ -46,6 +53,32 @@ def test_reference_match_policy_rejects_invalid_bounds() -> None:
         ReferenceMatchPolicy(minimum_target_lufs=-8.0, maximum_target_lufs=-20.0)
 
 
+def test_reference_matching_command_line_interface_serializes_comparison(tmp_path: Path) -> None:
+    input_path = tmp_path / "input.wav"
+    reference_path = tmp_path / "reference.wav"
+    _write_wav(input_path, 1_000)
+    _write_wav(reference_path, 4_000)
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "packages.reference_matching",
+            str(input_path),
+            str(reference_path),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    payload = json.loads(completed.stdout)
+
+    assert completed.returncode == 0
+    assert payload["recommendation"]["schema_version"] == "1.2"
+    assert payload["recommendation"]["assistant_recommendation"] is not None
+
+
 def _analysis(
     *,
     lufs: float | None,
@@ -69,3 +102,11 @@ def _analysis(
         phase_correlation=1.0,
         spectral_centroid_hz=centroid_hz,
     )
+
+
+def _write_wav(path: Path, amplitude: int) -> None:
+    with wave.open(str(path), "wb") as output:
+        output.setnchannels(1)
+        output.setsampwidth(2)
+        output.setframerate(48_000)
+        output.writeframes(np.full(48_000, amplitude, dtype="<i2").tobytes())

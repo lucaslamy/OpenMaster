@@ -65,6 +65,19 @@ python -m packages.mastering_assistant mix.wav --target-lufs -14
 It has no network or model dependency. Its JSON output is intended for review and
 automation, not as an untraceable DSP decision.
 
+## Reference matching
+
+The v1.2 reference-matching workflow compares a mix with a selected reference and
+produces a policy-bounded loudness recommendation plus spectral and stereo review
+findings. It does not apply EQ or stereo processing implicitly:
+
+```bash
+python -m packages.reference_matching mix.wav reference.wav
+```
+
+The selected reference can never force a target outside the configured LUFS range or
+an unbounded gain correction.
+
 ## Development
 
 Requires Python 3.12+ and the dependencies declared in `pyproject.toml`.
