@@ -1,6 +1,7 @@
 """Regression tests for the public analysis service."""
 
 import json
+import shutil
 import subprocess
 import sys
 import wave
@@ -65,10 +66,14 @@ def test_analyze_rejects_missing_and_unsupported_files(tmp_path: Path) -> None:
     service = AnalysisService()
     with pytest.raises(InvalidAudioFileError):
         service.analyze(tmp_path / "missing.wav")
-    unsupported = tmp_path / "audio.mp3"
+    unsupported = tmp_path / "audio.txt"
     unsupported.write_bytes(b"not audio")
     with pytest.raises(UnsupportedAudioFormatError):
         service.analyze(unsupported)
+    corrupt = tmp_path / "corrupt.mp3"
+    corrupt.write_bytes(b"not audio")
+    with pytest.raises(InvalidAudioFileError):
+        service.analyze(corrupt)
 
 
 def test_analyze_mono_silence_has_safe_unavailable_measurements(tmp_path: Path) -> None:
@@ -143,3 +148,25 @@ def test_analyze_estimates_tempo_and_key_for_controlled_signals(tmp_path: Path) 
 
     assert tempo_result.bpm == pytest.approx(120.0, abs=1.0)
     assert key_result.musical_key == "C major"
+
+
+@pytest.mark.skipif(
+    shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None,
+    reason="FFmpeg and FFprobe are required for compressed-format integration tests",
+)
+def test_analyze_flac_with_ffmpeg_decoder(tmp_path: Path) -> None:
+    source_path = tmp_path / "source.wav"
+    _write_wav(source_path, np.full((48_000, 1), 0.25))
+    flac_path = tmp_path / "source.flac"
+    subprocess.run(
+        ["ffmpeg", "-v", "error", "-y", "-i", str(source_path), str(flac_path)],
+        check=True,
+        capture_output=True,
+    )
+
+    result = AnalysisService().analyze(flac_path)
+
+    assert result.sample_rate_hz == 48_000
+    assert result.channels == 1
+    assert result.duration_seconds == pytest.approx(1.0)
+    assert result.rms_dbfs == pytest.approx(-12.04, abs=0.1)

@@ -10,7 +10,7 @@ class AnalysisResult:
 
     duration_seconds: float
     sample_rate_hz: int
-    bit_depth: int
+    bit_depth: int | None
     channels: int
     lufs: float | None
     rms_dbfs: float

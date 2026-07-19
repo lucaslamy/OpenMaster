@@ -5,11 +5,11 @@ increment replaces the analysis scaffold with a deterministic CPU analysis engin
 
 ## Current capability
 
-`AnalysisService` accepts integer PCM WAV files (8/16/24/32 bit) and returns typed
-metadata plus duration, sample rate, bit depth, channels, LUFS, RMS, sample and true
-peak, dynamic range, crest factor, BPM, key, stereo width, phase correlation, and
-spectral centroid. The analysis is local, deterministic, and has no network or GPU
-dependency.
+`AnalysisService` accepts integer PCM WAV files (8/16/24/32 bit) plus AIFF, FLAC,
+M4A, MP3, OGG, and Opus through FFmpeg. It returns typed metadata plus duration,
+sample rate, bit depth (when encoded), channels, LUFS, RMS, sample and true peak,
+dynamic range, crest factor, BPM, key, stereo width, phase correlation, and spectral
+centroid. The analysis is local, deterministic, and has no network or GPU dependency.
 
 ```python
 from packages.analysis_engine import AnalysisService
@@ -40,7 +40,8 @@ python -m mypy packages
 
 ## Current limits
 
-The built-in decoder intentionally supports PCM WAV only. Production support for
-compressed and lossless formats will be added through a validated FFmpeg-based audio
-core decoder. Loudness, tempo, and key are deterministic estimates; results should be
-validated against a reference corpus before they are used as compliance measurements.
+Compressed and lossless formats require the `ffmpeg` and `ffprobe` executables. Their
+streams are validated for a known duration, channel count, sample rate, finite samples,
+and the analysis allocation limit before measurements run. Loudness, tempo, and key are
+deterministic estimates; results should be validated against a reference corpus before
+they are used as compliance measurements.

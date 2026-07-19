@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from .ffmpeg_decoder import SUPPORTED_FORMATS, read_with_ffmpeg
 from .metrics import (
     dynamic_range_db,
     estimate_bpm,
@@ -16,7 +17,7 @@ from .metrics import (
     true_peak_dbfs,
 )
 from .models import AnalysisResult
-from .wav_reader import read_wav
+from .wav_reader import FloatSamples, read_wav
 
 
 class AnalysisService:
@@ -24,7 +25,16 @@ class AnalysisService:
 
     def analyze(self, path: str | Path) -> AnalysisResult:
         """Validate and analyse one audio file, returning all available v0.7 measurements."""
-        samples, sample_rate, bit_depth = read_wav(path)
+        audio_path = Path(path)
+        samples: FloatSamples
+        sample_rate: int
+        bit_depth: int | None
+        if audio_path.suffix.lower() in {".wav", ".wave"}:
+            samples, sample_rate, bit_depth = read_wav(audio_path)
+        elif audio_path.suffix.lower() in SUPPORTED_FORMATS:
+            samples, sample_rate, bit_depth = read_with_ffmpeg(audio_path)
+        else:
+            samples, sample_rate, bit_depth = read_wav(audio_path)
         mono = mono_mix(samples)
         rms = rms_dbfs(samples)
         peak = peak_dbfs(samples)

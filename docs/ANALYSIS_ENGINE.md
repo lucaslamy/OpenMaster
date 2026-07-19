@@ -2,10 +2,11 @@
 
 ## Architecture
 
-`AnalysisService` is the application-facing coordinator. It delegates decoding to
-`wav_reader` and independent numerical measurements to `metrics`, then returns the
-immutable `AnalysisResult` model. This keeps worker and future API code free of DSP
-logic and makes every calculation directly unit-testable.
+`AnalysisService` is the application-facing coordinator. It delegates PCM WAV decoding
+to `wav_reader`, other supported formats to the isolated `ffmpeg_decoder`, and
+independent numerical measurements to `metrics`, then returns the immutable
+`AnalysisResult` model. This keeps worker and future API code free of DSP logic and
+makes every calculation directly unit-testable.
 
 ## Measurements
 
@@ -20,17 +21,19 @@ when a clip is too short or has insufficient musical content.
 
 ## Input safety and limits
 
-The decoder accepts regular local PCM WAV files only and caps an input at 120 million
-sample values before allocation. Invalid input raises a typed analysis exception; it
-is never silently interpreted as audio. The API layer should map these exceptions to
-client-safe HTTP responses.
+The decoder accepts regular local PCM WAV files plus AIFF, FLAC, M4A, MP3, OGG, and
+Opus when FFmpeg is installed. It caps an input at 120 million sample values before
+allocation. Invalid input raises a typed analysis exception; it is never silently
+interpreted as audio. The API layer should map these exceptions to client-safe HTTP
+responses.
 
 ## Verification
 
 The regression suite synthesizes stereo, mono-silence, and 24-bit PCM WAV fixtures.
 It verifies level accuracy, metadata extraction, unavailable measurements for silence,
 tempo and key estimation on controlled signals, and typed failure modes for missing or
-unsupported files.
+unsupported files. When FFmpeg is available, it also validates an end-to-end FLAC
+decode before signal analysis.
 
 ## Command line
 

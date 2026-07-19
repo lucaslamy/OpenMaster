@@ -18,9 +18,7 @@ def read_wav(path: str | Path) -> tuple[FloatSamples, int, int]:
     The returned matrix has shape ``(frames, channels)`` and values in [-1, 1].
     A bounded input prevents a malformed file from forcing unbounded allocation.
     """
-    audio_path = Path(path)
-    if not audio_path.is_file():
-        raise InvalidAudioFileError(f"Audio file does not exist: {audio_path}")
+    audio_path = validate_audio_path(path)
     if audio_path.suffix.lower() not in {".wav", ".wave"}:
         raise UnsupportedAudioFormatError("Only PCM WAV input is supported by this decoder")
 
@@ -46,6 +44,14 @@ def read_wav(path: str | Path) -> tuple[FloatSamples, int, int]:
     if samples.size != expected_values:
         raise InvalidAudioFileError("WAV data length does not match its header")
     return samples.reshape(frames, channels), sample_rate, sample_width * 8
+
+
+def validate_audio_path(path: str | Path) -> Path:
+    """Validate that an input points to a regular local file."""
+    audio_path = Path(path)
+    if not audio_path.is_file():
+        raise InvalidAudioFileError(f"Audio file does not exist: {audio_path}")
+    return audio_path
 
 
 def _decode_pcm(raw: bytes, sample_width: int) -> FloatSamples:
