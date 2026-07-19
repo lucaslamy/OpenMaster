@@ -52,6 +52,19 @@ python -m packages.dsp_engine mix.wav master.wav --target-lufs -14
 The command prints the analysis, policy decision, output path, and ordered processor
 trace as stable JSON. Existing output files require `--overwrite` explicitly.
 
+## Mastering assistant
+
+The v1.1 assistant is an explainable local recommendation layer. It does not render or
+alter audio; it reports the exact policy and effective settings that can be passed to
+the mastering workflow, with a deterministic confidence score and reasons:
+
+```bash
+python -m packages.mastering_assistant mix.wav --target-lufs -14
+```
+
+It has no network or model dependency. Its JSON output is intended for review and
+automation, not as an untraceable DSP decision.
+
 ## Development
 
 Requires Python 3.12+ and the dependencies declared in `pyproject.toml`.

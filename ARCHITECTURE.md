@@ -75,6 +75,9 @@ analysis and the v1.0 policy. It returns the exact policy and effective decision
 recommends, a bounded confidence score, and individual findings. It performs no hidden
 audio processing and does not require an external model or network connection.
 
+The `python -m packages.mastering_assistant` CLI exposes the same read-only workflow:
+decode once, analyse once, then serialize analysis and its recommendation as JSON.
+
 ## Analysis pipeline
 
 1. Validate a regular local input file and recognized format.

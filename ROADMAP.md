@@ -86,6 +86,7 @@ hidden DSP decisions.
 In progress: a local recommendation service converts analysis into an explicit mastering
 policy, effective settings, confidence score, and human-readable findings. It does not
 invoke an external model or alter audio; rendering remains an explicit v1.0 operation.
+The local assistant CLI exposes this recommendation as a stable JSON document.
 
 ## v1.2 — Reference matching
 

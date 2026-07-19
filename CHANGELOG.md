@@ -8,6 +8,8 @@ All notable changes to OpenMaster are documented in this file.
 
 - Deterministic mastering-assistant recommendations with serialized policy and settings,
   bounded confidence, and explicit loudness, headroom, and phase findings.
+- Local assistant CLI that emits analysis and reviewable mastering recommendations as
+  stable JSON without modifying audio.
 
 ## [1.0.0] - 2026-07-19
 

@@ -1,5 +1,12 @@
 """Tests for explainable deterministic mastering recommendations."""
 
+import json
+import subprocess
+import sys
+import wave
+from pathlib import Path
+
+import numpy as np
 import pytest
 
 from packages.analysis_engine import AnalysisResult
@@ -36,6 +43,28 @@ def test_assistant_warns_about_negative_phase_without_hidden_stereo_change() -> 
     assert recommendation.decision.settings.input_gain_db == pytest.approx(4.0)
     assert recommendation.confidence == 0.95
     assert recommendation.findings[-1].code == "phase_warning"
+
+
+def test_assistant_command_line_interface_prints_json_recommendation(tmp_path: Path) -> None:
+    audio_path = tmp_path / "mix.wav"
+    with wave.open(str(audio_path), "wb") as output:
+        output.setnchannels(1)
+        output.setsampwidth(2)
+        output.setframerate(48_000)
+        output.writeframes(np.full(48_000, 2_000, dtype="<i2").tobytes())
+
+    completed = subprocess.run(
+        [sys.executable, "-m", "packages.mastering_assistant", str(audio_path)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    payload = json.loads(completed.stdout)
+
+    assert completed.returncode == 0
+    assert payload["recommendation"]["decision"]["policy"]["target_lufs"] == -14.0
+    assert payload["recommendation"]["findings"]
 
 
 def _analysis(
