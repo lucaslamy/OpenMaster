@@ -4,6 +4,8 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-07-19
+
 ### Added
 
 - Initial Vue and TypeScript web client with typed analysis-job submission flow.

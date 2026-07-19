@@ -1,7 +1,7 @@
-# OpenMaster v0.8.0
+# OpenMaster v0.9.0
 
-OpenMaster is an open-source professional audio mastering platform. v0.8 adds the
-first stable deterministic DSP foundation to the local analysis engine.
+OpenMaster is an open-source professional audio mastering platform. v0.9 adds the
+first stable Vue web-client foundation to the local analysis and DSP packages.
 
 ## Current capability
 
@@ -11,6 +11,12 @@ duration, sample rate, bit depth (when encoded), channels, LUFS, RMS, sample and
 peak, dynamic range, crest factor, BPM, key, stereo width, phase correlation, and
 spectral centroid. The analysis is local, deterministic, and has no network or GPU
 dependency.
+
+## Web client
+
+The Vue client in `apps/web` submits analysis jobs, polls non-terminal job states, and
+renders returned analysis results or errors. It expects the versioned analysis-job API
+contract documented in its typed client.
 
 ## DSP foundation
 

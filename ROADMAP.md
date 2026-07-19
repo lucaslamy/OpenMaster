@@ -51,7 +51,11 @@ Dependencies: completed v0.7 reference validation and `audio-core` extraction.
 Goal: deliver a Vue user interface for upload, job progress, analysis visualization,
 and deterministic mastering controls.
 
-In progress: typed Vue client and analysis-job submission screen.
+Released: `0.9.0`. Its supported scope is the typed Vue analysis-job client with upload,
+polling, result rendering, and Node CI.
+
+Post-release web work: persistent API integration, authentication, rich analysis
+visualization, accessible job-history views, and deterministic mastering controls.
 
 Dependencies: typed API, authentication, storage, and job status from v0.7/v0.8.
 
