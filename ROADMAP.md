@@ -67,6 +67,9 @@ In progress: the baseline orchestration exposes its full ordered processor trace
 uses explicit gain and ceiling settings. It does not yet infer settings from analysis;
 that requires validated processor-control policy and additional DSP processors.
 
+Implemented policy slice: integrated loudness produces a target-gain recommendation,
+bounded by a configurable safety limit and recorded with its requested value and reason.
+
 Exit criteria:
 
 - Every automatic decision is serialized, bounded, and reproducible from analysis.

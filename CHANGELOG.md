@@ -8,6 +8,8 @@ All notable changes to OpenMaster are documented in this file.
 
 - Traceable deterministic mastering baseline that applies explicit gain staging and
   linked sample-peak protection, and returns the processor order with rendered audio.
+- Bounded automatic loudness-gain policy with an auditable requested/effective setting
+  record and a deterministic render integration.
 
 ## [0.9.0] - 2026-07-19
 

@@ -3,11 +3,14 @@
 import numpy as np
 import pytest
 
+from packages.analysis_engine.models import AnalysisResult
 from packages.dsp_engine import (
+    AutomaticMasteringService,
     DeterministicMasteringService,
     DspPipeline,
     GainProcessor,
     LimiterProcessor,
+    MasteringPolicy,
     MasteringSettings,
 )
 
@@ -61,3 +64,43 @@ def test_mastering_service_reports_deterministic_processor_order() -> None:
     assert result.applied_processors == ("gain", "sample_peak_limiter")
     assert np.max(np.abs(result.samples)) == pytest.approx(10 ** (-1.0 / 20.0))
     assert samples == pytest.approx(np.array([[1.0], [0.25]], dtype=np.float64))
+
+
+def test_automatic_mastering_bounds_loudness_gain_and_records_decision() -> None:
+    analysis = _analysis_result(lufs=-30.0)
+    service = AutomaticMasteringService(MasteringPolicy(maximum_gain_adjustment_db=6.0))
+
+    result = service.master(np.array([[0.25]], dtype=np.float64), 48_000, analysis)
+
+    assert result.decision.requested_gain_db == pytest.approx(16.0)
+    assert result.decision.settings.input_gain_db == pytest.approx(6.0)
+    assert result.decision.gain_was_bounded is True
+    assert result.render.applied_processors == ("gain", "sample_peak_limiter")
+
+
+def test_automatic_mastering_preserves_gain_when_loudness_is_unavailable() -> None:
+    decision = AutomaticMasteringService().decide(_analysis_result(lufs=None))
+
+    assert decision.settings.input_gain_db == 0.0
+    assert decision.requested_gain_db is None
+    assert "unavailable" in decision.reason
+
+
+def _analysis_result(lufs: float | None) -> AnalysisResult:
+    return AnalysisResult(
+        duration_seconds=1.0,
+        sample_rate_hz=48_000,
+        bit_depth=24,
+        channels=2,
+        lufs=lufs,
+        rms_dbfs=-18.0,
+        peak_dbfs=-3.0,
+        true_peak_dbfs=-3.0,
+        dynamic_range_db=9.0,
+        crest_factor_db=6.0,
+        bpm=None,
+        musical_key=None,
+        stereo_width=0.5,
+        phase_correlation=1.0,
+        spectral_centroid_hz=1_000.0,
+    )
