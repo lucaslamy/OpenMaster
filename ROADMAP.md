@@ -38,7 +38,8 @@ compliance or real-music accuracy claims.
 Goal: provide independently testable EQ, compression, stereo, saturation, limiting,
 and export processors with reproducible parameter sets.
 
-In progress: deterministic processor contract, composition pipeline, and gain staging.
+In progress: deterministic processor contract, composition pipeline, gain staging, and
+linked sample-peak limiting.
 
 Dependencies: completed v0.7 reference validation and `audio-core` extraction.
 

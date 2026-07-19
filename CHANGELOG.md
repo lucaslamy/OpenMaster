@@ -8,6 +8,7 @@ All notable changes to OpenMaster are documented in this file.
 
 - Initial v0.8 deterministic DSP processor contract, composition pipeline, and gain
   staging processor.
+- Linked deterministic sample-peak limiter with stereo-link regression coverage.
 
 ## [0.7.0] - 2026-07-19
 
