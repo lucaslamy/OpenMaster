@@ -50,3 +50,9 @@ tests:
     asserts:
       - isKind:
           of: Ingress
+  - it: runs migration after first-install resources are ready
+    template: templates/migration-job.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/hook"]
+          value: post-install,pre-upgrade

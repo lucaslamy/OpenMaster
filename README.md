@@ -117,6 +117,8 @@ external PostgreSQL, Redis, and MinIO, Vault-synchronized secrets, strict networ
 policies, migrations, autoscaling, disruption budgets, and atomic operational scripts.
 See `docs/deployment/`, including the
 [French k3s deployment guide](docs/deployment/k3s-quickstart.fr.md).
+The [French project-flow guide](docs/PROJECT_FLOW.fr.md) diagrams the architecture and
+explains each processing stage from input validation through mastering and export.
 
 The Vue client lives in `apps/web` and uses Node.js 22:
 

@@ -4,6 +4,11 @@ Ce guide déploie OpenMaster v2.1 sur un cluster k3s avec Helm. Il utilise les s
 PostgreSQL, Redis et MinIO internes au chart. Pour une production à haute disponibilité,
 utilisez plutôt des services managés externes et consultez la section dédiée plus bas.
 
+Le schéma d’architecture et le parcours détaillé d’un morceau sont présentés dans
+[`../PROJECT_FLOW.fr.md`](../PROJECT_FLOW.fr.md). À ce stade, le chart déploie
+l’infrastructure, mais le workflow web distribué complet n’est pas encore raccordé ;
+le traitement audio de bout en bout est utilisable localement en ligne de commande.
+
 ## 1. Prérequis
 
 Depuis la machine d'administration du cluster :
@@ -33,7 +38,7 @@ Le registre doit être accessible par tous les nœuds k3s. Remplacez les variabl
 ci-dessous par votre registre et votre version :
 
 ```bash
-export REGISTRY=registry.example.com/openmaster
+export REGISTRY=harbor.lucaslamy.fr/private/openmaster
 export VERSION=2.1.0
 
 docker build -f Dockerfile.api -t "${REGISTRY}/api:${VERSION}" .
@@ -142,13 +147,13 @@ externalSecrets:
   existingSecretName: openmaster-secrets
 
 api:
-  image: registry.example.com/openmaster/api:2.1.0
+  image: harbor.lucaslamy.fr/private/openmaster/api:2.1.0
 
 web:
-  image: registry.example.com/openmaster/web:2.1.0
+  image: harbor.lucaslamy.fr/private/openmaster/web:2.1.0
 
 workers:
-  image: registry.example.com/openmaster/api:2.1.0
+  image: harbor.lucaslamy.fr/private/openmaster/api:2.1.0
 
 postgresql:
   persistence:
@@ -162,11 +167,11 @@ minio:
 
 ingress:
   enabled: true
-  className: traefik
+  className: nginx
   controllerNamespace: kube-system
   controllerPodLabels:
-    app.kubernetes.io/name: traefik
-  host: openmaster.example.com
+    app.kubernetes.io/name: nginx
+  host: openmaster.lucaslamy.fr
   tls:
     enabled: true
     secretName: openmaster-tls
@@ -209,8 +214,11 @@ deployment/scripts/preflight-check.sh
 deployment/scripts/deploy.sh
 ```
 
-Le déploiement est atomique. Helm exécute d'abord la migration Alembic, attend les
-rollouts et restaure automatiquement la release précédente en cas d'échec.
+Le déploiement est atomique. Lors d'une première installation, Helm attend que les
+services — notamment PostgreSQL interne — soient disponibles, puis exécute la migration
+Alembic comme hook `post-install`. Lors d'une mise à niveau, la base existe déjà et la
+migration s'exécute en `pre-upgrade`. Helm restaure automatiquement la release
+précédente en cas d'échec.
 
 ## 7. Vérifier l'installation
 

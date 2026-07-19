@@ -11,6 +11,11 @@ Migration hook failures are visible with `kubectl logs job/openmaster-openmaster
 -n openmaster`. Verify `DATABASE_URL`, connectivity, and database permissions; do not
 print the Secret.
 
+A first-install migration ending with `DeadlineExceeded` can indicate an outdated chart
+that used a `pre-install` hook before internal PostgreSQL existed. Current charts use
+`post-install,pre-upgrade`. Verify with `helm template` and update the checkout before
+retrying.
+
 DNS failures under NetworkPolicy usually mean the cluster's DNS labels differ from the
 defaults. Inspect CoreDNS labels and update `networkPolicy.dns`. External database,
 Redis, or MinIO timeouts require explicit destination CIDRs under
