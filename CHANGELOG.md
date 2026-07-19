@@ -16,6 +16,7 @@ All notable changes to OpenMaster are documented in this file.
 - GitHub Actions quality workflow for formatting, linting, typing, and tests.
 - Root-level roadmap and architecture documentation, plus completed agent guidance.
 - Explicit setuptools package discovery for installable shared Python packages.
+- Ignore generated Python build metadata and distributions.
 
 ## [0.7.0-alpha.1] - 2026-07-19
 
