@@ -148,3 +148,9 @@ the alignment and deterministic-rendering contracts.
 - Prefer a vertical slice with tests over a broad layer of scaffolds.
 - Add new work to this roadmap with an outcome, dependency, and measurable exit
   criterion.
+
+## Deployment follow-up
+
+- TODO: migrate the production ingress configuration from Traefik to NGINX Ingress when
+  the target cluster standardizes on NGINX; preserve `/api` and `/` routing, TLS,
+  upload-size limits, and timeout behavior, then validate the rendered manifests.

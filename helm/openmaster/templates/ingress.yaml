@@ -16,4 +16,7 @@ spec:
           - path: /api
             pathType: Prefix
             backend: {service: {name: {{ include "openmaster.fullname" . }}-api, port: {name: http}}}
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: {{ include "openmaster.fullname" . }}-web, port: {number: 80}}}
 {{- end }}

@@ -1,0 +1,84 @@
+{{- if .Values.postgresql.enabled }}
+apiVersion: v1
+kind: Service
+metadata: {name: {{ include "openmaster.fullname" . }}-postgres}
+spec: {selector: {app: {{ include "openmaster.fullname" . }}-postgres}, ports: [{port: 5432, targetPort: postgres}]}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: {name: {{ include "openmaster.fullname" . }}-postgres}
+spec:
+  serviceName: {{ include "openmaster.fullname" . }}-postgres
+  selector: {matchLabels: {app: {{ include "openmaster.fullname" . }}-postgres}}
+  template:
+    metadata: {labels: {app: {{ include "openmaster.fullname" . }}-postgres}}
+    spec:
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+      - name: postgres
+        image: {{ .Values.postgresql.image }}
+        ports: [{name: postgres, containerPort: 5432}]
+        envFrom: [{secretRef: {name: {{ include "openmaster.secretName" . }}}}]
+        volumeMounts: [{name: data, mountPath: /var/lib/postgresql/data}]
+        readinessProbe: {tcpSocket: {port: postgres}}
+        livenessProbe: {tcpSocket: {port: postgres}}
+        securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+  volumeClaimTemplates:
+  - metadata: {name: data}
+    spec: {accessModes: [ReadWriteOnce], resources: {requests: {storage: {{ .Values.postgresql.storage }}}}}
+{{- end }}
+---
+{{- if .Values.redis.enabled }}
+apiVersion: v1
+kind: Service
+metadata: {name: {{ include "openmaster.fullname" . }}-redis}
+spec: {selector: {app: {{ include "openmaster.fullname" . }}-redis}, ports: [{port: 6379, targetPort: redis}]}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: {{ include "openmaster.fullname" . }}-redis}
+spec:
+  selector: {matchLabels: {app: {{ include "openmaster.fullname" . }}-redis}}
+  template:
+    metadata: {labels: {app: {{ include "openmaster.fullname" . }}-redis}}
+    spec:
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+      - name: redis
+        image: {{ .Values.redis.image }}
+        ports: [{name: redis, containerPort: 6379}]
+        readinessProbe: {tcpSocket: {port: redis}}
+        livenessProbe: {tcpSocket: {port: redis}}
+        securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+{{- end }}
+---
+{{- if .Values.minio.enabled }}
+apiVersion: v1
+kind: Service
+metadata: {name: {{ include "openmaster.fullname" . }}-minio}
+spec: {selector: {app: {{ include "openmaster.fullname" . }}-minio}, ports: [{port: 9000, targetPort: api}]}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: {name: {{ include "openmaster.fullname" . }}-minio}
+spec:
+  serviceName: {{ include "openmaster.fullname" . }}-minio
+  selector: {matchLabels: {app: {{ include "openmaster.fullname" . }}-minio}}
+  template:
+    metadata: {labels: {app: {{ include "openmaster.fullname" . }}-minio}}
+    spec:
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+      - name: minio
+        image: {{ .Values.minio.image }}
+        args: [server, /data]
+        ports: [{name: api, containerPort: 9000}]
+        envFrom: [{secretRef: {name: {{ include "openmaster.secretName" . }}}}]
+        volumeMounts: [{name: data, mountPath: /data}]
+        readinessProbe: {tcpSocket: {port: api}}
+        livenessProbe: {tcpSocket: {port: api}}
+        securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+  volumeClaimTemplates:
+  - metadata: {name: data}
+    spec: {accessModes: [ReadWriteOnce], resources: {requests: {storage: {{ .Values.minio.storage }}}}}
+{{- end }}
