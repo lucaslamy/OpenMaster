@@ -38,8 +38,11 @@ compliance or real-music accuracy claims.
 Goal: provide independently testable EQ, compression, stereo, saturation, limiting,
 and export processors with reproducible parameter sets.
 
-In progress: deterministic processor contract, composition pipeline, gain staging, and
-linked sample-peak limiting.
+Released: `0.8.0`. Its supported scope is the deterministic processor foundation,
+composition pipeline, fixed gain staging, and linked sample-peak limiting.
+
+Post-release DSP work: parametric EQ, compressor, stereo imager, saturation, a
+lookahead true-peak limiter, and export primitives.
 
 Dependencies: completed v0.7 reference validation and `audio-core` extraction.
 

@@ -1,7 +1,7 @@
-# OpenMaster v0.7.0
+# OpenMaster v0.8.0
 
-OpenMaster is an open-source professional audio mastering platform. v0.7 delivers the
-first stable deterministic CPU analysis engine for local use and integration.
+OpenMaster is an open-source professional audio mastering platform. v0.8 adds the
+first stable deterministic DSP foundation to the local analysis engine.
 
 ## Current capability
 
@@ -11,6 +11,12 @@ duration, sample rate, bit depth (when encoded), channels, LUFS, RMS, sample and
 peak, dynamic range, crest factor, BPM, key, stereo width, phase correlation, and
 spectral centroid. The analysis is local, deterministic, and has no network or GPU
 dependency.
+
+## DSP foundation
+
+`packages.dsp_engine` provides a typed processor contract, ordered deterministic
+pipelines, fixed gain staging, and linked sample-peak limiting. See
+`docs/DSP_ENGINE.md` for its exact behavior and current limiter limitations.
 
 ```python
 from packages.analysis_engine import AnalysisService
