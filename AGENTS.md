@@ -418,35 +418,31 @@ A task is complete only if:
 
 ## v0.7
 
-Complete analysis engine.
+Complete the analysis engine and establish a reliable Python quality baseline.
 
 ## v0.8
 
-Complete DSP chain.
+Complete the deterministic DSP chain.
 
 ## v0.9
 
-Vue frontend.
+Deliver the Vue frontend.
 
 ## v1.0
 
-Automatic mastering.
+Deliver automatic mastering.
 
 ## v1.1
 
-AI Master Assistant.
+Deliver the AI Master Assistant.
 
 ## v1.2
 
-Reference Matching.
+Deliver reference matching.
 
 ## v2.0
 
-Stem mastering.
-
-GPU acceleration.
-
-Plugin system.
+Deliver stem mastering, GPU acceleration, and the plugin system.
 
 ---
 
@@ -456,13 +452,26 @@ When modifying the repository:
 
 1. Understand the existing architecture before coding.
 2. Prefer improving existing modules over creating duplicates.
-3. Keep commits focused.
+3. Keep commits focused and use Conventional Commits.
 4. Refactor when it clearly improves maintainability.
-5. Never leave intentionally broken code.
+5. Never leave intentionally broken code or a false implementation.
 6. Keep the project buildable after every commit.
 7. Update documentation whenever behavior changes.
 8. Add tests for new behavior whenever practical.
-9. Explain architectural trade-offs in commit messages or ADRs when significant.
+9. Explain significant architectural trade-offs in an ADR or commit message.
 10. Optimize for long-term maintainability over short-term speed.
 
-OpenMaster should evolve as a professional open-source platform, not as a collection of isolated features.
+---
+
+# 26. Living Project Guidance
+
+`AGENTS.md` is the development contract. Keep it concise enough to be actionable and
+extend it when a decision repeatedly affects implementation work. Record substantial,
+time-bound technical decisions in `docs/adr/` and link their enduring rules here.
+
+`ROADMAP.md` is the source of truth for scope and sequencing. `ARCHITECTURE.md`
+describes the current system, not an aspirational one. Update all three documents when
+a change alters their respective contracts.
+
+OpenMaster should evolve as a professional open-source platform, not as a collection
+of isolated features.
