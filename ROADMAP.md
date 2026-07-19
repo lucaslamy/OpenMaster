@@ -125,6 +125,9 @@ consume these review findings only through new explicit, independently tested se
 Goal: support stem mastering, optional GPU acceleration, and an isolated plugin system
 without weakening deterministic CPU execution.
 
+In progress: aligned stem groups can be rendered with one shared loudness decision and
+one group peak-limiter envelope, preserving their sample-by-sample sum and balance.
+
 ## Planning rules
 
 - Do not start a version by adding its UI before its package-level contracts exist.

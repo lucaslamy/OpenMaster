@@ -90,6 +90,13 @@ stereo differences are advisory only: no EQ or imaging is silently introduced.
 The `python -m packages.reference_matching` CLI decodes and analyses both inputs once,
 then emits the complete versioned comparison document as JSON.
 
+## Stem-group mastering
+
+`packages/stem_mastering` accepts a non-empty, frame-aligned group of decoded stems.
+It applies the same static gain and same per-frame group limiter envelope to every stem.
+The rendered stems therefore preserve their group balance and sum to the protected group
+mix. Misaligned sample rates, frame counts, or channel layouts are rejected.
+
 ## Analysis pipeline
 
 1. Validate a regular local input file and recognized format.

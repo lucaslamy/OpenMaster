@@ -4,6 +4,11 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Balance-preserving aligned stem-group mastering with one shared automatic policy and
+  one linked group sample-peak limiter envelope.
+
 ## [1.2.0] - 2026-07-19
 
 ### Added
