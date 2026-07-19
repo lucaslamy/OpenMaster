@@ -38,6 +38,8 @@ compliance or real-music accuracy claims.
 Goal: provide independently testable EQ, compression, stereo, saturation, limiting,
 and export processors with reproducible parameter sets.
 
+In progress: deterministic processor contract, composition pipeline, and gain staging.
+
 Dependencies: completed v0.7 reference validation and `audio-core` extraction.
 
 ## v0.9 — Web application

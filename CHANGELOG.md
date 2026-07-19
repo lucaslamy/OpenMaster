@@ -4,6 +4,11 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Initial v0.8 deterministic DSP processor contract, composition pipeline, and gain
+  staging processor.
+
 ## [0.7.0] - 2026-07-19
 
 ### Changed

@@ -32,7 +32,7 @@ returns an immutable `AnalysisResult`. It has no network, database, or API depen
 | Component | Responsibility | Current state |
 | --- | --- | --- |
 | `packages/analysis_engine` | Decode orchestration and deterministic measurements | Implemented |
-| `packages/dsp_engine` | Ordered mastering-stage definition | Scaffold; v0.8 scope |
+| `packages/dsp_engine` | Deterministic processor contracts, pipelines, and gain staging | v0.8 in progress |
 | `apps/openmaster-worker` | Invoke analysis from a worker caller | Minimal adapter |
 | `apps/openmaster-api` | HTTP boundary | Scaffold; requires service and persistence refactor |
 | `packages/audio_core` | Reusable audio contracts, input safety, WAV and FFmpeg decoding | Implemented |
