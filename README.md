@@ -115,7 +115,8 @@ The same checks run on every push and pull request in GitHub Actions using Pytho
 Production deployment uses the chart in `helm/openmaster`. It supports internal or
 external PostgreSQL, Redis, and MinIO, Vault-synchronized secrets, strict network
 policies, migrations, autoscaling, disruption budgets, and atomic operational scripts.
-See `docs/deployment/`.
+See `docs/deployment/`, including the
+[French k3s deployment guide](docs/deployment/k3s-quickstart.fr.md).
 
 The Vue client lives in `apps/web` and uses Node.js 22:
 

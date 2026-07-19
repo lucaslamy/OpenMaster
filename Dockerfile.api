@@ -12,6 +12,8 @@ WORKDIR /app
 COPY --from=build /wheels /wheels
 RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
 COPY apps ./apps
+COPY alembic.ini ./
+COPY alembic ./alembic
 USER openmaster
 EXPOSE 8000
 CMD ["python", "-m", "uvicorn", "apps.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

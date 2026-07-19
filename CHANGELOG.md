@@ -4,6 +4,11 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- API/worker image now includes the Alembic runtime files and PostgreSQL driver required
+  by the Helm migration Job.
+
 ## [2.1.0] - 2026-07-19
 
 ### Added
