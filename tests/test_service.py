@@ -9,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from scipy.io import wavfile
 
 from packages.analysis_engine import AnalysisService
 from packages.analysis_engine.exceptions import InvalidAudioFileError, UnsupportedAudioFormatError
@@ -102,6 +103,20 @@ def test_analyze_24_bit_pcm_preserves_metadata_and_level(tmp_path: Path) -> None
     assert result.bit_depth == 24
     assert result.channels == 1
     assert result.rms_dbfs == pytest.approx(-15.05, abs=0.1)
+
+
+def test_analyze_32_bit_float_wav(tmp_path: Path) -> None:
+    sample_rate = 48_000
+    time = np.arange(sample_rate) / sample_rate
+    audio_path = tmp_path / "tone-float.wav"
+    samples = (0.5 * np.sin(2 * np.pi * 440 * time)).astype(np.float32)
+    wavfile.write(audio_path, sample_rate, samples)
+
+    result = AnalysisService().analyze(audio_path)
+
+    assert result.bit_depth == 32
+    assert result.channels == 1
+    assert result.rms_dbfs == pytest.approx(-9.03, abs=0.1)
 
 
 def test_command_line_interface_serializes_result_and_input_errors(tmp_path: Path) -> None:

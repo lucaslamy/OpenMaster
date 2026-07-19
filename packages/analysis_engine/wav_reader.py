@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 from numpy.typing import NDArray
+from scipy.io import wavfile
 
 from .exceptions import InvalidAudioFileError, UnsupportedAudioFormatError
 
@@ -37,13 +38,34 @@ def read_wav(path: str | Path) -> tuple[FloatSamples, int, int]:
                 raise InvalidAudioFileError("Audio file exceeds the analysis sample limit")
             raw = source.readframes(frames)
     except wave.Error as error:
-        raise InvalidAudioFileError(f"Invalid WAV file: {audio_path}") from error
+        return _read_wav_with_scipy(audio_path, error)
 
     samples = _decode_pcm(raw, sample_width)
     expected_values = frames * channels
     if samples.size != expected_values:
         raise InvalidAudioFileError("WAV data length does not match its header")
     return samples.reshape(frames, channels), sample_rate, sample_width * 8
+
+
+def _read_wav_with_scipy(path: Path, original_error: wave.Error) -> tuple[FloatSamples, int, int]:
+    """Read IEEE-float WAV data that the standard :mod:`wave` module rejects."""
+    try:
+        sample_rate, source_samples = wavfile.read(path)
+    except (OSError, ValueError):
+        raise InvalidAudioFileError(f"Invalid WAV file: {path}") from original_error
+    samples = np.asarray(source_samples)
+    if samples.ndim == 1:
+        samples = samples[:, np.newaxis]
+    if samples.ndim != 2 or samples.shape[0] < 1 or samples.shape[1] < 1 or sample_rate < 1:
+        raise InvalidAudioFileError("WAV file has invalid audio dimensions")
+    if samples.size > MAX_SAMPLE_VALUES:
+        raise InvalidAudioFileError("Audio file exceeds the analysis sample limit")
+    if samples.dtype.kind != "f" or samples.dtype.itemsize not in {4, 8}:
+        raise InvalidAudioFileError(f"Invalid WAV file: {path}")
+    normalized = samples.astype(np.float64, copy=False)
+    if not np.isfinite(normalized).all():
+        raise InvalidAudioFileError("WAV file contains non-finite samples")
+    return normalized, int(sample_rate), samples.dtype.itemsize * 8
 
 
 def validate_audio_path(path: str | Path) -> Path:

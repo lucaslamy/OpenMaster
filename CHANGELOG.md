@@ -12,6 +12,7 @@ All notable changes to OpenMaster are documented in this file.
 - FFmpeg/FFprobe decoder for AIFF, FLAC, M4A, MP3, OGG, and Opus input.
 - End-to-end FLAC decoder regression coverage when FFmpeg is installed.
 - FFmpeg decode duration bound derived from validated FFprobe metadata.
+- IEEE-float 32/64-bit WAV decoding with finite-sample validation.
 
 ## [0.7.0-alpha.1] - 2026-07-19
 

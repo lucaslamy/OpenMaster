@@ -5,11 +5,12 @@ increment replaces the analysis scaffold with a deterministic CPU analysis engin
 
 ## Current capability
 
-`AnalysisService` accepts integer PCM WAV files (8/16/24/32 bit) plus AIFF, FLAC,
-M4A, MP3, OGG, and Opus through FFmpeg. It returns typed metadata plus duration,
-sample rate, bit depth (when encoded), channels, LUFS, RMS, sample and true peak,
-dynamic range, crest factor, BPM, key, stereo width, phase correlation, and spectral
-centroid. The analysis is local, deterministic, and has no network or GPU dependency.
+`AnalysisService` accepts PCM WAV (8/16/24/32 bit), IEEE-float WAV (32/64 bit), plus
+AIFF, FLAC, M4A, MP3, OGG, and Opus through FFmpeg. It returns typed metadata plus
+duration, sample rate, bit depth (when encoded), channels, LUFS, RMS, sample and true
+peak, dynamic range, crest factor, BPM, key, stereo width, phase correlation, and
+spectral centroid. The analysis is local, deterministic, and has no network or GPU
+dependency.
 
 ```python
 from packages.analysis_engine import AnalysisService
