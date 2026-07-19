@@ -44,6 +44,8 @@ def read_with_ffmpeg(path: str | Path) -> tuple[FloatSamples, int, int | None]:
                 str(audio_path),
                 "-map",
                 "0:a:0",
+                "-t",
+                str(duration),
                 "-f",
                 "f64le",
                 "-acodec",

@@ -42,6 +42,7 @@ python -m mypy packages
 
 Compressed and lossless formats require the `ffmpeg` and `ffprobe` executables. Their
 streams are validated for a known duration, channel count, sample rate, finite samples,
-and the analysis allocation limit before measurements run. Loudness, tempo, and key are
-deterministic estimates; results should be validated against a reference corpus before
-they are used as compliance measurements.
+and the analysis allocation limit before measurements run. FFmpeg decoding is also
+bounded to the probed stream duration. Loudness, tempo, and key are deterministic
+estimates; results should be validated against a reference corpus before they are used
+as compliance measurements.

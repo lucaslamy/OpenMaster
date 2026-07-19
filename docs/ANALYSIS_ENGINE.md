@@ -23,9 +23,9 @@ when a clip is too short or has insufficient musical content.
 
 The decoder accepts regular local PCM WAV files plus AIFF, FLAC, M4A, MP3, OGG, and
 Opus when FFmpeg is installed. It caps an input at 120 million sample values before
-allocation. Invalid input raises a typed analysis exception; it is never silently
-interpreted as audio. The API layer should map these exceptions to client-safe HTTP
-responses.
+allocation and bounds FFmpeg decoding to the duration reported by FFprobe. Invalid
+input raises a typed analysis exception; it is never silently interpreted as audio. The
+API layer should map these exceptions to client-safe HTTP responses.
 
 ## Verification
 
