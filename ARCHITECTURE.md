@@ -55,6 +55,12 @@ linked sample-peak ceiling.
 This is deliberately a narrow, deterministic policy rather than an opaque AI model.
 The ceiling is a sample-peak guard, not a true-peak compliance guarantee.
 
+## Audio export
+
+`audio_core.encode_wav` writes a normalized float buffer as 16-, 24-, or 32-bit PCM
+WAV through an atomic same-directory replacement. It rejects non-finite or out-of-range
+samples and protects an existing destination unless replacement is explicitly requested.
+
 ## Analysis pipeline
 
 1. Validate a regular local input file and recognized format.

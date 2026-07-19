@@ -12,6 +12,8 @@ All notable changes to OpenMaster are documented in this file.
   record and a deterministic render integration.
 - Automatic gain now considers measured sample-peak headroom before rendering, reducing
   avoidable limiter engagement.
+- Atomic PCM WAV export for 16-, 24-, and 32-bit mastered output with overwrite and
+  normalized-sample safety checks.
 
 ## [0.9.0] - 2026-07-19
 

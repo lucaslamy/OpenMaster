@@ -70,6 +70,7 @@ that requires validated processor-control policy and additional DSP processors.
 Implemented policy slice: integrated loudness produces a target-gain recommendation,
 bounded by a configurable safety limit and recorded with its requested value and reason.
 Measured sample-peak headroom further constrains upward gain before rendering.
+The audio core can now atomically export the validated render as integer PCM WAV.
 
 Exit criteria:
 

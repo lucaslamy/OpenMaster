@@ -7,6 +7,7 @@ from .input_validation import MAX_SAMPLE_VALUES, validate_audio_path
 from .limits import DEFAULT_DECODE_LIMITS, DecodeLimits
 from .models import AudioMetadata, DecodedAudio, FloatSamples
 from .wav_decoder import WAV_SUFFIXES, decode_wav
+from .wav_encoder import encode_wav
 
 __all__ = [
     "AudioInputError",
@@ -22,6 +23,7 @@ __all__ = [
     "SUPPORTED_AUDIO_SUFFIXES",
     "WAV_SUFFIXES",
     "decode_wav",
+    "encode_wav",
     "decode_audio",
     "decode_with_ffmpeg",
     "validate_audio_path",

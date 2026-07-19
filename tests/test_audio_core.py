@@ -14,6 +14,7 @@ from packages.audio_core import (
     UnsupportedAudioFormatError,
     decode_audio,
     decode_wav,
+    encode_wav,
 )
 
 
@@ -62,3 +63,30 @@ def test_decode_audio_validates_path_before_format(tmp_path: Path) -> None:
     unsupported.write_bytes(b"not audio")
     with pytest.raises(UnsupportedAudioFormatError):
         decode_audio(unsupported)
+
+
+def test_encode_wav_round_trips_24_bit_stereo_audio(tmp_path: Path) -> None:
+    path = tmp_path / "master.wav"
+    samples = np.array([[-1.0, 1.0], [-0.25, 0.25]], dtype=np.float64)
+
+    output = encode_wav(path, samples, 48_000)
+    decoded = decode_wav(output)
+
+    assert output == path
+    assert decoded.metadata.sample_rate_hz == 48_000
+    assert decoded.metadata.bit_depth == 24
+    assert decoded.samples == pytest.approx(samples, abs=1.5e-7)
+
+
+def test_encode_wav_refuses_unrequested_overwrite_and_invalid_samples(tmp_path: Path) -> None:
+    path = tmp_path / "master.wav"
+    path.write_bytes(b"existing")
+
+    with pytest.raises(FileExistsError, match="already exists"):
+        encode_wav(path, np.zeros((1, 1), dtype=np.float64), 48_000)
+    with pytest.raises(ValueError, match="normalized"):
+        encode_wav(
+            tmp_path / "invalid.wav",
+            np.array([[1.01]], dtype=np.float64),
+            48_000,
+        )
