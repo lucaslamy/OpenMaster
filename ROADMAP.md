@@ -8,8 +8,8 @@ because a scaffold exists.
 
 Goal: provide a deterministic, locally executable analysis foundation.
 
-Current release: `0.7.0-rc.1`. It is suitable for evaluation, integration, and
-reference-corpus work; it is not a final mastering-compliance release.
+Released: `0.7.0`. Its supported scope is the deterministic local analysis engine; it
+is not a mastering-compliance or distributed-service release.
 
 Completed:
 
@@ -20,7 +20,7 @@ Completed:
   spectral-centroid, and source metadata measurements.
 - JSON command-line interface, regression tests, and Python quality CI.
 
-Remaining release work:
+Post-release hardening:
 
 - Validate every measurement against an approved reference corpus and document error
   tolerances, especially LUFS, true peak, BPM, and musical key.
@@ -28,9 +28,6 @@ Remaining release work:
 - Complete long-file streaming and shared export primitives in `audio_core`; decoder,
   metadata, input validation, and resource-limit contracts are now extracted.
 - Expose the analysis job through a typed API, persistent job model, and worker.
-
-Exit criteria: all measurements have reference-corpus coverage, analysis jobs are
-observable and retry-safe, and API/worker integration tests pass.
 
 Current validation: deterministic synthetic signals and FFmpeg ebur128 cross-validation
 protect the local implementation. An approved external corpus remains required for

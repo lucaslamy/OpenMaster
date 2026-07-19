@@ -4,6 +4,8 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-19
+
 ### Changed
 
 - Began `audio_core` extraction by centralizing reusable audio-input validation and

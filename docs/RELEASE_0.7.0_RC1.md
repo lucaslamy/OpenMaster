@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This release candidate delivers the first usable OpenMaster analysis engine. It is
+This historical release candidate delivered the first usable OpenMaster analysis engine. It is
 intended for local evaluation, integration testing, and creation of the validation
 corpus required for the final v0.7 release.
 
