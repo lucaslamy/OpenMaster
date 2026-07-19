@@ -1,6 +1,7 @@
 """Regression tests for the public analysis service."""
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -14,6 +15,33 @@ from scipy.io import wavfile
 from packages.analysis_engine import AnalysisService
 from packages.analysis_engine.exceptions import InvalidAudioFileError, UnsupportedAudioFormatError
 from packages.analysis_engine.metrics import estimate_bpm
+
+
+def _ffmpeg_ebur128_summary(path: Path) -> tuple[float, float]:
+    """Return FFmpeg ebur128 integrated loudness and true peak from its summary."""
+    completed = subprocess.run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-nostats",
+            "-i",
+            str(path),
+            "-filter_complex",
+            "ebur128=peak=true",
+            "-f",
+            "null",
+            "-",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    summary = completed.stderr.split("Summary:", maxsplit=1)[-1]
+    loudness = re.search(r"Integrated loudness:.*?I:\s*(-?\d+(?:\.\d+)?) LUFS", summary, re.DOTALL)
+    true_peak = re.search(r"True peak:.*?Peak:\s*(-?\d+(?:\.\d+)?) dBFS", summary, re.DOTALL)
+    assert loudness is not None
+    assert true_peak is not None
+    return float(loudness.group(1)), float(true_peak.group(1))
 
 
 def _write_wav(path: Path, samples: np.ndarray, sample_rate: int = 48_000) -> None:
@@ -78,6 +106,25 @@ def test_integrated_loudness_sums_dual_mono_channel_energy(tmp_path: Path) -> No
 
     assert mono_lufs is not None
     assert stereo_lufs == pytest.approx(mono_lufs + 3.0103, abs=0.02)
+
+
+@pytest.mark.skipif(
+    shutil.which("ffmpeg") is None, reason="FFmpeg is required for reference checks"
+)
+@pytest.mark.parametrize("channels", [1, 2])
+def test_loudness_and_true_peak_cross_validate_with_ffmpeg(tmp_path: Path, channels: int) -> None:
+    sample_rate = 48_000
+    time = np.arange(sample_rate * 5) / sample_rate
+    sine = 0.5 * np.sin(2 * np.pi * 1_000 * time)
+    samples = sine[:, np.newaxis] if channels == 1 else np.column_stack((sine, sine))
+    audio_path = tmp_path / f"reference-{channels}.wav"
+    _write_wav(audio_path, samples)
+
+    result = AnalysisService().analyze(audio_path)
+    reference_lufs, reference_true_peak = _ffmpeg_ebur128_summary(audio_path)
+
+    assert result.lufs == pytest.approx(reference_lufs, abs=0.35)
+    assert result.true_peak_dbfs == pytest.approx(reference_true_peak, abs=0.35)
 
 
 def test_analyze_rejects_missing_and_unsupported_files(tmp_path: Path) -> None:

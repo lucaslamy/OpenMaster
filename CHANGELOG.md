@@ -16,6 +16,7 @@ All notable changes to OpenMaster are documented in this file.
 - Moved FFmpeg decoding ownership into `audio_core` with a compatible analysis-engine
   adapter.
 - Delegated all analysis input decoding through the `audio_core` format dispatcher.
+- Added FFmpeg ebur128 cross-validation for mono and dual-mono loudness and true peak.
 
 ## [0.7.0-rc.1] - 2026-07-19
 

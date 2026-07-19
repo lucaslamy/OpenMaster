@@ -32,6 +32,10 @@ Remaining release work:
 Exit criteria: all measurements have reference-corpus coverage, analysis jobs are
 observable and retry-safe, and API/worker integration tests pass.
 
+Current validation: deterministic synthetic signals and FFmpeg ebur128 cross-validation
+protect the local implementation. An approved external corpus remains required for
+compliance or real-music accuracy claims.
+
 ## v0.8 — Deterministic DSP chain
 
 Goal: provide independently testable EQ, compression, stereo, saturation, limiting,
