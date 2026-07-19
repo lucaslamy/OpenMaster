@@ -39,6 +39,8 @@ python -m black --check .
 python -m mypy packages
 ```
 
+The same checks run on every push and pull request in GitHub Actions using Python 3.12.
+
 ## Current limits
 
 Compressed and lossless formats require the `ffmpeg` and `ffprobe` executables. Their
