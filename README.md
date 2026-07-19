@@ -18,6 +18,15 @@ result = AnalysisService().analyze("mix.wav")
 print(result.to_dict())
 ```
 
+The same analysis is available from the command line:
+
+```bash
+python -m packages.analysis_engine mix.wav
+```
+
+It prints a stable JSON object to standard output. Invalid or unsupported input is
+reported as JSON on standard error and exits with status code 2.
+
 ## Development
 
 Requires Python 3.12+ and the dependencies declared in `pyproject.toml`.

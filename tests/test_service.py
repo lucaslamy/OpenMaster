@@ -1,5 +1,8 @@
 """Regression tests for the public analysis service."""
 
+import json
+import subprocess
+import sys
 import wave
 from pathlib import Path
 
@@ -94,3 +97,26 @@ def test_analyze_24_bit_pcm_preserves_metadata_and_level(tmp_path: Path) -> None
     assert result.bit_depth == 24
     assert result.channels == 1
     assert result.rms_dbfs == pytest.approx(-15.05, abs=0.1)
+
+
+def test_command_line_interface_serializes_result_and_input_errors(tmp_path: Path) -> None:
+    audio_path = tmp_path / "silence.wav"
+    _write_wav(audio_path, np.zeros((48_000, 1)))
+
+    success = subprocess.run(
+        [sys.executable, "-m", "packages.analysis_engine", str(audio_path)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    failure = subprocess.run(
+        [sys.executable, "-m", "packages.analysis_engine", str(tmp_path / "missing.wav")],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert success.returncode == 0
+    assert json.loads(success.stdout)["channels"] == 1
+    assert failure.returncode == 2
+    assert "does not exist" in json.loads(failure.stderr)["error"]

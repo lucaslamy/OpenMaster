@@ -30,3 +30,9 @@ client-safe HTTP responses.
 The regression suite synthesizes stereo, mono-silence, and 24-bit PCM WAV fixtures.
 It verifies level accuracy, metadata extraction, unavailable measurements for silence,
 and the typed failure modes for missing or unsupported files.
+
+## Command line
+
+Run `python -m packages.analysis_engine path/to/mix.wav` to obtain a JSON analysis
+result. This interface maps expected analysis failures to a JSON error on standard
+error and exit status 2, which makes it safe to integrate in a worker or shell job.
