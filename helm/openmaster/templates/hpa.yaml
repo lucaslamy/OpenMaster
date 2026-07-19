@@ -1,0 +1,23 @@
+{{- if .Values.autoscaling.enabled }}
+{{- $targets := dict "api" .Values.autoscaling.api "analysis-worker" .Values.autoscaling.workers.analysis "mastering-worker" .Values.autoscaling.workers.mastering "export-worker" .Values.autoscaling.workers.export }}
+{{- range $component, $settings := $targets }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "openmaster.fullname" $ }}-{{ $component }}
+  labels: {{- include "openmaster.componentLabels" (dict "root" $ "component" $component) | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "openmaster.fullname" $ }}-{{ if eq $component "api" }}api{{ else }}{{ $component }}{{ end }}
+  minReplicas: {{ $settings.minReplicas }}
+  maxReplicas: {{ $settings.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: {{ $settings.targetCPUUtilizationPercentage }}}
+---
+{{- end }}
+{{- end }}

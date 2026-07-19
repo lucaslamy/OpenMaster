@@ -1,0 +1,14 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+{{- range $component := .Values.podDisruptionBudget.components }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "openmaster.fullname" $ }}-{{ $component }}
+  labels: {{- include "openmaster.componentLabels" (dict "root" $ "component" $component) | nindent 4 }}
+spec:
+  minAvailable: {{ $.Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels: {{- include "openmaster.selectorLabels" (dict "root" $ "component" $component) | nindent 6 }}
+---
+{{- end }}
+{{- end }}

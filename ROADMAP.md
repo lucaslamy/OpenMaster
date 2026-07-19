@@ -151,6 +151,9 @@ the alignment and deterministic-rendering contracts.
 
 ## Deployment follow-up
 
+- v2.1 released: production k3s/Helm deployment with internal/external data-service
+  modes, Vault External Secrets integration, least-privilege NetworkPolicies, Alembic
+  migration hook, HPA/PDB controls, operational scripts, CI validation, and runbooks.
 - TODO: migrate the production ingress configuration from Traefik to NGINX Ingress when
   the target cluster standardizes on NGINX; preserve `/api` and `/` routing, TLS,
   upload-size limits, and timeout behavior, then validate the rendered manifests.

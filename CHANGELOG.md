@@ -4,6 +4,8 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-07-19
+
 ### Added
 
 - FastAPI production boundary with Kubernetes-safe liveness and readiness endpoints and
@@ -17,6 +19,15 @@ All notable changes to OpenMaster are documented in this file.
   required, probes, and hardened pod security defaults.
 - Reversible Alembic baseline migration and Helm Job for serialized database upgrades
   using the Vault-managed runtime Secret.
+- Complete internal and ExternalName modes for PostgreSQL, Redis, and MinIO with
+  configurable persistence, resources, probes, and explicit external egress CIDRs.
+- Least-privilege NetworkPolicies for DNS, ingress, workloads, and data-service callers,
+  with a supported disable switch and no implicit all-address egress.
+- Optional API/worker HPA resources and stateless-workload disruption budgets.
+- Secret-safe preflight, atomic deployment, rollback, smoke-test, and chart-validation
+  scripts.
+- Helm render assertions, CI lint/unit/schema/shell validation, and complete k3s, Vault,
+  production, and troubleshooting documentation.
 
 ## [2.0.0] - 2026-07-19
 

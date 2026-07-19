@@ -1,0 +1,52 @@
+suite: optional production controls
+tests:
+  - it: disables network policies
+    template: templates/networkpolicy.yaml
+    set:
+      networkPolicy.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: enables network policies
+    template: templates/networkpolicy.yaml
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+        documentIndex: 0
+  - it: disables HPA
+    template: templates/hpa.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: enables API and worker HPAs
+    template: templates/hpa.yaml
+    set:
+      autoscaling.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 4
+  - it: disables PDB
+    template: templates/pdb.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: enables PDB
+    template: templates/pdb.yaml
+    set:
+      podDisruptionBudget.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 5
+  - it: disables ingress
+    template: templates/ingress.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: enables ingress
+    template: templates/ingress.yaml
+    set:
+      ingress.enabled: true
+      ingress.host: openmaster.example.com
+    asserts:
+      - isKind:
+          of: Ingress

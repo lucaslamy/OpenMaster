@@ -1,0 +1,48 @@
+suite: data service modes
+templates:
+  - templates/data-services.yaml
+tests:
+  - it: renders all internal workloads
+    asserts:
+      - hasDocuments:
+          count: 6
+      - isKind:
+          of: StatefulSet
+        documentIndex: 1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-openmaster-postgres
+        documentIndex: 1
+      - isKind:
+          of: StatefulSet
+        documentIndex: 3
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-openmaster-redis
+        documentIndex: 3
+      - isKind:
+          of: StatefulSet
+        documentIndex: 5
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-openmaster-minio
+        documentIndex: 5
+  - it: renders external services without workloads
+    set:
+      postgresql.enabled: false
+      postgresql.externalHost: postgres.example.internal
+      redis.enabled: false
+      redis.externalHost: redis.example.internal
+      minio.enabled: false
+      minio.externalHost: minio.example.internal
+    asserts:
+      - hasDocuments:
+          count: 3
+      - equal:
+          path: spec.type
+          value: ExternalName
+        documentIndex: 0
+      - equal:
+          path: spec.externalName
+          value: postgres.example.internal
+        documentIndex: 0

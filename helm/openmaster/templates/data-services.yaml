@@ -1,105 +1,169 @@
 {{- if .Values.postgresql.enabled }}
 apiVersion: v1
 kind: Service
-metadata: {name: {{ include "openmaster.fullname" . }}-postgres}
-spec: {selector: {app: {{ include "openmaster.fullname" . }}-postgres}, ports: [{port: 5432, targetPort: postgres}]}
+metadata:
+  name: {{ include "openmaster.fullname" . }}-postgres
+  labels: {{- include "openmaster.componentLabels" (dict "root" . "component" "postgresql") | nindent 4 }}
+spec:
+  selector: {{- include "openmaster.selectorLabels" (dict "root" . "component" "postgresql") | nindent 4 }}
+  ports: [{name: postgres, port: 5432, targetPort: postgres}]
 ---
 apiVersion: apps/v1
 kind: StatefulSet
-metadata: {name: {{ include "openmaster.fullname" . }}-postgres}
+metadata:
+  name: {{ include "openmaster.fullname" . }}-postgres
+  labels: {{- include "openmaster.componentLabels" (dict "root" . "component" "postgresql") | nindent 4 }}
 spec:
   serviceName: {{ include "openmaster.fullname" . }}-postgres
-  selector: {matchLabels: {app: {{ include "openmaster.fullname" . }}-postgres}}
+  replicas: 1
+  selector:
+    matchLabels: {{- include "openmaster.selectorLabels" (dict "root" . "component" "postgresql") | nindent 6 }}
   template:
-    metadata: {labels: {app: {{ include "openmaster.fullname" . }}-postgres}}
+    metadata:
+      labels: {{- include "openmaster.componentLabels" (dict "root" . "component" "postgresql") | nindent 8 }}
     spec:
-      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      securityContext: {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-      - name: postgres
-        image: {{ .Values.postgresql.image }}
-        ports: [{name: postgres, containerPort: 5432}]
-        envFrom: [{secretRef: {name: {{ include "openmaster.secretName" . }}}}]
-        volumeMounts: [{name: data, mountPath: /var/lib/postgresql/data}]
-        readinessProbe: {tcpSocket: {port: postgres}}
-        livenessProbe: {tcpSocket: {port: postgres}}
-        securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+        - name: postgres
+          image: {{ .Values.postgresql.image | quote }}
+          ports: [{name: postgres, containerPort: 5432}]
+          envFrom: [{secretRef: {name: {{ include "openmaster.secretName" . }}}}]
+          volumeMounts: [{name: data, mountPath: /var/lib/postgresql/data}]
+          resources: {{- toYaml .Values.postgresql.resources | nindent 12 }}
+          readinessProbe: {tcpSocket: {port: postgres}, initialDelaySeconds: 5, periodSeconds: 10}
+          livenessProbe: {tcpSocket: {port: postgres}, initialDelaySeconds: 30, periodSeconds: 20}
+          securityContext: {{- toYaml .Values.containerSecurityContext | nindent 12 }}
   volumeClaimTemplates:
-  - metadata: {name: data}
-    spec: {accessModes: [ReadWriteOnce], resources: {requests: {storage: {{ .Values.postgresql.storage }}}}}
-{{- end }}
-{{- if not .Values.postgresql.enabled }}
----
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- with .Values.postgresql.persistence.storageClassName }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources: {requests: {storage: {{ .Values.postgresql.persistence.size }}}}
+{{- else }}
 apiVersion: v1
 kind: Service
-metadata: {name: {{ include "openmaster.fullname" . }}-postgres}
-spec: {type: ExternalName, externalName: {{ required "postgresql.externalHost is required when disabled" .Values.postgresql.externalHost }}}
+metadata:
+  name: {{ include "openmaster.fullname" . }}-postgres
+  labels: {{- include "openmaster.componentLabels" (dict "root" . "component" "postgresql") | nindent 4 }}
+spec:
+  type: ExternalName
+  externalName: {{ required "postgresql.externalHost is required when postgresql.enabled=false" .Values.postgresql.externalHost | quote }}
+  ports: [{name: postgres, port: {{ .Values.postgresql.externalPort }}}]
 {{- end }}
 ---
 {{- if .Values.redis.enabled }}
 apiVersion: v1
 kind: Service
-metadata: {name: {{ include "openmaster.fullname" . }}-redis}
-spec: {selector: {app: {{ include "openmaster.fullname" . }}-redis}, ports: [{port: 6379, targetPort: redis}]}
+metadata:
+  name: {{ include "openmaster.fullname" . }}-redis
+  labels: {{- include "openmaster.componentLabels" (dict "root" . "component" "redis") | nindent 4 }}
+spec:
+  selector: {{- include "openmaster.selectorLabels" (dict "root" . "component" "redis") | nindent 4 }}
+  ports: [{name: redis, port: 6379, targetPort: redis}]
 ---
 apiVersion: apps/v1
-kind: Deployment
-metadata: {name: {{ include "openmaster.fullname" . }}-redis}
+kind: StatefulSet
+metadata:
+  name: {{ include "openmaster.fullname" . }}-redis
+  labels: {{- include "openmaster.componentLabels" (dict "root" . "component" "redis") | nindent 4 }}
 spec:
-  selector: {matchLabels: {app: {{ include "openmaster.fullname" . }}-redis}}
+  serviceName: {{ include "openmaster.fullname" . }}-redis
+  replicas: 1
+  selector:
+    matchLabels: {{- include "openmaster.selectorLabels" (dict "root" . "component" "redis") | nindent 6 }}
   template:
-    metadata: {labels: {app: {{ include "openmaster.fullname" . }}-redis}}
+    metadata:
+      labels: {{- include "openmaster.componentLabels" (dict "root" . "component" "redis") | nindent 8 }}
     spec:
-      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      securityContext: {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-      - name: redis
-        image: {{ .Values.redis.image }}
-        ports: [{name: redis, containerPort: 6379}]
-        readinessProbe: {tcpSocket: {port: redis}}
-        livenessProbe: {tcpSocket: {port: redis}}
-        securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
-{{- end }}
-{{- if not .Values.redis.enabled }}
----
+        - name: redis
+          image: {{ .Values.redis.image | quote }}
+          args: [redis-server, --appendonly, {{ ternary "yes" "no" .Values.redis.persistence.enabled | quote }}]
+          ports: [{name: redis, containerPort: 6379}]
+          volumeMounts: [{name: data, mountPath: /data}]
+          resources: {{- toYaml .Values.redis.resources | nindent 12 }}
+          readinessProbe: {tcpSocket: {port: redis}, initialDelaySeconds: 3, periodSeconds: 10}
+          livenessProbe: {tcpSocket: {port: redis}, initialDelaySeconds: 20, periodSeconds: 20}
+          securityContext: {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+  {{- if .Values.redis.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- with .Values.redis.persistence.storageClassName }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources: {requests: {storage: {{ .Values.redis.persistence.size }}}}
+  {{- else }}
+      volumes: [{name: data, emptyDir: {}}]
+  {{- end }}
+{{- else }}
 apiVersion: v1
 kind: Service
-metadata: {name: {{ include "openmaster.fullname" . }}-redis}
-spec: {type: ExternalName, externalName: {{ required "redis.externalHost is required when disabled" .Values.redis.externalHost }}}
+metadata:
+  name: {{ include "openmaster.fullname" . }}-redis
+  labels: {{- include "openmaster.componentLabels" (dict "root" . "component" "redis") | nindent 4 }}
+spec:
+  type: ExternalName
+  externalName: {{ required "redis.externalHost is required when redis.enabled=false" .Values.redis.externalHost | quote }}
+  ports: [{name: redis, port: {{ .Values.redis.externalPort }}}]
 {{- end }}
 ---
 {{- if .Values.minio.enabled }}
 apiVersion: v1
 kind: Service
-metadata: {name: {{ include "openmaster.fullname" . }}-minio}
-spec: {selector: {app: {{ include "openmaster.fullname" . }}-minio}, ports: [{port: 9000, targetPort: api}]}
+metadata:
+  name: {{ include "openmaster.fullname" . }}-minio
+  labels: {{- include "openmaster.componentLabels" (dict "root" . "component" "minio") | nindent 4 }}
+spec:
+  selector: {{- include "openmaster.selectorLabels" (dict "root" . "component" "minio") | nindent 4 }}
+  ports: [{name: api, port: 9000, targetPort: api}]
 ---
 apiVersion: apps/v1
 kind: StatefulSet
-metadata: {name: {{ include "openmaster.fullname" . }}-minio}
+metadata:
+  name: {{ include "openmaster.fullname" . }}-minio
+  labels: {{- include "openmaster.componentLabels" (dict "root" . "component" "minio") | nindent 4 }}
 spec:
   serviceName: {{ include "openmaster.fullname" . }}-minio
-  selector: {matchLabels: {app: {{ include "openmaster.fullname" . }}-minio}}
+  replicas: 1
+  selector:
+    matchLabels: {{- include "openmaster.selectorLabels" (dict "root" . "component" "minio") | nindent 6 }}
   template:
-    metadata: {labels: {app: {{ include "openmaster.fullname" . }}-minio}}
+    metadata:
+      labels: {{- include "openmaster.componentLabels" (dict "root" . "component" "minio") | nindent 8 }}
     spec:
-      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      securityContext: {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-      - name: minio
-        image: {{ .Values.minio.image }}
-        args: [server, /data]
-        ports: [{name: api, containerPort: 9000}]
-        envFrom: [{secretRef: {name: {{ include "openmaster.secretName" . }}}}]
-        volumeMounts: [{name: data, mountPath: /data}]
-        readinessProbe: {tcpSocket: {port: api}}
-        livenessProbe: {tcpSocket: {port: api}}
-        securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+        - name: minio
+          image: {{ .Values.minio.image | quote }}
+          args: [server, /data]
+          ports: [{name: api, containerPort: 9000}]
+          envFrom: [{secretRef: {name: {{ include "openmaster.secretName" . }}}}]
+          volumeMounts: [{name: data, mountPath: /data}]
+          resources: {{- toYaml .Values.minio.resources | nindent 12 }}
+          readinessProbe: {httpGet: {path: /minio/health/ready, port: api}, initialDelaySeconds: 5, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /minio/health/live, port: api}, initialDelaySeconds: 20, periodSeconds: 20}
+          securityContext: {{- toYaml .Values.containerSecurityContext | nindent 12 }}
   volumeClaimTemplates:
-  - metadata: {name: data}
-    spec: {accessModes: [ReadWriteOnce], resources: {requests: {storage: {{ .Values.minio.storage }}}}}
-{{- end }}
-{{- if not .Values.minio.enabled }}
----
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- with .Values.minio.persistence.storageClassName }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources: {requests: {storage: {{ .Values.minio.persistence.size }}}}
+{{- else }}
 apiVersion: v1
 kind: Service
-metadata: {name: {{ include "openmaster.fullname" . }}-minio}
-spec: {type: ExternalName, externalName: {{ required "minio.externalHost is required when disabled" .Values.minio.externalHost }}}
+metadata:
+  name: {{ include "openmaster.fullname" . }}-minio
+  labels: {{- include "openmaster.componentLabels" (dict "root" . "component" "minio") | nindent 4 }}
+spec:
+  type: ExternalName
+  externalName: {{ required "minio.externalHost is required when minio.enabled=false" .Values.minio.externalHost | quote }}
+  ports: [{name: api, port: {{ .Values.minio.externalPort }}}]
 {{- end }}

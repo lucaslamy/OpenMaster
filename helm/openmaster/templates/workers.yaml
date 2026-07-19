@@ -8,27 +8,27 @@ metadata:
     {{- include "openmaster.labels" $ | nindent 4 }}
     app.kubernetes.io/component: {{ $name }}-worker
 spec:
+  {{- if not $.Values.autoscaling.enabled }}
   replicas: {{ $worker.replicaCount }}
+  {{- end }}
   selector:
     matchLabels: {app.kubernetes.io/instance: {{ $.Release.Name }}, app.kubernetes.io/component: {{ $name }}-worker}
   template:
     metadata:
-      labels: {app.kubernetes.io/instance: {{ $.Release.Name }}, app.kubernetes.io/component: {{ $name }}-worker}
+      labels: {{- include "openmaster.componentLabels" (dict "root" $ "component" (printf "%s-worker" $name)) | nindent 8 }}
     spec:
       serviceAccountName: {{ include "openmaster.fullname" $ }}
       automountServiceAccountToken: false
-      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      securityContext: {{- toYaml $.Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ $name }}
           image: {{ default (include "openmaster.image" $) $.Values.workers.image | quote }}
           command: ["celery", "-A", "packages.task_runtime.celery_app", "worker", "-Q", {{ $name | quote }}, "--concurrency", {{ $worker.concurrency | quote }}]
           envFrom:
             - configMapRef: {name: {{ include "openmaster.fullname" $ }}-config}
-            {{- if $.Values.externalSecrets.enabled }}
             - secretRef: {name: {{ include "openmaster.secretName" $ }}}
-            {{- end }}
           resources: {{- toYaml $worker.resources | nindent 12 }}
-          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          securityContext: {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
 ---
 {{- end }}
 {{- end }}

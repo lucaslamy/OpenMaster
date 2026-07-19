@@ -1,8 +1,8 @@
-# OpenMaster v2.0.0
+# OpenMaster v2.1.0
 
-OpenMaster is an open-source professional audio mastering platform. v2.0 adds
-balance-preserving stem-group mastering, explicit optional GPU compute, and isolated DSP
-plugins to the deterministic automatic-mastering workflow.
+OpenMaster is an open-source professional audio mastering platform. v2.1 adds a
+production-oriented Kubernetes and k3s deployment layer around the deterministic
+mastering platform.
 
 ## Current capability
 
@@ -111,6 +111,11 @@ python -m mypy packages
 ```
 
 The same checks run on every push and pull request in GitHub Actions using Python 3.12.
+
+Production deployment uses the chart in `helm/openmaster`. It supports internal or
+external PostgreSQL, Redis, and MinIO, Vault-synchronized secrets, strict network
+policies, migrations, autoscaling, disruption budgets, and atomic operational scripts.
+See `docs/deployment/`.
 
 The Vue client lives in `apps/web` and uses Node.js 22:
 

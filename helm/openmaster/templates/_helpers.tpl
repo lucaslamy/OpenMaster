@@ -15,5 +15,14 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- printf "%s/%s:%s" .Values.image.registry .Values.image.repository .Values.image.tag }}
 {{- end }}
 {{- define "openmaster.secretName" -}}
-{{- if .Values.externalSecrets.enabled }}{{ required "externalSecrets.existingSecretName is required" .Values.externalSecrets.existingSecretName }}{{- end }}
+{{- required "externalSecrets.existingSecretName is required" .Values.externalSecrets.existingSecretName -}}
+{{- end }}
+{{- define "openmaster.componentLabels" -}}
+{{ include "openmaster.labels" .root }}
+app.kubernetes.io/component: {{ .component }}
+{{- end }}
+{{- define "openmaster.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "openmaster.name" .root }}
+app.kubernetes.io/instance: {{ .root.Release.Name }}
+app.kubernetes.io/component: {{ .component }}
 {{- end }}

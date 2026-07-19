@@ -12,3 +12,24 @@ ingress:
   tls:
     enabled: true
     secretName: openmaster-tls
+
+api:
+  replicaCount: 2
+
+web:
+  replicaCount: 2
+
+autoscaling:
+  enabled: true
+  api:
+    minReplicas: 2
+  workers:
+    analysis:
+      minReplicas: 2
+    mastering:
+      minReplicas: 2
+    export:
+      minReplicas: 2
+
+podDisruptionBudget:
+  enabled: true

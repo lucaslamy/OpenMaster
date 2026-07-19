@@ -1,0 +1,120 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $fullname := include "openmaster.fullname" . }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: {{ $fullname }}-default-deny}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: {{ $fullname }}-dns}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {{- toYaml .Values.networkPolicy.dns.namespaceSelector | nindent 14 }}
+          podSelector:
+            matchLabels: {{- toYaml .Values.networkPolicy.dns.podSelector | nindent 14 }}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: {{ $fullname }}-web-ingress}
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/instance: {{ .Release.Name }}, app.kubernetes.io/component: web}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: {{ .Values.ingress.controllerNamespace | quote }}}
+          podSelector:
+            matchLabels: {{- toYaml .Values.ingress.controllerPodLabels | nindent 14 }}
+      ports: [{protocol: TCP, port: 8080}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: {{ $fullname }}-api-ingress}
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/instance: {{ .Release.Name }}, app.kubernetes.io/component: api}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: {{ .Values.ingress.controllerNamespace | quote }}}
+          podSelector:
+            matchLabels: {{- toYaml .Values.ingress.controllerPodLabels | nindent 14 }}
+      ports: [{protocol: TCP, port: 8000}]
+{{- range $component := list "api" "analysis-worker" "mastering-worker" "export-worker" "migration" }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: {{ $fullname }}-{{ $component }}-data-egress}
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/instance: {{ $.Release.Name }}, app.kubernetes.io/component: {{ $component }}}
+  policyTypes: [Egress]
+  egress:
+    {{- if $.Values.postgresql.enabled }}
+    - to:
+        - podSelector:
+            matchLabels: {app.kubernetes.io/instance: {{ $.Release.Name }}, app.kubernetes.io/component: postgresql}
+      ports: [{protocol: TCP, port: 5432}]
+    {{- else }}
+    {{- range $.Values.networkPolicy.externalEgress.postgresql }}
+    - to: [{ipBlock: {cidr: {{ .cidr | quote }}{{ with .except }}, except: {{ toYaml . | nindent 12 }}{{ end }}}}]
+      ports: [{protocol: TCP, port: {{ $.Values.postgresql.externalPort }}}]
+    {{- end }}
+    {{- end }}
+    {{- if $.Values.redis.enabled }}
+    - to:
+        - podSelector:
+            matchLabels: {app.kubernetes.io/instance: {{ $.Release.Name }}, app.kubernetes.io/component: redis}
+      ports: [{protocol: TCP, port: 6379}]
+    {{- else }}
+    {{- range $.Values.networkPolicy.externalEgress.redis }}
+    - to: [{ipBlock: {cidr: {{ .cidr | quote }}{{ with .except }}, except: {{ toYaml . | nindent 12 }}{{ end }}}}]
+      ports: [{protocol: TCP, port: {{ $.Values.redis.externalPort }}}]
+    {{- end }}
+    {{- end }}
+    {{- if $.Values.minio.enabled }}
+    - to:
+        - podSelector:
+            matchLabels: {app.kubernetes.io/instance: {{ $.Release.Name }}, app.kubernetes.io/component: minio}
+      ports: [{protocol: TCP, port: 9000}]
+    {{- else }}
+    {{- range $.Values.networkPolicy.externalEgress.minio }}
+    - to: [{ipBlock: {cidr: {{ .cidr | quote }}{{ with .except }}, except: {{ toYaml . | nindent 12 }}{{ end }}}}]
+      ports: [{protocol: TCP, port: {{ $.Values.minio.externalPort }}}]
+    {{- end }}
+    {{- end }}
+{{- end }}
+{{- range $service := list (dict "name" "postgresql" "port" 5432) (dict "name" "redis" "port" 6379) (dict "name" "minio" "port" 9000) }}
+{{- if index $.Values $service.name "enabled" }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: {{ $fullname }}-{{ $service.name }}-ingress}
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/instance: {{ $.Release.Name }}, app.kubernetes.io/component: {{ $service.name }}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        {{- range $component := list "api" "analysis-worker" "mastering-worker" "export-worker" "migration" }}
+        - podSelector:
+            matchLabels: {app.kubernetes.io/instance: {{ $.Release.Name }}, app.kubernetes.io/component: {{ $component }}}
+        {{- end }}
+      ports: [{protocol: TCP, port: {{ $service.port }}}]
+{{- end }}
+{{- end }}
+{{- end }}

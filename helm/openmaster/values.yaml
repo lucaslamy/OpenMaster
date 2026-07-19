@@ -2,15 +2,37 @@ global:
   environment: development
   imagePullSecrets: []
 
+# The chart never creates this Secret. In production it is materialized by the
+# ClusterExternalSecret/ExternalSecret pair described in the deployment guide.
 externalSecrets:
   enabled: false
-  existingSecretName: ""
+  existingSecretName: openmaster-secrets
+  requiredKeys:
+    - DATABASE_URL
+    - CELERY_BROKER_URL
+    - CELERY_RESULT_BACKEND
+    - POSTGRES_DB
+    - POSTGRES_USER
+    - POSTGRES_PASSWORD
+    - MINIO_ROOT_USER
+    - MINIO_ROOT_PASSWORD
 
 image:
   registry: registry.example.com
   repository: openmaster
-  tag: "2.0.0"
+  tag: "2.1.0"
   pullPolicy: IfNotPresent
+
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
 
 api:
   image: ""
@@ -20,6 +42,10 @@ api:
   resources:
     requests: {cpu: 100m, memory: 256Mi}
     limits: {cpu: "1", memory: 1Gi}
+  probes:
+    startup: {failureThreshold: 30, periodSeconds: 5}
+    readiness: {periodSeconds: 10}
+    liveness: {periodSeconds: 20}
 
 web:
   image: ""
@@ -27,12 +53,30 @@ web:
   resources:
     requests: {cpu: 25m, memory: 64Mi}
     limits: {cpu: 250m, memory: 256Mi}
+  probes:
+    readiness: {periodSeconds: 10}
+    liveness: {periodSeconds: 20}
 
 workers:
   image: ""
-  analysis: {replicaCount: 1, concurrency: 2, resources: {requests: {cpu: 250m, memory: 512Mi}, limits: {cpu: "2", memory: 2Gi}}}
-  mastering: {replicaCount: 1, concurrency: 1, resources: {requests: {cpu: 500m, memory: 1Gi}, limits: {cpu: "4", memory: 4Gi}}}
-  export: {replicaCount: 1, concurrency: 1, resources: {requests: {cpu: 250m, memory: 512Mi}, limits: {cpu: "2", memory: 2Gi}}}
+  analysis:
+    replicaCount: 1
+    concurrency: 2
+    resources:
+      requests: {cpu: 250m, memory: 512Mi}
+      limits: {cpu: "2", memory: 2Gi}
+  mastering:
+    replicaCount: 1
+    concurrency: 1
+    resources:
+      requests: {cpu: 500m, memory: 1Gi}
+      limits: {cpu: "4", memory: 4Gi}
+  export:
+    replicaCount: 1
+    concurrency: 1
+    resources:
+      requests: {cpu: 250m, memory: 512Mi}
+      limits: {cpu: "2", memory: 2Gi}
 
 config:
   logLevel: INFO
@@ -43,11 +87,87 @@ config:
 ingress:
   enabled: false
   className: traefik
+  controllerNamespace: kube-system
+  controllerPodLabels:
+    app.kubernetes.io/name: traefik
   host: ""
+  annotations: {}
   tls:
     enabled: false
     secretName: ""
 
-postgresql: {enabled: true, image: postgres:16-alpine, storage: 20Gi, storageClassName: "", externalHost: "", externalPort: 5432}
-redis: {enabled: true, image: redis:7-alpine, persistence: {enabled: false, size: 5Gi, storageClassName: ""}, externalHost: "", externalPort: 6379}
-minio: {enabled: true, image: minio/minio:RELEASE.2024-10-13T13-34-11Z, storage: 50Gi, storageClassName: "", externalHost: "", externalPort: 9000}
+postgresql:
+  enabled: true
+  image: postgres:16-alpine
+  externalHost: ""
+  externalPort: 5432
+  persistence:
+    size: 20Gi
+    storageClassName: ""
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+
+redis:
+  enabled: true
+  image: redis:7-alpine
+  externalHost: ""
+  externalPort: 6379
+  persistence:
+    enabled: false
+    size: 5Gi
+    storageClassName: ""
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 500m, memory: 512Mi}
+
+minio:
+  enabled: true
+  image: minio/minio:RELEASE.2024-10-13T13-34-11Z
+  externalHost: ""
+  externalPort: 9000
+  persistence:
+    size: 50Gi
+    storageClassName: ""
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+
+networkPolicy:
+  enabled: true
+  dns:
+    namespaceSelector:
+      kubernetes.io/metadata.name: kube-system
+    podSelector:
+      k8s-app: kube-dns
+  # External dependencies cannot be selected by pod labels. Supply explicit CIDRs
+  # for each disabled internal service; broad CIDRs should be reviewed carefully.
+  externalEgress:
+    postgresql: []
+    redis: []
+    minio: []
+
+autoscaling:
+  enabled: false
+  api:
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  workers:
+    analysis: {minReplicas: 1, maxReplicas: 6, targetCPUUtilizationPercentage: 70}
+    mastering: {minReplicas: 1, maxReplicas: 4, targetCPUUtilizationPercentage: 70}
+    export: {minReplicas: 1, maxReplicas: 4, targetCPUUtilizationPercentage: 70}
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  components: [api, web, analysis-worker, mastering-worker, export-worker]
+
+migration:
+  enabled: true
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 86400
+  resources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 512Mi}

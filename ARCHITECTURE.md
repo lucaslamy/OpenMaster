@@ -50,10 +50,12 @@ routes must call services; DSP and analysis logic must remain in packages.
 
 ## Deployment foundation
 
-The `helm/openmaster` chart currently owns non-sensitive configuration and the explicit
-reference to the Kubernetes Secret managed by Vault/External Secrets. It never renders
-secret values. API, worker, data-service, and ingress workloads are being added in the
-same deployment release.
+The `helm/openmaster` chart owns non-sensitive configuration and references one existing
+Kubernetes Secret managed by Vault/External Secrets. It never renders secret values.
+It deploys the API, web server, isolated workers, selectable internal or external data
+services, a serialized Alembic hook, ingress, least-privilege NetworkPolicies, HPA, and
+PDB resources. Atomic deploy, rollback, preflight, and smoke-test scripts provide the
+operational boundary for k3s and upstream Kubernetes.
 Dedicated Celery deployments consume the `analysis`, `mastering`, and `export` queues;
 their commands and resource profiles are rendered from chart values.
 
