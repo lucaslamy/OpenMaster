@@ -46,10 +46,11 @@ routes must call services; DSP and analysis logic must remain in packages.
 ## Automatic mastering baseline
 
 `AutomaticMasteringService` consumes an immutable `AnalysisResult`, derives a bounded
-gain decision from integrated loudness, then delegates rendering to the deterministic
-DSP chain. Its result contains both the audio render trace and the requested and
-effective gain values. The current policy targets -14 LUFS, limits a correction to
-12 dB, and protects the output with a -1 dBFS linked sample-peak ceiling.
+gain decision from integrated loudness and measured sample-peak headroom, then delegates
+rendering to the deterministic DSP chain. Its result contains both the audio render
+trace and the requested, peak-limited, and effective gain values. The current policy
+targets -14 LUFS, limits a correction to 12 dB, and protects the output with a -1 dBFS
+linked sample-peak ceiling.
 
 This is deliberately a narrow, deterministic policy rather than an opaque AI model.
 The ceiling is a sample-peak guard, not a true-peak compliance guarantee.

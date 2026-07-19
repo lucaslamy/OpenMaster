@@ -39,6 +39,8 @@ class MasteringDecision:
     settings: MasteringSettings
     requested_gain_db: float | None
     gain_was_bounded: bool
+    peak_headroom_gain_db: float | None
+    limited_by_peak_headroom: bool
     reason: str
 
 
@@ -64,14 +66,21 @@ class AutomaticMasteringService:
                 settings=MasteringSettings(ceiling_dbfs=self._policy.ceiling_dbfs),
                 requested_gain_db=None,
                 gain_was_bounded=False,
+                peak_headroom_gain_db=None,
+                limited_by_peak_headroom=False,
                 reason="integrated loudness is unavailable; preserving input gain",
             )
 
+        if not math.isfinite(analysis.lufs) or not math.isfinite(analysis.peak_dbfs):
+            raise ValueError("Analysis loudness and peak measurements must be finite")
+
         requested_gain_db = self._policy.target_lufs - analysis.lufs
-        input_gain_db = max(
+        policy_bounded_gain_db = max(
             -self._policy.maximum_gain_adjustment_db,
             min(self._policy.maximum_gain_adjustment_db, requested_gain_db),
         )
+        peak_headroom_gain_db = self._policy.ceiling_dbfs - analysis.peak_dbfs
+        input_gain_db = min(policy_bounded_gain_db, peak_headroom_gain_db)
         return MasteringDecision(
             settings=MasteringSettings(
                 input_gain_db=input_gain_db,
@@ -79,7 +88,9 @@ class AutomaticMasteringService:
             ),
             requested_gain_db=requested_gain_db,
             gain_was_bounded=input_gain_db != requested_gain_db,
-            reason="gain derived from integrated loudness against the policy target",
+            peak_headroom_gain_db=peak_headroom_gain_db,
+            limited_by_peak_headroom=input_gain_db < policy_bounded_gain_db,
+            reason="gain derived from integrated loudness and constrained by peak headroom",
         )
 
     def master(

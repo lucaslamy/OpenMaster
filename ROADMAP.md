@@ -69,6 +69,7 @@ that requires validated processor-control policy and additional DSP processors.
 
 Implemented policy slice: integrated loudness produces a target-gain recommendation,
 bounded by a configurable safety limit and recorded with its requested value and reason.
+Measured sample-peak headroom further constrains upward gain before rendering.
 
 Exit criteria:
 

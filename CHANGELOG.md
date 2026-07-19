@@ -10,6 +10,8 @@ All notable changes to OpenMaster are documented in this file.
   linked sample-peak protection, and returns the processor order with rendered audio.
 - Bounded automatic loudness-gain policy with an auditable requested/effective setting
   record and a deterministic render integration.
+- Automatic gain now considers measured sample-peak headroom before rendering, reducing
+  avoidable limiter engagement.
 
 ## [0.9.0] - 2026-07-19
 

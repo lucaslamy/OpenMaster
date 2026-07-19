@@ -73,8 +73,10 @@ def test_automatic_mastering_bounds_loudness_gain_and_records_decision() -> None
     result = service.master(np.array([[0.25]], dtype=np.float64), 48_000, analysis)
 
     assert result.decision.requested_gain_db == pytest.approx(16.0)
-    assert result.decision.settings.input_gain_db == pytest.approx(6.0)
+    assert result.decision.settings.input_gain_db == pytest.approx(2.0)
     assert result.decision.gain_was_bounded is True
+    assert result.decision.peak_headroom_gain_db == pytest.approx(2.0)
+    assert result.decision.limited_by_peak_headroom is True
     assert result.render.applied_processors == ("gain", "sample_peak_limiter")
 
 
@@ -83,10 +85,19 @@ def test_automatic_mastering_preserves_gain_when_loudness_is_unavailable() -> No
 
     assert decision.settings.input_gain_db == 0.0
     assert decision.requested_gain_db is None
+    assert decision.peak_headroom_gain_db is None
     assert "unavailable" in decision.reason
 
 
-def _analysis_result(lufs: float | None) -> AnalysisResult:
+def test_automatic_mastering_keeps_loudness_gain_when_peak_has_sufficient_headroom() -> None:
+    decision = AutomaticMasteringService().decide(_analysis_result(lufs=-18.0, peak_dbfs=-12.0))
+
+    assert decision.settings.input_gain_db == pytest.approx(4.0)
+    assert decision.peak_headroom_gain_db == pytest.approx(11.0)
+    assert decision.limited_by_peak_headroom is False
+
+
+def _analysis_result(lufs: float | None, peak_dbfs: float = -3.0) -> AnalysisResult:
     return AnalysisResult(
         duration_seconds=1.0,
         sample_rate_hz=48_000,
@@ -94,7 +105,7 @@ def _analysis_result(lufs: float | None) -> AnalysisResult:
         channels=2,
         lufs=lufs,
         rms_dbfs=-18.0,
-        peak_dbfs=-3.0,
+        peak_dbfs=peak_dbfs,
         true_peak_dbfs=-3.0,
         dynamic_range_db=9.0,
         crest_factor_db=6.0,
