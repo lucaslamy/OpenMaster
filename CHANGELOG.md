@@ -8,6 +8,7 @@ All notable changes to OpenMaster are documented in this file.
 
 - Began `audio_core` extraction by centralizing reusable audio-input validation and
   resource limits.
+- Added typed decoded-audio metadata and configurable decode-limit contracts.
 
 ## [0.7.0-rc.1] - 2026-07-19
 

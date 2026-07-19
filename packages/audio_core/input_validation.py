@@ -3,8 +3,9 @@
 from pathlib import Path
 
 from .exceptions import InvalidAudioFileError
+from .limits import DEFAULT_DECODE_LIMITS
 
-MAX_SAMPLE_VALUES = 120_000_000
+MAX_SAMPLE_VALUES = DEFAULT_DECODE_LIMITS.max_sample_values
 
 
 def validate_audio_path(path: str | Path) -> Path:
