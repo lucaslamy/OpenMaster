@@ -4,17 +4,26 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Optional RunPod Serverless client and hardened remote mastering worker using bounded
+  signed-URL transfers, source SHA-256 verification, asynchronous status polling, and
+  an explicit local CPU fallback boundary.
+- Helm configuration, secret preflight, NetworkPolicy egress control, container image,
+  tests, and deployment guidance for pay-per-use remote compute.
+
 ### Fixed
 
 - API/worker image now includes the Alembic runtime files and PostgreSQL driver required
   by the Helm migration Job.
 - First installations now run Alembic after internal PostgreSQL becomes available,
   preventing the migration hook from reaching its deadline before data services exist.
+- Internal PostgreSQL, Redis, and MinIO now use explicit non-root UID/GID settings
+  compatible with their images, including a writable PostgreSQL socket directory.
 
 ## [2.1.0] - 2026-07-19
 
 ### Added
-
 - FastAPI production boundary with Kubernetes-safe liveness and readiness endpoints and
   a non-root multi-stage API image.
 - Initial k3s Helm chart foundation with secret-free values, Vault-managed Secret name

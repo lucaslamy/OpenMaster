@@ -27,3 +27,8 @@ controller labels. Match `ingress.controllerNamespace` and
 
 HPA showing unknown CPU utilization means metrics-server is unavailable or the target
 workload lacks resource requests. The chart supplies requests; verify the metrics API.
+
+`container has runAsNonRoot and image will run as root` on an internal data service
+means an older chart applied the generic application security context to an official
+data-service image. Current values set the documented runtime UID/GID explicitly for
+PostgreSQL, Redis, and MinIO; PostgreSQL also receives a writable runtime socket volume.

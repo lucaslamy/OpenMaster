@@ -56,3 +56,26 @@ tests:
       - equal:
           path: metadata.annotations["helm.sh/hook"]
           value: post-install,pre-upgrade
+  - it: exposes non-secret RunPod endpoint configuration
+    template: templates/configmap.yaml
+    set:
+      remoteCompute.enabled: true
+      remoteCompute.endpointId: endpoint-123
+    asserts:
+      - equal:
+          path: data.OPENMASTER_REMOTE_COMPUTE_ENABLED
+          value: "true"
+      - equal:
+          path: data.RUNPOD_ENDPOINT_ID
+          value: endpoint-123
+  - it: limits RunPod egress to HTTPS from mastering
+    template: templates/networkpolicy.yaml
+    set:
+      remoteCompute.enabled: true
+      remoteCompute.endpointId: endpoint-123
+      remoteCompute.egressCIDRs[0]: 0.0.0.0/0
+    asserts:
+      - equal:
+          path: spec.egress[3].ports[0].port
+          value: 443
+        documentIndex: 6

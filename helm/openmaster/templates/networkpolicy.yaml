@@ -97,6 +97,14 @@ spec:
       ports: [{protocol: TCP, port: {{ $.Values.minio.externalPort }}}]
     {{- end }}
     {{- end }}
+    {{- if and $.Values.remoteCompute.enabled (eq $component "mastering-worker") }}
+    {{- range $.Values.remoteCompute.egressCIDRs }}
+    - to:
+        - ipBlock:
+            cidr: {{ . | quote }}
+      ports: [{protocol: TCP, port: 443}]
+    {{- end }}
+    {{- end }}
 {{- end }}
 {{- range $service := list (dict "name" "postgresql" "port" 5432) (dict "name" "redis" "port" 6379) (dict "name" "minio" "port" 9000) }}
 {{- if index $.Values $service.name "enabled" }}

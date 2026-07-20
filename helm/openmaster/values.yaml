@@ -84,6 +84,14 @@ config:
   corsOrigins: ""
   processingRetries: "3"
 
+remoteCompute:
+  enabled: false
+  provider: runpod
+  endpointId: ""
+  # Standard NetworkPolicy cannot select an FQDN. Add only reviewed destination
+  # CIDRs. A deliberate 0.0.0.0/0 permits HTTPS only, not unrestricted ports.
+  egressCIDRs: []
+
 ingress:
   enabled: false
   className: traefik
@@ -99,6 +107,13 @@ ingress:
 postgresql:
   enabled: true
   image: postgres:16-alpine
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 70
+    runAsGroup: 70
+    fsGroup: 70
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile: {type: RuntimeDefault}
   externalHost: ""
   externalPort: 5432
   persistence:
@@ -111,6 +126,13 @@ postgresql:
 redis:
   enabled: true
   image: redis:7-alpine
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 1000
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile: {type: RuntimeDefault}
   externalHost: ""
   externalPort: 6379
   persistence:
@@ -124,6 +146,13 @@ redis:
 minio:
   enabled: true
   image: minio/minio:RELEASE.2024-10-13T13-34-11Z
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile: {type: RuntimeDefault}
   externalHost: ""
   externalPort: 9000
   persistence:

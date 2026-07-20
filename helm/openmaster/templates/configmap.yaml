@@ -10,3 +10,7 @@ data:
   MAX_UPLOAD_BYTES: {{ .Values.config.maxUploadBytes | quote }}
   CORS_ORIGINS: {{ .Values.config.corsOrigins | quote }}
   PROCESSING_RETRIES: {{ .Values.config.processingRetries | quote }}
+  OPENMASTER_REMOTE_COMPUTE_ENABLED: {{ .Values.remoteCompute.enabled | quote }}
+  {{- if .Values.remoteCompute.enabled }}
+  RUNPOD_ENDPOINT_ID: {{ required "remoteCompute.endpointId is required when remote compute is enabled" .Values.remoteCompute.endpointId | quote }}
+  {{- end }}

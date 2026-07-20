@@ -20,6 +20,10 @@ tests:
           path: metadata.name
           value: RELEASE-NAME-openmaster-redis
         documentIndex: 3
+      - equal:
+          path: spec.template.spec.securityContext.runAsUser
+          value: 999
+        documentIndex: 3
       - isKind:
           of: StatefulSet
         documentIndex: 5

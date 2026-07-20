@@ -119,6 +119,9 @@ See `docs/deployment/`, including the
 [French k3s deployment guide](docs/deployment/k3s-quickstart.fr.md).
 The [French project-flow guide](docs/PROJECT_FLOW.fr.md) diagrams the architecture and
 explains each processing stage from input validation through mastering and export.
+Heavy jobs can optionally cross the audited
+[RunPod Serverless boundary](docs/deployment/runpod.md) using short-lived signed object
+URLs; local deterministic CPU execution remains available.
 
 The Vue client lives in `apps/web` and uses Node.js 22:
 

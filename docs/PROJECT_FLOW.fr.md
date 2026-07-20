@@ -22,6 +22,8 @@ flowchart LR
     WA --> AC[Audio Core]
     WA --> AE[Moteur d’analyse]
     WM --> DSP[Moteur DSP déterministe]
+    WM -. optionnel .-> RUNPOD[RunPod Serverless]
+    RUNPOD --> DSP
     WM --> ASSIST[Assistant de mastering]
     WE --> EXPORT[Encodeur WAV]
 
@@ -235,3 +237,5 @@ mastering en ligne complet.
 - Les workers sont isolés par file et configurés pour des tâches relançables.
 - Les secrets proviennent de Vault ou d’un Secret Kubernetes existant.
 - Les fichiers audio et les valeurs secrètes ne doivent jamais apparaître dans les logs.
+- Les traitements lourds peuvent être délégués explicitement à RunPod, avec repli CPU
+  local conservé comme chemin indépendant.

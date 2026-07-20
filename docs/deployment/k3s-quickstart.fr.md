@@ -8,6 +8,8 @@ Le schéma d’architecture et le parcours détaillé d’un morceau sont prése
 [`../PROJECT_FLOW.fr.md`](../PROJECT_FLOW.fr.md). À ce stade, le chart déploie
 l’infrastructure, mais le workflow web distribué complet n’est pas encore raccordé ;
 le traitement audio de bout en bout est utilisable localement en ligne de commande.
+Pour réduire les ressources k3s en louant le calcul à la demande, consultez
+[`runpod.md`](runpod.md).
 
 ## 1. Prérequis
 

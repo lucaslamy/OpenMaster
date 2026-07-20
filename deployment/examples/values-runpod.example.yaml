@@ -1,0 +1,15 @@
+remoteCompute:
+  enabled: true
+  endpointId: REPLACE_WITH_RUNPOD_ENDPOINT_ID
+  # RunPod does not publish a stable hostname selector usable by standard
+  # NetworkPolicy. This explicit rule permits only TCP/443 from the mastering worker.
+  egressCIDRs:
+    - 0.0.0.0/0
+
+workers:
+  mastering:
+    replicaCount: 1
+    concurrency: 1
+    resources:
+      requests: {cpu: 50m, memory: 128Mi}
+      limits: {cpu: 250m, memory: 256Mi}
