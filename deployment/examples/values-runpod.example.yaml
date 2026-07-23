@@ -6,6 +6,19 @@ remoteCompute:
   egressCIDRs:
     - 0.0.0.0/0
 
+minio:
+  enabled: true
+  bucket: openmaster
+  region: us-east-1
+  publicIngress:
+    enabled: true
+    className: traefik
+    host: s3.REPLACE_WITH_DOMAIN
+    publicEndpoint: https://s3.REPLACE_WITH_DOMAIN
+    tls:
+      enabled: true
+      secretName: openmaster-minio-tls
+
 workers:
   mastering:
     replicaCount: 1

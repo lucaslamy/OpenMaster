@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import cast
 
 from packages.analysis_engine import AnalysisService
 from packages.audio_core import decode_audio, encode_wav
 from packages.dsp_engine import AutomaticMasteringService
 from packages.remote_compute import RemoteMasteringRequest, RunPodClient
+from packages.storage import MinioSignedUrlService
 
 from .celery_app import celery_app
 
@@ -68,6 +70,30 @@ def remote_master_audio(
         "remote_status": completed.status.value,
         "output": completed.output or {},
     }
+
+
+@celery_app.task(name="openmaster.remote_mastering_minio")
+def remote_master_minio_object(
+    source_object: str,
+    destination_object: str,
+    source_sha256: str,
+    target_lufs: float = -14.0,
+    bit_depth: int = 24,
+) -> dict[str, object]:
+    """Sign internal MinIO objects, then delegate processing to RunPod."""
+    storage = MinioSignedUrlService.from_environment()
+    storage.ensure_bucket()
+    transfer = storage.create_transfer(source_object, destination_object)
+    return cast(
+        dict[str, object],
+        remote_master_audio.run(
+            transfer.source_url,
+            transfer.destination_url,
+            source_sha256,
+            target_lufs,
+            bit_depth,
+        ),
+    )
 
 
 @celery_app.task(

@@ -79,3 +79,54 @@ tests:
           path: spec.egress[3].ports[0].port
           value: 443
         documentIndex: 6
+  - it: exposes only the MinIO S3 service through its dedicated ingress
+    template: templates/minio-ingress.yaml
+    set:
+      minio.publicIngress.enabled: true
+      minio.publicIngress.host: s3.openmaster.example
+      minio.publicIngress.publicEndpoint: https://s3.openmaster.example
+      minio.publicIngress.tls.secretName: openmaster-minio-tls
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: spec.rules[0].host
+          value: s3.openmaster.example
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.name
+          value: api
+  - it: renders MinIO endpoints for remote object signing
+    template: templates/configmap.yaml
+    set:
+      remoteCompute.enabled: true
+      remoteCompute.endpointId: endpoint-123
+      minio.publicIngress.enabled: true
+      minio.publicIngress.host: s3.openmaster.example
+      minio.publicIngress.publicEndpoint: https://s3.openmaster.example
+      minio.publicIngress.tls.secretName: openmaster-minio-tls
+    asserts:
+      - equal:
+          path: data.MINIO_PUBLIC_ENDPOINT
+          value: https://s3.openmaster.example
+      - equal:
+          path: data.MINIO_INTERNAL_ENDPOINT
+          value: http://RELEASE-NAME-openmaster-minio:9000
+  - it: renders endpoints for a shared external MinIO
+    template: templates/configmap.yaml
+    set:
+      remoteCompute.enabled: true
+      remoteCompute.endpointId: endpoint-123
+      minio.enabled: false
+      minio.externalHost: minio.clipforge.svc.cluster.local
+      minio.externalPublicEndpoint: https://s3.example.com
+      minio.bucket: openmaster
+    asserts:
+      - equal:
+          path: data.MINIO_INTERNAL_ENDPOINT
+          value: http://RELEASE-NAME-openmaster-minio:9000
+      - equal:
+          path: data.MINIO_PUBLIC_ENDPOINT
+          value: https://s3.example.com
+      - equal:
+          path: data.MINIO_BUCKET
+          value: openmaster

@@ -11,6 +11,10 @@ All notable changes to OpenMaster are documented in this file.
   an explicit local CPU fallback boundary.
 - Helm configuration, secret preflight, NetworkPolicy egress control, container image,
   tests, and deployment guidance for pay-per-use remote compute.
+- Dedicated TLS Ingress for the internal MinIO API port, Traefik-to-MinIO network policy,
+  and application-side signed GET/PUT URLs for RunPod object transfers.
+- Shared cross-namespace MinIO support with an external HTTPS endpoint, label-based
+  egress policy, and a corrected ClipForge/OpenMaster deployment example.
 
 ### Fixed
 

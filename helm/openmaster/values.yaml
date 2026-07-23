@@ -155,6 +155,23 @@ minio:
     seccompProfile: {type: RuntimeDefault}
   externalHost: ""
   externalPort: 9000
+  # Public HTTPS origin used in presigned URLs when MinIO is managed outside
+  # this chart, for example https://s3.example.com.
+  externalPublicEndpoint: ""
+  externalNetworkPolicy:
+    namespaceSelector: {}
+    podSelector: {}
+  bucket: openmaster
+  region: us-east-1
+  publicIngress:
+    enabled: false
+    className: traefik
+    host: ""
+    publicEndpoint: ""
+    annotations: {}
+    tls:
+      enabled: true
+      secretName: ""
   persistence:
     size: 50Gi
     storageClassName: ""

@@ -1,5 +1,8 @@
 # Déporter les traitements lourds vers RunPod
 
+Pour une installation complète, suivez le
+[runbook RunPod + k3s + Vault](runpod-k3s-vault.fr.md).
+
 OpenMaster peut conserver son plan de contrôle léger sur k3s et déléguer les traitements
 de mastering à un endpoint RunPod Serverless. Le backend CPU local reste disponible :
 RunPod est une option explicite, jamais un remplacement silencieux.
@@ -30,11 +33,10 @@ le résultat durablement dans le stockage objet.
 
 ## Limite actuelle
 
-Le client, le worker distant et le contrat de sécurité sont implémentés. Le raccordement
-automatique qui génère les URL présignées depuis le futur service de stockage MinIO
-reste à réaliser avec le workflow distribué upload/job. Il est déjà possible d’appeler
-la tâche `openmaster.remote_mastering` si l’intégrateur fournit ces deux URL et le
-SHA-256 de la source.
+Le client, le worker distant, l’Ingress S3 MinIO et le contrat de sécurité sont
+implémentés. La tâche `openmaster.remote_mastering_minio` génère les URLs présignées
+depuis deux noms d’objets MinIO et délègue le traitement à RunPod. Le raccordement de
+cette tâche au futur workflow web upload/job reste à réaliser.
 
 Le pipeline actuel est surtout numérique et déterministe ; il ne contient pas encore
 un grand modèle d’IA. Une GPU RunPod n’accélérera donc pas toutes les opérations

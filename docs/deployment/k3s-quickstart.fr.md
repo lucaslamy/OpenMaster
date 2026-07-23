@@ -9,7 +9,8 @@ Le schéma d’architecture et le parcours détaillé d’un morceau sont prése
 l’infrastructure, mais le workflow web distribué complet n’est pas encore raccordé ;
 le traitement audio de bout en bout est utilisable localement en ligne de commande.
 Pour réduire les ressources k3s en louant le calcul à la demande, consultez
-[`runpod.md`](runpod.md).
+[`runpod.md`](runpod.md) puis le
+[runbook RunPod + k3s + Vault](runpod-k3s-vault.fr.md).
 
 ## 1. Prérequis
 
@@ -278,12 +279,20 @@ redis:
 
 minio:
   enabled: false
-  externalHost: minio.internal.example
+  externalHost: minio.clipforge.svc.cluster.local
   externalPort: 9000
+  externalPublicEndpoint: https://s3.example.com
+  bucket: openmaster
+  externalNetworkPolicy:
+    namespaceSelector:
+      kubernetes.io/metadata.name: clipforge
+    podSelector:
+      app: minio
 ```
 
-Les NetworkPolicies ne savent pas autoriser un FQDN. Ajoutez donc les CIDR exacts des
-destinations :
+Pour un service dans un autre namespace du même cluster, utilisez les sélecteurs
+`externalNetworkPolicy` ci-dessus. Pour une destination réellement externe, les
+NetworkPolicies ne savent pas autoriser un FQDN : ajoutez alors ses CIDR exacts :
 
 ```yaml
 networkPolicy:

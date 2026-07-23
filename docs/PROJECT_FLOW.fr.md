@@ -24,6 +24,7 @@ flowchart LR
     WM --> DSP[Moteur DSP déterministe]
     WM -. optionnel .-> RUNPOD[RunPod Serverless]
     RUNPOD --> DSP
+    RUNPOD <-->|URLs S3 présignées| MINIO
     WM --> ASSIST[Assistant de mastering]
     WE --> EXPORT[Encodeur WAV]
 

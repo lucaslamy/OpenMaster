@@ -36,3 +36,7 @@ podDisruptionBudget:
 
 remoteCompute:
   enabled: false
+
+minio:
+  publicIngress:
+    enabled: false

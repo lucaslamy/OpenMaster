@@ -122,6 +122,8 @@ explains each processing stage from input validation through mastering and expor
 Heavy jobs can optionally cross the audited
 [RunPod Serverless boundary](docs/deployment/runpod.md) using short-lived signed object
 URLs; local deterministic CPU execution remains available.
+The complete operational procedure is documented in the
+[French RunPod, k3s, and Vault runbook](docs/deployment/runpod-k3s-vault.fr.md).
 
 The Vue client lives in `apps/web` and uses Node.js 22:
 

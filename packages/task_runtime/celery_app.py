@@ -15,6 +15,7 @@ celery_app.conf.update(
         "openmaster.analysis": {"queue": "analysis"},
         "openmaster.mastering": {"queue": "mastering"},
         "openmaster.remote_mastering": {"queue": "mastering"},
+        "openmaster.remote_mastering_minio": {"queue": "mastering"},
         "openmaster.export": {"queue": "export"},
     },
     task_acks_late=True,

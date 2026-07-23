@@ -1,0 +1,31 @@
+{{- if .Values.minio.publicIngress.enabled }}
+{{- if not .Values.minio.enabled }}
+{{- fail "minio.publicIngress requires minio.enabled=true" }}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "openmaster.fullname" . }}-minio
+  labels: {{- include "openmaster.componentLabels" (dict "root" . "component" "minio") | nindent 4 }}
+  {{- with .Values.minio.publicIngress.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.minio.publicIngress.className }}
+  {{- if .Values.minio.publicIngress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ required "minio.publicIngress.host is required" .Values.minio.publicIngress.host | quote }}
+      secretName: {{ required "minio.publicIngress.tls.secretName is required when TLS is enabled" .Values.minio.publicIngress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ required "minio.publicIngress.host is required" .Values.minio.publicIngress.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "openmaster.fullname" . }}-minio
+                port: {name: api}
+{{- end }}

@@ -92,6 +92,18 @@ spec:
             matchLabels: {app.kubernetes.io/instance: {{ $.Release.Name }}, app.kubernetes.io/component: minio}
       ports: [{protocol: TCP, port: 9000}]
     {{- else }}
+    {{- if or $.Values.minio.externalNetworkPolicy.namespaceSelector $.Values.minio.externalNetworkPolicy.podSelector }}
+    - to:
+        - {{- with $.Values.minio.externalNetworkPolicy.namespaceSelector }}
+          namespaceSelector:
+            matchLabels: {{- toYaml . | nindent 14 }}
+          {{- end }}
+          {{- with $.Values.minio.externalNetworkPolicy.podSelector }}
+          podSelector:
+            matchLabels: {{- toYaml . | nindent 14 }}
+          {{- end }}
+      ports: [{protocol: TCP, port: {{ $.Values.minio.externalPort }}}]
+    {{- end }}
     {{- range $.Values.networkPolicy.externalEgress.minio }}
     - to: [{ipBlock: {cidr: {{ .cidr | quote }}{{ with .except }}, except: {{ toYaml . | nindent 12 }}{{ end }}}}]
       ports: [{protocol: TCP, port: {{ $.Values.minio.externalPort }}}]
@@ -123,6 +135,14 @@ spec:
             matchLabels: {app.kubernetes.io/instance: {{ $.Release.Name }}, app.kubernetes.io/component: {{ $component }}}
         {{- end }}
       ports: [{protocol: TCP, port: {{ $service.port }}}]
+    {{- if and (eq $service.name "minio") $.Values.minio.publicIngress.enabled }}
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: {{ $.Values.ingress.controllerNamespace | quote }}}
+          podSelector:
+            matchLabels: {{- toYaml $.Values.ingress.controllerPodLabels | nindent 14 }}
+      ports: [{protocol: TCP, port: 9000}]
+    {{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
