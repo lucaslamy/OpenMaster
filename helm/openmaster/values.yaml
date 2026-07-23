@@ -28,6 +28,15 @@ podSecurityContext:
   seccompProfile:
     type: RuntimeDefault
 
+applicationPodSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+
 containerSecurityContext:
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: true

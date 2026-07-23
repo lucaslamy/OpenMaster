@@ -10,7 +10,8 @@ FROM python:3.12-slim
 RUN apt-get update \
     && apt-get install --no-install-recommends -y ffmpeg \
     && rm -rf /var/lib/apt/lists/*
-RUN groupadd --system openmaster && useradd --system --gid openmaster --create-home openmaster
+RUN groupadd --system --gid 10001 openmaster \
+    && useradd --system --uid 10001 --gid 10001 --create-home openmaster
 
 WORKDIR /app
 COPY --from=build /wheels /wheels
@@ -18,5 +19,5 @@ RUN python -m pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
 COPY apps/runpod_worker ./apps/runpod_worker
 COPY apps/__init__.py ./apps/__init__.py
 
-USER openmaster
+USER 10001:10001
 CMD ["python", "-m", "apps.runpod_worker.handler"]

@@ -56,6 +56,20 @@ tests:
       - equal:
           path: metadata.annotations["helm.sh/hook"]
           value: post-install,pre-upgrade
+      - equal:
+          path: spec.template.spec.securityContext.runAsUser
+          value: 10001
+  - it: runs workers with a verifiable numeric non-root identity
+    template: templates/workers.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsUser
+          value: 10001
+        documentIndex: 0
+      - equal:
+          path: spec.template.spec.securityContext.runAsGroup
+          value: 10001
+        documentIndex: 0
   - it: exposes non-secret RunPod endpoint configuration
     template: templates/configmap.yaml
     set:
