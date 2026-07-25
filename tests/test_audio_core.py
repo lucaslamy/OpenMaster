@@ -108,5 +108,7 @@ def test_waveform_envelope_is_compact_normalized_and_channel_aware() -> None:
 
 def test_waveform_envelope_handles_silence_and_rejects_unsafe_size() -> None:
     assert waveform_envelope(np.zeros((10, 2), dtype=np.float64), points=16) == [0.0] * 16
+    quiet = waveform_envelope(np.full((32, 1), 0.25, dtype=np.float64), points=16)
+    assert quiet == [0.25] * 16
     with pytest.raises(ValueError, match="between 16 and 2048"):
         waveform_envelope(np.zeros((10, 1), dtype=np.float64), points=8)

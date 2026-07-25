@@ -1,20 +1,46 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
+import type { Locale } from "../i18n";
+import { translate } from "../i18n";
+import { movingPeakDensity, transientActivity } from "../presentation";
+import ComparisonChart from "./ComparisonChart.vue";
+
 const props = defineProps<{
+  locale: Locale;
   beforeUrl: string;
   afterUrl: string;
   beforeWaveform: number[];
   afterWaveform: number[];
 }>();
-const reveal = ref(50);
 const mode = ref<"before" | "after">("before");
 const before = ref<HTMLAudioElement | null>(null);
 const after = ref<HTMLAudioElement | null>(null);
-const points = (values: number[]) =>
-  values.map((value, index) => `${(index / (values.length - 1)) * 100},${50 - value * 43}`).join(" ");
-const beforePoints = computed(() => points(props.beforeWaveform));
-const afterPoints = computed(() => points(props.afterWaveform));
+const t = (key: string, variables?: Record<string, string | number>) =>
+  translate(props.locale, key, variables);
+const comparisons = computed(() => [
+  {
+    key: "peaks",
+    title: t("peakEnvelope"),
+    description: t("peakEnvelopeHelp"),
+    before: props.beforeWaveform,
+    after: props.afterWaveform,
+  },
+  {
+    key: "density",
+    title: t("peakDensity"),
+    description: t("peakDensityHelp"),
+    before: movingPeakDensity(props.beforeWaveform),
+    after: movingPeakDensity(props.afterWaveform),
+  },
+  {
+    key: "transients",
+    title: t("transientActivity"),
+    description: t("transientActivityHelp"),
+    before: transientActivity(props.beforeWaveform),
+    after: transientActivity(props.afterWaveform),
+  },
+]);
 
 async function select(next: "before" | "after"): Promise<void> {
   const currentPlayer = mode.value === "before" ? before.value : after.value;
@@ -33,25 +59,26 @@ async function select(next: "before" | "after"): Promise<void> {
 <template>
   <section class="ab-player panel">
     <div class="panel-heading">
-      <div><span class="step">05</span><h2>Before / after</h2></div>
+      <div><span class="step">05</span><h2>{{ t("beforeAfter") }}</h2></div>
       <div class="ab-switch">
-        <button type="button" :class="{ active: mode === 'before' }" @click="select('before')">A · Original</button>
-        <button type="button" :class="{ active: mode === 'after' }" @click="select('after')">B · Master</button>
+        <button type="button" :class="{ active: mode === 'before' }" @click="select('before')">A · {{ t("original") }}</button>
+        <button type="button" :class="{ active: mode === 'after' }" @click="select('after')">B · {{ t("master") }}</button>
       </div>
     </div>
-    <div class="compare-waveform">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Original and mastered waveform comparison">
-        <polyline class="wave-before" :points="beforePoints" />
-        <g :style="{ clipPath: `inset(0 ${100 - reveal}% 0 0)` }">
-          <polyline class="wave-after" :points="afterPoints" />
-        </g>
-      </svg>
-      <div class="compare-divider" :style="{ left: `${reveal}%` }"><span>↔</span></div>
-      <input v-model.number="reveal" type="range" min="0" max="100" aria-label="Reveal mastered waveform" />
-      <span class="compare-label before-label">Original</span><span class="compare-label after-label">Master</span>
+    <div class="comparison-grid">
+      <ComparisonChart
+        v-for="comparison in comparisons"
+        :key="comparison.key"
+        :locale="locale"
+        :title="comparison.title"
+        :description="comparison.description"
+        :before="comparison.before"
+        :after="comparison.after"
+      />
     </div>
     <audio ref="before" :class="{ visible: mode === 'before' }" :src="beforeUrl" controls preload="metadata" />
     <audio ref="after" :class="{ visible: mode === 'after' }" :src="afterUrl" controls preload="metadata" />
-    <p>Switch A/B while playing to continue near the same timestamp. Match perceived volume before judging tonal differences.</p>
+    <p>{{ t("abHelp") }}</p>
+    <p class="graph-disclaimer">{{ t("graphDisclaimer") }}</p>
   </section>
 </template>

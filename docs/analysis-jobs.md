@@ -10,6 +10,7 @@ Submit one file with a stable idempotency key:
 ```bash
 curl -fsS -X POST \
   -H "Idempotency-Key: $(uuidgen)" \
+  -H "X-Mastering-Password: $MASTERING_ACCESS_PASSWORD" \
   -F "file=@mix.mp3" \
   -F "target_lufs=-14" \
   -F "maximum_gain_adjustment_db=12" \
@@ -75,6 +76,8 @@ broker publication was interrupted.
 - API and analysis-worker images must contain FFmpeg and `python-multipart`.
 - `DATABASE_URL`, Celery URLs, and MinIO credentials must be present in the runtime
   Secret.
+- `MASTERING_ACCESS_PASSWORD` must be present in the runtime Secret. The API compares
+  it in constant time with `X-Mastering-Password` before accepting a new upload.
 - `MINIO_INTERNAL_ENDPOINT`, `MINIO_PUBLIC_ENDPOINT`, `MINIO_BUCKET`, and
   `MINIO_REGION` are rendered by Helm. The public endpoint must be reachable by the
   user's browser for signed downloads.
@@ -123,8 +126,9 @@ The expected body is `{"detail":"Analysis job not found"}`.
 The single-file web path exposes upload, analysis, assistant recommendation, automatic
 mastering, six measurement views, contextual control documentation, WAV export,
 download, synchronized A/B playback, and a draggable source/master waveform comparison.
-Waveforms are normalized compact peak envelopes for visual navigation, not loudness
-meters. The spectral view places the measured centroid on a logarithmic audible axis;
+Waveforms are compact peak envelopes relative to digital full scale for visual
+comparison, not loudness meters. The web sliders interpolate the stored original and
+master values point by point. The spectral view places the measured centroid on a logarithmic audible axis;
 it deliberately does not invent a full spectrum that the aggregate API does not return.
 Reference matching, aligned multi-stem sessions, and third-party plugin configuration
 have distinct multi-file or privileged execution contracts and are not yet exposed by

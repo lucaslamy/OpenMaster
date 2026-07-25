@@ -28,6 +28,7 @@ export class AnalysisApiClient {
     bitDepth = 24,
     maximumGainAdjustmentDb = 12,
     ceilingDbfs = -1,
+    masteringPassword = "",
   ): Promise<AnalysisJob> {
     const body = new FormData();
     body.append("file", file);
@@ -38,7 +39,10 @@ export class AnalysisApiClient {
     return this.request("/analysis-jobs", {
       method: "POST",
       body,
-      headers: { "Idempotency-Key": idempotencyKey },
+      headers: {
+        "Idempotency-Key": idempotencyKey,
+        "X-Mastering-Password": masteringPassword,
+      },
     });
   }
 

@@ -1,21 +1,19 @@
 <script setup lang="ts">
+import type { Locale } from "../i18n";
+
+defineProps<{ locale: Locale }>();
 defineEmits<{ back: [] }>();
 </script>
 
 <template>
-  <main class="guide-page">
+  <main v-if="locale === 'en'" class="guide-page">
     <header class="guide-hero">
       <p class="eyebrow">OpenMaster field guide</p>
       <h1>Read the sound.<br /><em>Shape the master.</em></h1>
       <p>Everything shown by the studio, what each control changes, and how a track moves through the pipeline.</p>
       <button type="button" @click="$emit('back')">← Return to studio</button>
     </header>
-
-    <nav class="guide-index">
-      <a href="#pipeline">Pipeline</a><a href="#measurements">Measurements</a>
-      <a href="#controls">Controls</a><a href="#delivery">Delivery</a>
-    </nav>
-
+    <nav class="guide-index"><a href="#pipeline">Pipeline</a><a href="#measurements">Measurements</a><a href="#controls">Controls</a><a href="#comparisons">Comparisons</a><a href="#delivery">Delivery</a></nav>
     <section id="pipeline" class="guide-section">
       <p class="eyebrow">01 · Pipeline</p><h2>From source to master</h2>
       <div class="guide-steps">
@@ -26,7 +24,6 @@ defineEmits<{ back: [] }>();
         <article><b>5</b><h3>Delivery</h3><p>A private WAV is published through a short-lived signed download.</p></article>
       </div>
     </section>
-
     <section id="measurements" class="guide-section">
       <p class="eyebrow">02 · Measurements</p><h2>How to read the analysis</h2>
       <div class="glossary">
@@ -41,14 +38,10 @@ defineEmits<{ back: [] }>();
         <article><h3>BPM & key</h3><p>Deterministic estimates useful for context; complex or changing music can reduce accuracy.</p></article>
       </div>
       <aside class="lufs-explainer">
-        <div><span>−18</span><small>Dynamic</small></div><i></i>
-        <div><span>−16</span><small>Natural</small></div><i></i>
-        <div><span>−14</span><small>Streaming start</small></div><i></i>
-        <div><span>−9</span><small>Loud</small></div>
+        <div><span>−18</span><small>Dynamic</small></div><i></i><div><span>−16</span><small>Natural</small></div><i></i><div><span>−14</span><small>Streaming start</small></div><i></i><div><span>−9</span><small>Loud</small></div>
         <p><strong>LUFS is not a volume knob guarantee.</strong> OpenMaster measures integrated LUFS with perceptual weighting and silence gating, then requests the gain needed to approach your target. If that gain would cross the configured peak ceiling, safety wins and the target may not be reached. Streaming platforms can normalize playback, so louder masters do not necessarily play louder to listeners.</p>
       </aside>
     </section>
-
     <section id="controls" class="guide-section">
       <p class="eyebrow">03 · Controls</p><h2>What your settings change</h2>
       <div class="control-guide">
@@ -59,16 +52,93 @@ defineEmits<{ back: [] }>();
       </div>
       <aside class="guide-callout"><strong>What OpenMaster does not hide</strong><p>The current automatic path applies explicit gain staging and linked sample-peak limiting. It does not silently add EQ, compression, stereo widening or saturation.</p></aside>
     </section>
-
+    <section id="comparisons" class="guide-section">
+      <p class="eyebrow">04 · Comparisons</p><h2>Understand the interactive graphs</h2>
+      <div class="glossary">
+        <article><h3>Peak envelope</h3><p>Shows peak amplitude relative to digital full scale through time. The slider interpolates every point between the original and mastered envelopes, so the geometry visibly evolves.</p></article>
+        <article><h3>Peak density</h3><p>A moving RMS calculation over the compact envelope. It reveals sustained dense passages but is not the audio signal RMS measurement.</p></article>
+        <article><h3>Transient activity</h3><p>Shows point-to-point envelope variation. It helps locate rhythmic change, but it is neither a transient detector nor a spectrum.</p></article>
+      </div>
+      <aside class="guide-callout"><strong>How the sliders work</strong><p>At 0% the active curve is the original; at 100% it is the master. Intermediate positions interpolate the real stored measurements point by point. Faint reference lines keep both endpoints visible.</p></aside>
+    </section>
     <section id="delivery" class="guide-section">
-      <p class="eyebrow">04 · Delivery</p><h2>Practical starting points</h2>
+      <p class="eyebrow">05 · Delivery</p><h2>Practical starting points</h2>
       <div class="delivery-table">
         <div><strong>Transparent</strong><span>−16 LUFS</span><span>−1.5 dBFS</span><span>±6 dB</span></div>
         <div><strong>Streaming</strong><span>−14 LUFS</span><span>−1.0 dBFS</span><span>±9 dB</span></div>
+        <div><strong>Rap</strong><span>−10 LUFS</span><span>−0.8 dBFS</span><span>±9 dB</span></div>
         <div><strong>Loud</strong><span>−9 LUFS</span><span>−0.5 dBFS</span><span>±12 dB</span></div>
         <div><strong>Podcast</strong><span>−16 LUFS</span><span>−1.0 dBFS</span><span>±6 dB</span></div>
       </div>
       <p class="guide-footnote">These are starting policies, not platform compliance guarantees. Always listen to the output and compare it at matched loudness.</p>
+    </section>
+  </main>
+
+  <main v-else class="guide-page">
+    <header class="guide-hero">
+      <p class="eyebrow">Guide pratique OpenMaster</p>
+      <h1>Lire le son.<br /><em>Façonner le master.</em></h1>
+      <p>Comprendre toutes les informations du studio, l’effet de chaque réglage et le parcours complet d’un morceau.</p>
+      <button type="button" @click="$emit('back')">← Retour au studio</button>
+    </header>
+    <nav class="guide-index"><a href="#pipeline-fr">Chaîne</a><a href="#mesures-fr">Mesures</a><a href="#reglages-fr">Réglages</a><a href="#comparaisons-fr">Comparaisons</a><a href="#livraison-fr">Livraison</a></nav>
+    <section id="pipeline-fr" class="guide-section">
+      <p class="eyebrow">01 · Chaîne de traitement</p><h2>De la source au master</h2>
+      <div class="guide-steps">
+        <article><b>1</b><h3>Envoi</h3><p>La source est validée puis stockée de manière privée dans MinIO.</p></article>
+        <article><b>2</b><h3>Analyse</h3><p>OpenMaster décode le son et mesure les niveaux, la dynamique, la stéréo et l’identité spectrale.</p></article>
+        <article><b>3</b><h3>Décision</h3><p>L’assistant détermine une correction de gain bornée à partir de votre politique et de la marge mesurée.</p></article>
+        <article><b>4</b><h3>Rendu</h3><p>Le gain déterministe et la limitation de crête liée s’exécutent localement ou sur RunPod.</p></article>
+        <article><b>5</b><h3>Livraison</h3><p>Un WAV privé est publié au moyen d’un téléchargement signé de courte durée.</p></article>
+      </div>
+    </section>
+    <section id="mesures-fr" class="guide-section">
+      <p class="eyebrow">02 · Mesures</p><h2>Lire correctement l’analyse</h2>
+      <div class="glossary">
+        <article><h3>LUFS intégré</h3><p>Les unités de niveau sonore relatif à la pleine échelle estiment le niveau moyen perçu sur tout le programme. Une valeur plus négative est plus faible : −16 LUFS est moins fort et souvent plus dynamique que −9 LUFS.</p></article>
+        <article><h3>RMS</h3><p>Énergie moyenne du signal. Elle décrit sa densité, mais ne modélise pas la perception comme les LUFS.</p></article>
+        <article><h3>Crête et crête vraie</h3><p>La crête lit les échantillons stockés ; la crête vraie estime les dépassements créés entre les échantillons pendant une conversion.</p></article>
+        <article><h3>Étendue dynamique</h3><p>Écart entre les fenêtres calmes et fortes du programme. Une valeur élevée indique généralement davantage de contraste global.</p></article>
+        <article><h3>Facteur de crête</h3><p>Écart entre le RMS et la crête. Il renseigne sur le contraste transitoire, pas sur la qualité musicale.</p></article>
+        <article><h3>Largeur stéréo</h3><p>Rapport entre l’énergie latérale et centrale. Une valeur large n’est pas automatiquement meilleure ni plus sûre.</p></article>
+        <article><h3>Corrélation de phase</h3><p>Une valeur négative avertit que des éléments stéréo peuvent s’annuler lors du passage en mono.</p></article>
+        <article><h3>Centroïde spectral</h3><p>Centre de gravité de la brillance. C’est une valeur synthétique, pas un spectre complet.</p></article>
+        <article><h3>BPM et tonalité</h3><p>Estimations déterministes utiles au contexte ; une musique complexe ou évolutive peut réduire leur précision.</p></article>
+      </div>
+      <aside class="lufs-explainer">
+        <div><span>−18</span><small>Dynamique</small></div><i></i><div><span>−16</span><small>Naturel</small></div><i></i><div><span>−14</span><small>Départ streaming</small></div><i></i><div><span>−9</span><small>Fort</small></div>
+        <p><strong>Les LUFS ne garantissent pas un volume de lecture.</strong> OpenMaster mesure les LUFS intégrés avec une pondération perceptuelle et un seuil excluant les silences, puis demande le gain nécessaire pour approcher la cible. Si ce gain dépasse le plafond de crête configuré, la sécurité est prioritaire et la cible peut ne pas être atteinte. Les plateformes peuvent normaliser la lecture : un master plus fort ne sera donc pas nécessairement entendu plus fort.</p>
+      </aside>
+    </section>
+    <section id="reglages-fr" class="guide-section">
+      <p class="eyebrow">03 · Réglages</p><h2>Ce que modifient vos paramètres</h2>
+      <div class="control-guide">
+        <article><span>LUFS</span><div><h3>Niveau sonore cible</h3><p>Demande une correction vers le niveau global choisi. La protection des crêtes peut empêcher de l’atteindre exactement.</p></div></article>
+        <article><span>dBFS</span><div><h3>Plafond du limiteur</h3><p>Définit la crête d’échantillon liée maximale. Une valeur plus basse conserve davantage de marge en sortie.</p></div></article>
+        <article><span>±dB</span><div><h3>Correction maximale</h3><p>Limite le déplacement automatique du gain dans les deux directions afin d’éviter les décisions extrêmes.</p></div></article>
+        <article><span>PCM</span><div><h3>Résolution WAV</h3><p>16 bits est compact pour la livraison, 24 bits est le choix normal de production et 32 bits conserve une résolution entière supplémentaire.</p></div></article>
+      </div>
+      <aside class="guide-callout"><strong>Ce qu’OpenMaster ne cache pas</strong><p>La chaîne automatique actuelle applique une mise à niveau explicite et une limitation liée des crêtes d’échantillon. Elle n’ajoute silencieusement ni égalisation, ni compression, ni élargissement stéréo, ni saturation.</p></aside>
+    </section>
+    <section id="comparaisons-fr" class="guide-section">
+      <p class="eyebrow">04 · Comparaisons</p><h2>Comprendre les graphiques interactifs</h2>
+      <div class="glossary">
+        <article><h3>Enveloppe de crête</h3><p>Affiche l’amplitude des crêtes par rapport à la pleine échelle numérique. Le curseur interpole chaque point entre les enveloppes originale et masterisée : la géométrie évolue donc visiblement.</p></article>
+        <article><h3>Densité des crêtes</h3><p>Calcul RMS glissant appliqué à l’enveloppe compacte. Il révèle les passages durablement denses, mais ne remplace pas la mesure RMS du signal audio.</p></article>
+        <article><h3>Activité transitoire</h3><p>Affiche la variation entre les points de l’enveloppe. Elle aide à localiser les changements rythmiques, mais ne constitue ni un détecteur de transitoires ni un spectre.</p></article>
+      </div>
+      <aside class="guide-callout"><strong>Fonctionnement des curseurs</strong><p>À 0 %, la courbe active est l’original ; à 100 %, elle correspond au master. Les positions intermédiaires interpolent point par point les mesures réellement enregistrées. Les lignes discrètes conservent les deux références visibles.</p></aside>
+    </section>
+    <section id="livraison-fr" class="guide-section">
+      <p class="eyebrow">05 · Livraison</p><h2>Points de départ pratiques</h2>
+      <div class="delivery-table">
+        <div><strong>Transparent</strong><span>−16 LUFS</span><span>−1,5 dBFS</span><span>±6 dB</span></div>
+        <div><strong>Streaming</strong><span>−14 LUFS</span><span>−1,0 dBFS</span><span>±9 dB</span></div>
+        <div><strong>Rap</strong><span>−10 LUFS</span><span>−0,8 dBFS</span><span>±9 dB</span></div>
+        <div><strong>Puissant</strong><span>−9 LUFS</span><span>−0,5 dBFS</span><span>±12 dB</span></div>
+        <div><strong>Podcast</strong><span>−16 LUFS</span><span>−1,0 dBFS</span><span>±6 dB</span></div>
+      </div>
+      <p class="guide-footnote">Ces valeurs sont des politiques de départ, pas des garanties de conformité à une plateforme. Écoutez toujours le résultat et comparez-le à niveau sonore perçu égal.</p>
     </section>
   </main>
 </template>

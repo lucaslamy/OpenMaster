@@ -13,12 +13,26 @@ describe("AnalysisApiClient", () => {
     vi.stubGlobal("fetch", fetchMock);
     const file = new File(["audio"], "mix.wav", { type: "audio/wav" });
 
-    const job = await new AnalysisApiClient("/v1").submit(file, "key-1");
+    const job = await new AnalysisApiClient("/v1").submit(
+      file,
+      "key-1",
+      -14,
+      24,
+      12,
+      -1,
+      "secret",
+    );
 
     expect(job.status).toBe("queued");
     expect(fetchMock).toHaveBeenCalledWith(
       "/v1/analysis-jobs",
-      expect.objectContaining({ headers: { "Idempotency-Key": "key-1" }, method: "POST" }),
+      expect.objectContaining({
+        headers: {
+          "Idempotency-Key": "key-1",
+          "X-Mastering-Password": "secret",
+        },
+        method: "POST",
+      }),
     );
     const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
     expect((request.body as FormData).get("target_lufs")).toBe("-14");

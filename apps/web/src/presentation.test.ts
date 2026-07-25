@@ -2,12 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import {
   frequencyPercent,
+  interpolateSeries,
   metric,
   meterPercent,
+  movingPeakDensity,
   peakHeadroom,
   recommendationFindings,
   stageIndex,
   textMetric,
+  transientActivity,
 } from "./presentation";
 
 describe("mastering result presentation", () => {
@@ -57,5 +60,17 @@ describe("mastering result presentation", () => {
     expect(frequencyPercent({ spectral_centroid_hz: 20_000 })).toBe(100);
     expect(frequencyPercent({ spectral_centroid_hz: 2_000 })).toBeGreaterThan(50);
     expect(frequencyPercent(undefined)).toBe(0);
+  });
+
+  it("derives truthful compact comparison views from waveform envelopes", () => {
+    expect(movingPeakDensity([0, 1, 0], 1)).toEqual([
+      Math.sqrt(0.5),
+      Math.sqrt(1 / 3),
+      Math.sqrt(0.5),
+    ]);
+    expect(transientActivity([0, 0.5, 0.25])).toEqual([0, 0.5, 0.25]);
+    expect(transientActivity([])).toEqual([]);
+    expect(interpolateSeries([0, 1], [1, 0], 50)).toEqual([0.5, 0.5]);
+    expect(interpolateSeries([0], [1], 150)).toEqual([1]);
   });
 });

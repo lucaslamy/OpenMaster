@@ -1,27 +1,31 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from "vue";
 
-const props = defineProps<{ file: File | null }>();
+import type { Locale } from "../i18n";
+import { translate } from "../i18n";
+
+const props = defineProps<{ file: File | null; locale: Locale }>();
+const t = (key: string) => translate(props.locale, key);
 const canvas = ref<HTMLCanvasElement | null>(null);
 const loading = ref(false);
-const message = ref("Select a track to preview its waveform");
+const message = ref("");
 let context: AudioContext | null = null;
 let renderToken = 0;
 
 async function render(file: File | null): Promise<void> {
   const token = ++renderToken;
   if (!file) {
-    message.value = "Select a track to preview its waveform";
+    message.value = t("selectPreview");
     clearCanvas();
     return;
   }
   if (file.size > 128 * 1024 * 1024) {
     clearCanvas();
-    message.value = "Preview skipped for files above 128 MB";
+    message.value = t("previewSkipped");
     return;
   }
   loading.value = true;
-  message.value = "Reading waveform…";
+  message.value = t("readingWaveform");
   try {
     context ??= new AudioContext();
     const audio = await context.decodeAudioData(await file.arrayBuffer());
@@ -32,7 +36,7 @@ async function render(file: File | null): Promise<void> {
   } catch {
     if (token !== renderToken) return;
     clearCanvas();
-    message.value = "Waveform preview unavailable for this file";
+    message.value = t("previewUnavailable");
   } finally {
     if (token === renderToken) loading.value = false;
   }
@@ -88,6 +92,7 @@ function formatDuration(seconds: number): string {
 }
 
 watch(() => props.file, render, { immediate: true });
+watch(() => props.locale, () => render(props.file));
 onBeforeUnmount(() => {
   renderToken++;
   void context?.close();
@@ -96,7 +101,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="waveform" :class="{ loading }">
-    <canvas ref="canvas" aria-label="Waveform preview"></canvas>
-    <div class="waveform-axis"><span>0:00</span><span>{{ message }}</span><span>END</span></div>
+    <canvas ref="canvas" :aria-label="t('selectPreview')"></canvas>
+    <div class="waveform-axis"><span>0:00</span><span>{{ message }}</span><span>{{ t("end") }}</span></div>
   </div>
 </template>

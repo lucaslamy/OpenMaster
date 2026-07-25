@@ -16,11 +16,12 @@ externalSecrets:
     - POSTGRES_PASSWORD
     - MINIO_ROOT_USER
     - MINIO_ROOT_PASSWORD
+    - MASTERING_ACCESS_PASSWORD
 
 image:
   registry: registry.example.com
   repository: openmaster
-  tag: "2.5.0"
+  tag: "2.6.0"
   pullPolicy: IfNotPresent
 
 podSecurityContext:

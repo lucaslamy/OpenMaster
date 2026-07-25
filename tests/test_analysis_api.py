@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import pytest
+from fastapi import HTTPException
+
+from apps.api.analysis_routes import verify_mastering_access
 from apps.api.main import app
 
 
@@ -12,3 +16,24 @@ def test_api_registers_analysis_routes_under_ingress_prefix() -> None:
     assert "/api/v1/analysis-jobs/{job_id}" in paths
     assert "/api/v1/analysis-jobs/{job_id}/download" in paths
     assert "/api/v1/analysis-jobs/{job_id}/preview" in paths
+
+
+def test_mastering_password_is_required_and_compared_safely(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MASTERING_ACCESS_PASSWORD", "correct horse battery staple")
+
+    verify_mastering_access("correct horse battery staple")
+    with pytest.raises(HTTPException) as invalid:
+        verify_mastering_access("wrong")
+    assert invalid.value.status_code == 401
+
+
+def test_missing_mastering_password_configuration_is_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("MASTERING_ACCESS_PASSWORD", raising=False)
+
+    with pytest.raises(HTTPException) as missing:
+        verify_mastering_access("anything")
+    assert missing.value.status_code == 503

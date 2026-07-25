@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hmac
+import os
 from functools import lru_cache
 from typing import Annotated, Any, Literal
 
@@ -37,6 +39,24 @@ def get_analysis_job_service() -> AnalysisJobService:
     return AnalysisJobService.from_environment()
 
 
+def verify_mastering_access(
+    password: Annotated[str | None, Header(alias="X-Mastering-Password")] = None,
+) -> None:
+    """Reject mastering submissions unless the configured shared secret matches."""
+    configured = os.environ.get("MASTERING_ACCESS_PASSWORD")
+    if not configured:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Mastering access is not configured",
+        )
+    if password is None or not hmac.compare_digest(password, configured):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid mastering password",
+            headers={"WWW-Authenticate": "MasteringPassword"},
+        )
+
+
 @router.post(
     "/analysis-jobs",
     response_model=AnalysisJobResponse,
@@ -46,6 +66,7 @@ async def create_analysis_job(
     file: UploadFile,
     idempotency_key: Annotated[str, Header(alias="Idempotency-Key")],
     service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+    _: Annotated[None, Depends(verify_mastering_access)],
     target_lufs: Annotated[float, Form()] = -14.0,
     maximum_gain_adjustment_db: Annotated[float, Form()] = 12.0,
     ceiling_dbfs: Annotated[float, Form()] = -1.0,

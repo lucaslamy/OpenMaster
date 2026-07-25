@@ -1,4 +1,4 @@
-# OpenMaster v2.5.0
+# OpenMaster v2.6.0
 
 OpenMaster is an open-source professional audio mastering platform. v2.1 adds a
 production-oriented Kubernetes and k3s deployment layer around the deterministic
@@ -19,7 +19,8 @@ The Vue mastering studio in `apps/web` provides drag-and-drop upload, a browser-
 waveform preview, mastering-profile and WAV-depth controls, durable pipeline progress,
 specialized level/dynamics/stereo/spectral/source views, accessible control explanations,
 an integrated field guide, readable assistant findings, synchronized A/B playback, a
-draggable source/master waveform comparison, and original-name master delivery. It
+draggable multi-view source/master waveform comparison, bilingual English/French
+navigation, Rap and general-purpose mastering profiles, and original-name master delivery. It
 expects the versioned analysis-job API contract documented in
 [docs/analysis-jobs.md](docs/analysis-jobs.md).
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 
 import {
   AnalysisApiClient,
@@ -12,22 +12,47 @@ import AnalysisDashboard from "./components/AnalysisDashboard.vue";
 import BeforeAfterPlayer from "./components/BeforeAfterPlayer.vue";
 import GuidePage from "./components/GuidePage.vue";
 import InfoTip from "./components/InfoTip.vue";
+import type { Locale } from "./i18n";
+import { translate, translateApiError, translateFinding } from "./i18n";
 import {
-  pipelineStages,
   recommendationFindings,
   stageIndex,
 } from "./presentation";
 
 const intents = [
-  { name: "Transparent", note: "Preserve contrast", target: -16, ceiling: -1.5, gain: 6, depth: 24, description: "Gentle gain bounds and extra peak headroom preserve the source balance." },
-  { name: "Streaming", note: "Balanced delivery", target: -14, ceiling: -1, gain: 9, depth: 24, description: "A neutral starting point for normalized music streaming playback." },
-  { name: "Podcast", note: "Clear & controlled", target: -16, ceiling: -1, gain: 6, depth: 16, description: "Moderate loudness and conservative gain for spoken-word delivery." },
-  { name: "Club", note: "Dense & forward", target: -9, ceiling: -0.3, gain: 12, depth: 24, description: "A loud target and high ceiling for dense playback systems; expect more limiting." },
-  { name: "Loud", note: "Modern impact", target: -10, ceiling: -0.5, gain: 12, depth: 24, description: "Strong loudness with a small peak margin for modern high-impact masters." },
-  { name: "Dynamic", note: "Maximum space", target: -18, ceiling: -2, gain: 5, depth: 24, description: "Lower loudness, wider headroom and restrained correction for dynamic material." },
+  { key: "Transparent", copy: "Transparent", target: -16, ceiling: -1.5, gain: 6, depth: 24 },
+  { key: "Streaming", copy: "Streaming", target: -14, ceiling: -1, gain: 9, depth: 24 },
+  { key: "Podcast", copy: "Podcast", target: -16, ceiling: -1, gain: 6, depth: 16 },
+  { key: "Rap", copy: "Rap", target: -10, ceiling: -0.8, gain: 9, depth: 24 },
+  { key: "Club", copy: "Club", target: -9, ceiling: -0.3, gain: 12, depth: 24 },
+  { key: "Loud", copy: "Loud", target: -10, ceiling: -0.5, gain: 12, depth: 24 },
+  { key: "Dynamic", copy: "Dynamic", target: -18, ceiling: -2, gain: 5, depth: 24 },
 ];
+const storedLocale = localStorage.getItem("openmaster-locale");
+const locale = ref<Locale>(
+  storedLocale === "fr" || (storedLocale === null && navigator.language.startsWith("fr"))
+    ? "fr"
+    : "en",
+);
+const t = (key: string, variables?: Record<string, string | number>) =>
+  translate(locale.value, key, variables);
+const intentName = (intent: (typeof intents)[number]) => t(`intent${intent.copy}`);
+const intentNote = (intent: (typeof intents)[number]) => t(`intent${intent.copy}Note`);
+const intentDescription = (intent: (typeof intents)[number]) =>
+  t(`intent${intent.copy}Description`);
+const pipelineStages = computed(() => [
+  { key: "queued", label: t("upload") },
+  { key: "running", label: t("analysis") },
+  { key: "mastering", label: t("mastering") },
+  { key: "succeeded", label: t("ready") },
+]);
 const page = ref<"studio" | "guide">("studio");
 const activeIntent = ref("Streaming");
+const activeIntentLabel = computed(() => {
+  if (activeIntent.value === "Custom") return t("custom");
+  const intent = intents.find((candidate) => candidate.key === activeIntent.value);
+  return intent ? intentName(intent) : t("custom");
+});
 const extraHeadroom = ref(false);
 const gentleCorrection = ref(false);
 const highResolution = ref(true);
@@ -41,17 +66,25 @@ const bitDepth = ref(24);
 const maximumGainAdjustmentDb = ref(12);
 const ceilingDbfs = ref(-1);
 const showTechnical = ref(false);
+const passwordDialogOpen = ref(false);
+const masteringPassword = ref("");
+const passwordError = ref<string | null>(null);
 const client = new AnalysisApiClient();
 const canSubmit = computed(() => selectedFile.value !== null && !submitting.value);
 const currentStage = computed(() => (job.value ? stageIndex(job.value.status) : -1));
-const findings = computed(() => recommendationFindings(job.value?.recommendation));
+const findings = computed(() =>
+  recommendationFindings(job.value?.recommendation).map((finding) => ({
+    ...finding,
+    message: translateFinding(locale.value, finding.code, finding.message),
+  })),
+);
 const fileSize = computed(() =>
   selectedFile.value ? `${(selectedFile.value.size / 1024 / 1024).toFixed(1)} MB` : "",
 );
 let pollTimer: ReturnType<typeof setTimeout> | undefined;
 
 function applyIntent(intent: (typeof intents)[number]): void {
-  activeIntent.value = intent.name;
+  activeIntent.value = intent.key;
   targetLufs.value = intent.target;
   ceilingDbfs.value = intent.ceiling;
   maximumGainAdjustmentDb.value = intent.gain;
@@ -96,7 +129,30 @@ function setFile(file: File | null): void {
   error.value = null;
 }
 
-async function submit(): Promise<void> {
+function requestMaster(): void {
+  if (!canSubmit.value) return;
+  masteringPassword.value = "";
+  passwordError.value = null;
+  passwordDialogOpen.value = true;
+}
+
+function closePasswordDialog(): void {
+  passwordDialogOpen.value = false;
+  masteringPassword.value = "";
+  passwordError.value = null;
+}
+
+async function confirmMaster(): Promise<void> {
+  if (!masteringPassword.value) {
+    passwordError.value = t("passwordRequired");
+    return;
+  }
+  const password = masteringPassword.value;
+  closePasswordDialog();
+  await submit(password);
+}
+
+async function submit(password: string): Promise<void> {
   if (!selectedFile.value) return;
   submitting.value = true;
   error.value = null;
@@ -109,10 +165,14 @@ async function submit(): Promise<void> {
       bitDepth.value,
       maximumGainAdjustmentDb.value,
       ceilingDbfs.value,
+      password,
     );
     schedulePoll();
   } catch (reason) {
-    error.value = reason instanceof Error ? reason.message : "Mastering request failed";
+    error.value =
+      reason instanceof Error
+        ? translateApiError(locale.value, reason.message)
+        : t("requestFailed");
   } finally {
     submitting.value = false;
   }
@@ -126,7 +186,10 @@ function schedulePoll(): void {
       job.value = await client.get(job.value.id);
       schedulePoll();
     } catch (reason) {
-      error.value = reason instanceof Error ? reason.message : "Job status request failed";
+      error.value =
+        reason instanceof Error
+          ? translateApiError(locale.value, reason.message)
+          : t("statusFailed");
     }
   }, 1_000);
 }
@@ -135,38 +198,50 @@ onBeforeUnmount(() => {
   if (pollTimer) clearTimeout(pollTimer);
   if (sourceUrl.value) URL.revokeObjectURL(sourceUrl.value);
 });
+watch(
+  locale,
+  (value) => {
+    localStorage.setItem("openmaster-locale", value);
+    document.documentElement.lang = value;
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
   <div class="app-shell">
     <nav class="topbar">
-      <button class="brand brand-button" type="button" aria-label="OpenMaster studio" @click="page = 'studio'">
+      <button class="brand brand-button" type="button" :aria-label="`OpenMaster ${t('studio')}`" @click="page = 'studio'">
         <span class="brand-mark"><i></i><i></i><i></i><i></i></span>
         <span>OPEN<span>MASTER</span></span>
       </button>
-      <span class="studio-status"><i></i> Engine online</span>
+      <span class="studio-status"><i></i> {{ t("engineOnline") }}</span>
       <div class="nav-links">
-        <button type="button" :class="{ active: page === 'studio' }" @click="page = 'studio'">Studio</button>
-        <button type="button" :class="{ active: page === 'guide' }" @click="page = 'guide'">Guide</button>
-        <a class="github-link" href="https://github.com/lucaslamy/OpenMaster">Source ↗</a>
+        <button type="button" :class="{ active: page === 'studio' }" @click="page = 'studio'">{{ t("studio") }}</button>
+        <button type="button" :class="{ active: page === 'guide' }" @click="page = 'guide'">{{ t("guide") }}</button>
+        <label class="language-selector">
+          <span class="sr-only">Language</span>
+          <select v-model="locale" aria-label="Language / Langue">
+            <option value="en">EN</option>
+            <option value="fr">FR</option>
+          </select>
+        </label>
+        <a class="github-link" href="https://github.com/lucaslamy/OpenMaster">{{ t("sourceLink") }}</a>
       </div>
     </nav>
 
-    <GuidePage v-if="page === 'guide'" @back="page = 'studio'" />
+    <GuidePage v-if="page === 'guide'" :locale="locale" @back="page = 'studio'" />
     <main v-else>
       <header class="hero">
-        <p class="eyebrow">Professional mastering workspace</p>
-        <h1>Make every detail<br /><em>feel intentional.</em></h1>
-        <p class="hero-copy">
-          Deterministic audio analysis and mastering, accelerated on demand and fully
-          transparent from source to final WAV.
-        </p>
+        <p class="eyebrow">{{ t("workspace") }}</p>
+        <h1>{{ t("heroTitle") }}<br /><em>{{ t("heroEmphasis") }}</em></h1>
+        <p class="hero-copy">{{ t("heroCopy") }}</p>
       </header>
 
-      <form class="studio-grid" @submit.prevent="submit">
+      <form class="studio-grid" @submit.prevent="requestMaster">
         <section class="panel source-panel">
           <div class="panel-heading">
-            <div><span class="step">01</span><h2>Source</h2></div>
+            <div><span class="step">01</span><h2>{{ t("source") }}</h2></div>
             <span v-if="selectedFile" class="format-pill">{{ selectedFile.name.split(".").pop()?.toUpperCase() }}</span>
           </div>
 
@@ -175,44 +250,46 @@ onBeforeUnmount(() => {
             <template v-if="selectedFile">
               <span class="file-icon">♫</span>
               <strong>{{ selectedFile.name }}</strong>
-              <small>{{ fileSize }} · Ready for processing</small>
-              <span class="replace">Choose another track</span>
+              <small>{{ fileSize }} · {{ t("ready") }}</small>
+              <span class="replace">{{ t("chooseAnother") }}</span>
             </template>
             <template v-else>
               <span class="upload-icon">↑</span>
-              <strong>Drop your mix here</strong>
+              <strong>{{ t("dropMix") }}</strong>
               <small>WAV, FLAC, MP3, AIFF, M4A, OGG or Opus</small>
-              <span class="replace">Browse files</span>
+              <span class="replace">{{ t("browse") }}</span>
             </template>
           </label>
-          <AudioWaveform :file="selectedFile" />
+          <AudioWaveform :file="selectedFile" :locale="locale" />
           <audio v-if="sourceUrl" class="audio-player" :src="sourceUrl" controls />
         </section>
 
         <aside class="panel settings-panel">
           <div class="panel-heading">
-            <div><span class="step">02</span><h2>Direction</h2></div>
+            <div><span class="step">02</span><h2>{{ t("direction") }}</h2></div>
           </div>
 
           <fieldset>
-            <legend>Mastering intent <InfoTip text="Applies a coherent starting point across loudness target, limiter ceiling, gain bounds and export depth. Every value remains editable." /></legend>
-            <button
-              v-for="intent in intents"
-              :key="intent.name"
-              class="preset"
-              :class="{ active: activeIntent === intent.name }"
-              :title="intent.description"
-              type="button"
-              @click="applyIntent(intent)"
-            >
-              <span><strong>{{ intent.name }}</strong><small>{{ intent.note }}</small></span>
-              <b>{{ intent.target }}<small> LUFS</small></b>
-            </button>
+            <legend>{{ t("masteringIntent") }} <InfoTip :text="t('intentTip')" /></legend>
+            <div class="preset-grid">
+              <button
+                v-for="intent in intents"
+                :key="intent.key"
+                class="preset"
+                :class="{ active: activeIntent === intent.key }"
+                :title="intentDescription(intent)"
+                type="button"
+                @click="applyIntent(intent)"
+              >
+                <span><strong>{{ intentName(intent) }}</strong><small>{{ intentNote(intent) }}</small></span>
+                <b>{{ intent.target }}<small> LUFS</small></b>
+              </button>
+            </div>
           </fieldset>
 
           <fieldset class="continuous-control">
             <div class="control-heading">
-              <legend>Custom loudness target <InfoTip text="Changes the requested perceived programme loudness. Peak protection can reduce the effective gain when headroom is insufficient." /></legend>
+              <legend>{{ t("customTarget") }} <InfoTip :text="t('customTargetTip')" /></legend>
               <output>{{ targetLufs.toFixed(1) }} LUFS</output>
             </div>
             <input
@@ -221,14 +298,14 @@ onBeforeUnmount(() => {
               min="-24"
               max="-8"
               step="0.5"
-              aria-label="Custom loudness target"
+              :aria-label="t('customTarget')"
               @input="activeIntent = 'Custom'"
             />
-            <div class="range-labels"><span>Dynamic −24</span><span>Loud −8</span></div>
+            <div class="range-labels"><span>{{ t("dynamic") }} −24</span><span>{{ t("loud") }} −8</span></div>
           </fieldset>
 
           <fieldset>
-            <legend>WAV depth <InfoTip text="Sets the PCM resolution of the downloaded WAV. 24 bit is the normal production choice; 16 bit is common for final delivery." /></legend>
+            <legend>{{ t("wavDepth") }} <InfoTip :text="t('wavDepthTip')" /></legend>
             <div class="segments">
               <button
                 v-for="depth in [16, 24, 32]"
@@ -242,7 +319,7 @@ onBeforeUnmount(() => {
 
           <fieldset class="continuous-control">
             <div class="control-heading">
-              <legend>Limiter ceiling <InfoTip text="Sets the highest linked sample peak allowed in the master. A lower ceiling leaves more playback and conversion headroom." /></legend>
+              <legend>{{ t("limiterCeiling") }} <InfoTip :text="t('limiterTip')" /></legend>
               <output>{{ ceilingDbfs.toFixed(1) }} dBFS</output>
             </div>
             <input
@@ -251,15 +328,15 @@ onBeforeUnmount(() => {
               min="-3"
               max="-0.1"
               step="0.1"
-              aria-label="Limiter ceiling"
+              :aria-label="t('limiterCeiling')"
               @input="activeIntent = 'Custom'"
             />
-            <div class="range-labels"><span>Safer −3 dB</span><span>Hot −0.1 dB</span></div>
+            <div class="range-labels"><span>{{ t("safer") }} −3 dB</span><span>{{ t("hot") }} −0.1 dB</span></div>
           </fieldset>
 
           <fieldset class="continuous-control">
             <div class="control-heading">
-              <legend>Maximum gain correction <InfoTip text="Limits how much automatic gain may raise or lower the track. Smaller values preserve more of the source level." /></legend>
+              <legend>{{ t("maxCorrection") }} <InfoTip :text="t('correctionTip')" /></legend>
               <output>±{{ maximumGainAdjustmentDb.toFixed(0) }} dB</output>
             </div>
             <input
@@ -268,29 +345,34 @@ onBeforeUnmount(() => {
               min="0"
               max="12"
               step="1"
-              aria-label="Maximum gain correction"
+              :aria-label="t('maxCorrection')"
               @input="activeIntent = 'Custom'"
             />
-            <div class="range-labels"><span>Conservative</span><span>Maximum</span></div>
+            <div class="range-labels"><span>{{ t("conservative") }}</span><span>{{ t("maximum") }}</span></div>
           </fieldset>
 
           <fieldset>
-            <legend>Master safeguards <InfoTip text="Convenient policy switches that adjust existing deterministic controls. They never add hidden processing." /></legend>
+            <legend>{{ t("safeguards") }} <InfoTip :text="t('safeguardsTip')" /></legend>
             <div class="safeguard-grid">
-              <button type="button" :class="{ active: extraHeadroom }" @click="toggleHeadroom" title="Sets the limiter ceiling to −2 dBFS for extra conversion and playback headroom.">
-                <span>◇</span><strong>Extra headroom</strong><small>−2 dBFS ceiling</small>
+              <button type="button" :class="{ active: extraHeadroom }" @click="toggleHeadroom" :title="t('extraHeadroomTip')">
+                <span>◇</span><strong>{{ t("extraHeadroom") }}</strong><small>{{ t("extraHeadroomSmall") }}</small>
               </button>
-              <button type="button" :class="{ active: gentleCorrection }" @click="toggleCorrection" title="Limits automatic gain correction to ±6 dB to preserve more of the source balance.">
-                <span>↕</span><strong>Gentle correction</strong><small>Maximum ±6 dB</small>
+              <button type="button" :class="{ active: gentleCorrection }" @click="toggleCorrection" :title="t('gentleCorrectionTip')">
+                <span>↕</span><strong>{{ t("gentleCorrection") }}</strong><small>{{ t("gentleCorrectionSmall") }}</small>
               </button>
-              <button type="button" :class="{ active: highResolution }" @click="toggleResolution" title="Exports a 24-bit production WAV instead of a smaller 16-bit delivery file.">
-                <span>✦</span><strong>High resolution</strong><small>24-bit PCM WAV</small>
+              <button type="button" :class="{ active: highResolution }" @click="toggleResolution" :title="t('highResolutionTip')">
+                <span>✦</span><strong>{{ t("highResolution") }}</strong><small>{{ t("highResolutionSmall") }}</small>
               </button>
             </div>
           </fieldset>
 
+          <div class="master-summary">
+            <span>{{ t("activeProfile") }}</span>
+            <strong>{{ activeIntentLabel }}</strong>
+            <small>{{ t("outputSummary", { lufs: targetLufs.toFixed(1), ceiling: ceilingDbfs.toFixed(1), depth: bitDepth }) }}</small>
+          </div>
           <button class="master-button" type="submit" :disabled="!canSubmit">
-            <span>{{ submitting ? "Uploading source…" : "Create master" }}</span>
+            <span>{{ submitting ? t("uploadSource") : t("createMaster") }}</span>
             <b>→</b>
           </button>
         </aside>
@@ -301,7 +383,7 @@ onBeforeUnmount(() => {
       <section v-if="job" class="results" aria-live="polite">
         <div class="pipeline panel">
           <div class="panel-heading">
-            <div><span class="step">03</span><h2>Processing</h2></div>
+            <div><span class="step">03</span><h2>{{ t("processing") }}</h2></div>
             <span class="job-id">{{ job.id.slice(0, 8) }}</span>
           </div>
           <ol>
@@ -324,12 +406,14 @@ onBeforeUnmount(() => {
           :ceiling-dbfs="ceilingDbfs"
           :maximum-gain-adjustment-db="maximumGainAdjustmentDb"
           :bit-depth="bitDepth"
+          :locale="locale"
         />
 
         <BeforeAfterPlayer
           v-if="sourceUrl && job.preview_url && job.source_waveform && job.master_waveform"
           :before-url="sourceUrl"
           :after-url="job.preview_url"
+          :locale="locale"
           :before-waveform="job.source_waveform"
           :after-waveform="job.master_waveform"
         />
@@ -337,7 +421,7 @@ onBeforeUnmount(() => {
         <div v-if="findings.length" class="panel assistant-panel">
           <div class="assistant-intro">
             <span class="assistant-orb">✦</span>
-            <div><p class="eyebrow">Mastering assistant</p><h2>What the engine heard</h2></div>
+            <div><p class="eyebrow">{{ t("assistant") }}</p><h2>{{ t("heard") }}</h2></div>
           </div>
           <ul>
             <li v-for="finding in findings" :key="finding.code">
@@ -348,17 +432,17 @@ onBeforeUnmount(() => {
 
         <div v-if="job.download_url" class="delivery panel">
           <div>
-            <p class="eyebrow">Master ready</p>
-            <h2>Your final WAV is waiting.</h2>
-            <p>{{ bitDepth }}-bit export · private temporary download</p>
+            <p class="eyebrow">{{ t("masterReady") }}</p>
+            <h2>{{ t("finalWaiting") }}</h2>
+            <p>{{ t("privateDownload", { depth: bitDepth }) }}</p>
           </div>
-          <a class="download" :href="job.download_url">Download master <span>↓</span></a>
+          <a class="download" :href="job.download_url">{{ t("download") }} <span>↓</span></a>
         </div>
 
         <p v-if="job.error_message" class="alert error"><span>!</span>{{ job.error_message }}</p>
 
         <button v-if="job.result" class="technical-toggle" type="button" @click="showTechnical = !showTechnical">
-          {{ showTechnical ? "Hide" : "Show" }} technical JSON
+          {{ showTechnical ? t("hide") : t("show") }} {{ t("technicalJson") }}
         </button>
         <div v-if="showTechnical" class="technical-grid">
           <pre>{{ JSON.stringify(job.result, null, 2) }}</pre>
@@ -368,6 +452,37 @@ onBeforeUnmount(() => {
       </section>
     </main>
 
-    <footer><span>OPENMASTER · 2026</span><span>Deterministic by design. Open by nature.</span></footer>
+    <div
+      v-if="passwordDialogOpen"
+      class="modal-backdrop"
+      role="presentation"
+      @click.self="closePasswordDialog"
+      @keydown.esc="closePasswordDialog"
+    >
+      <form class="password-dialog" role="dialog" aria-modal="true" :aria-labelledby="'password-title'" @submit.prevent="confirmMaster">
+        <button class="modal-close" type="button" :aria-label="t('cancel')" @click="closePasswordDialog">×</button>
+        <span class="lock-orb">⌁</span>
+        <p class="eyebrow">{{ t("safeguards") }}</p>
+        <h2 id="password-title">{{ t("unlockTitle") }}</h2>
+        <p>{{ t("unlockCopy") }}</p>
+        <label>
+          <span>{{ t("password") }}</span>
+          <input
+            v-model="masteringPassword"
+            type="password"
+            autocomplete="current-password"
+            :placeholder="t('passwordPlaceholder')"
+            autofocus
+          />
+        </label>
+        <p v-if="passwordError" class="modal-error" role="alert">{{ passwordError }}</p>
+        <div class="modal-actions">
+          <button type="button" @click="closePasswordDialog">{{ t("cancel") }}</button>
+          <button type="submit">{{ t("authorize") }} <span>→</span></button>
+        </div>
+      </form>
+    </div>
+
+    <footer><span>OPENMASTER · 2026</span><span>{{ t("footer") }}</span></footer>
   </div>
 </template>

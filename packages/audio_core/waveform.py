@@ -19,7 +19,4 @@ def waveform_envelope(samples: FloatSamples, *, points: int = 256) -> list[float
         float(np.max(mono[edges[index] : max(edges[index] + 1, edges[index + 1])]))
         for index in range(points)
     ]
-    peak = max(envelope, default=0.0)
-    if peak <= 0.0:
-        return [0.0] * points
-    return [round(value / peak, 4) for value in envelope]
+    return [round(max(0.0, min(1.0, value)), 4) for value in envelope]

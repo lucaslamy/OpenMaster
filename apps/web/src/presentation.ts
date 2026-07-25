@@ -77,3 +77,31 @@ export function frequencyPercent(result: Record<string, unknown> | undefined): n
     Math.max(0, Math.min(1, (Math.log10(value) - minimum) / (maximum - minimum))) * 100,
   );
 }
+
+export function movingPeakDensity(values: number[], radius = 4): number[] {
+  // Return a bounded moving RMS view of an already compact peak envelope.
+  if (radius < 1) return [...values];
+  return values.map((_, index) => {
+    const window = values.slice(Math.max(0, index - radius), index + radius + 1);
+    const meanSquare =
+      window.reduce((total, value) => total + Math.max(0, value) ** 2, 0) / window.length;
+    return Math.min(1, Math.sqrt(meanSquare));
+  });
+}
+
+export function transientActivity(values: number[]): number[] {
+  // Highlight bounded point-to-point changes without inventing spectral data.
+  if (values.length === 0) return [];
+  return values.map((value, index) =>
+    index === 0 ? 0 : Math.abs(value - (values[index - 1] ?? value)),
+  );
+}
+
+export function interpolateSeries(before: number[], after: number[], percent: number): number[] {
+  const ratio = Math.max(0, Math.min(100, percent)) / 100;
+  const length = Math.min(before.length, after.length);
+  return Array.from(
+    { length },
+    (_, index) => (before[index] ?? 0) * (1 - ratio) + (after[index] ?? 0) * ratio,
+  );
+}

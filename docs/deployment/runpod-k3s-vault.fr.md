@@ -95,7 +95,7 @@ un registre privé configuré dans RunPod.
 cd /root/openmaster
 
 export REGISTRY=docker.io/REPLACE_WITH_ACCOUNT
-export VERSION=2.5.0
+export VERSION=2.6.0
 
 docker login
 ```
@@ -246,6 +246,19 @@ Effacez la variable locale :
 unset RUNPOD_API_KEY
 ```
 
+Ajoutez également le mot de passe demandé avant chaque nouveau mastering :
+
+```bash
+read -rsp "Mot de passe du studio OpenMaster : " MASTERING_ACCESS_PASSWORD
+echo
+printf '%s' "${MASTERING_ACCESS_PASSWORD}" \
+  | vault kv patch \
+      -mount=secret \
+      openmaster \
+      MASTERING_ACCESS_PASSWORD=-
+unset MASTERING_ACCESS_PASSWORD
+```
+
 ## 8. Synchroniser le Secret Kubernetes
 
 Forcez External Secrets à relire Vault :
@@ -285,6 +298,7 @@ POSTGRES_PASSWORD
 MINIO_ROOT_USER
 MINIO_ROOT_PASSWORD
 RUNPOD_API_KEY
+MASTERING_ACCESS_PASSWORD
 ```
 
 ## 9. Préparer les valeurs k3s
@@ -417,13 +431,13 @@ Conservez également les images normales de k3s :
 
 ```yaml
 api:
-  image: REPLACE_WITH_REGISTRY/openmaster-api:2.5.0
+  image: REPLACE_WITH_REGISTRY/openmaster-api:2.6.0
 
 web:
-  image: REPLACE_WITH_REGISTRY/openmaster-web:2.5.0
+  image: REPLACE_WITH_REGISTRY/openmaster-web:2.6.0
 
 workers:
-  image: REPLACE_WITH_REGISTRY/openmaster-api:2.5.0
+  image: REPLACE_WITH_REGISTRY/openmaster-api:2.6.0
 ```
 
 L’image `openmaster-runpod` est configurée dans RunPod uniquement, pas dans Helm.

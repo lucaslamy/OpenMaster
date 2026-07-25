@@ -42,7 +42,7 @@ ci-dessous par votre registre et votre version :
 
 ```bash
 export REGISTRY=harbor.lucaslamy.fr/private/openmaster
-export VERSION=2.5.0
+export VERSION=2.6.0
 
 docker build -f Dockerfile.api -t "${REGISTRY}/api:${VERSION}" .
 docker build -f Dockerfile.web -t "${REGISTRY}/web:${VERSION}" .
@@ -94,6 +94,7 @@ POSTGRES_USER
 POSTGRES_PASSWORD
 MINIO_ROOT_USER
 MINIO_ROOT_PASSWORD
+MASTERING_ACCESS_PASSWORD
 ```
 
 Avec les services internes, les trois URL ont typiquement cette forme :
@@ -107,6 +108,17 @@ CELERY_RESULT_BACKEND=redis://openmaster-openmaster-redis:6379/1
 Ne placez aucune valeur secrète dans Git ou dans un fichier de valeurs Helm. Le guide
 complet Vault se trouve dans
 [`vault-external-secrets.md`](vault-external-secrets.md).
+
+Générez le mot de passe demandé par l’interface, puis ajoutez-le au même enregistrement
+Vault sans l’écrire dans un fichier :
+
+```bash
+read -rsp "Mot de passe du studio OpenMaster : " MASTERING_ACCESS_PASSWORD
+echo
+printf '%s' "${MASTERING_ACCESS_PASSWORD}" \
+  | vault kv patch -mount=secret openmaster MASTERING_ACCESS_PASSWORD=-
+unset MASTERING_ACCESS_PASSWORD
+```
 
 ### Option de démarrage sans Vault
 
@@ -122,7 +134,7 @@ kubectl create secret generic openmaster-secrets \
 rm /tmp/openmaster-secrets.env
 ```
 
-Le fichier doit contenir exactement les huit clés listées précédemment. Utilisez des
+Le fichier doit contenir exactement les neuf clés listées précédemment. Utilisez des
 mots de passe aléatoires forts et le même utilisateur, mot de passe et nom de base dans
 `DATABASE_URL` et dans les variables `POSTGRES_*`. Cette méthode évite d'inscrire les
 secrets dans l'historique du shell.
@@ -150,13 +162,13 @@ externalSecrets:
   existingSecretName: openmaster-secrets
 
 api:
-  image: harbor.lucaslamy.fr/private/openmaster/api:2.5.0
+  image: harbor.lucaslamy.fr/private/openmaster/api:2.6.0
 
 web:
-  image: harbor.lucaslamy.fr/private/openmaster/web:2.5.0
+  image: harbor.lucaslamy.fr/private/openmaster/web:2.6.0
 
 workers:
-  image: harbor.lucaslamy.fr/private/openmaster/api:2.5.0
+  image: harbor.lucaslamy.fr/private/openmaster/api:2.6.0
 
 postgresql:
   persistence:

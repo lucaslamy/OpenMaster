@@ -14,6 +14,8 @@ The Vault record must expose these keys:
 - `CELERY_RESULT_BACKEND`
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
 - `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`
+- `MASTERING_ACCESS_PASSWORD` — shared studio password required only when submitting
+  a new mastering job; use a long random value and never place it in Helm values.
 
 Limit the Vault role and Kubernetes service-account binding to the deployment
 namespace and path. Confirm synchronization without printing values:

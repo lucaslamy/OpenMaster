@@ -4,6 +4,30 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-07-26
+
+### Added
+
+- Complete English/French interface selector with persistent locale, technically
+  reviewed French mastering terminology, translated guide, controls, analysis views,
+  accessibility labels, and assistant findings.
+- Selectable Rap mastering profile using a transparent −10 LUFS target, −0.8 dBFS
+  ceiling, ±9 dB correction bound, and 24-bit WAV delivery.
+- Three interactive original/master comparison graphs with independent reveal sliders:
+  absolute peak envelope, moving peak density, and point-to-point transient activity.
+- Guide documentation explaining how each comparison is derived and why these compact
+  views must not be interpreted as LUFS histories, spectra, or exact dynamics meters.
+- Server-enforced mastering password using a Vault-provided secret, constant-time API
+  comparison, and a bilingual password dialog opened only when mastering is requested.
+
+### Changed
+
+- Waveform envelopes now retain peak amplitude relative to digital full scale instead
+  of normalizing source and master independently; comparison sliders morph the actual
+  curve geometry point by point and keep faint endpoint references visible.
+- Mastering settings use a denser preset grid, an active-policy summary, and a focused
+  authorization dialog for a shorter and clearer submission flow.
+
 ## [2.5.0] - 2026-07-25
 
 ### Added
