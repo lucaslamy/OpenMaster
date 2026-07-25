@@ -4,6 +4,9 @@ kind: Ingress
 metadata:
   name: {{ include "openmaster.fullname" . }}
   labels: {{- include "openmaster.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   {{- if .Values.ingress.tls.enabled }}

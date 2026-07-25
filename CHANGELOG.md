@@ -4,6 +4,19 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Responsive mastering-studio interface with local drag-and-drop waveform preview,
+  source playback, mastering-profile presets, bit-depth controls, pipeline progress,
+  readable analysis cards, assistant findings, and a dedicated master delivery panel.
+- Typed presentation helpers and frontend regression tests for durable job progress,
+  safe metric formatting, and assistant recommendation rendering.
+
+### Fixed
+
+- Main Helm Ingress now renders configured annotations, allowing ingress-nginx upload
+  size, request-buffering, and timeout settings to reach the deployed resource.
+
 ## [2.3.1] - 2026-07-25
 
 ### Fixed

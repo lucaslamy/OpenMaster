@@ -47,9 +47,18 @@ tests:
     set:
       ingress.enabled: true
       ingress.host: openmaster.example.com
+      ingress.annotations:
+        nginx.ingress.kubernetes.io/proxy-body-size: "2048m"
+        nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
     asserts:
       - isKind:
           of: Ingress
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/proxy-body-size"]
+          value: "2048m"
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/proxy-request-buffering"]
+          value: "off"
   - it: runs migration after first-install resources are ready
     template: templates/migration-job.yaml
     asserts:

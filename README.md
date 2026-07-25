@@ -15,9 +15,11 @@ dependency.
 
 ## Web client
 
-The Vue client in `apps/web` submits analysis jobs, polls non-terminal job states, and
-renders returned analysis results or errors. It expects the versioned analysis-job API
-contract documented in [docs/analysis-jobs.md](docs/analysis-jobs.md).
+The Vue mastering studio in `apps/web` provides drag-and-drop upload, a browser-local
+waveform preview, mastering-profile and WAV-depth controls, durable pipeline progress,
+readable analysis and assistant findings, and final master delivery. It expects the
+versioned analysis-job API contract documented in
+[docs/analysis-jobs.md](docs/analysis-jobs.md).
 
 ## DSP foundation
 
