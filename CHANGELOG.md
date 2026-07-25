@@ -24,6 +24,8 @@ All notable changes to OpenMaster are documented in this file.
   init container before starting the database as UID/GID `70`.
 - Web, API, migration, and Celery workloads now mount bounded writable temporary
   storage while retaining a read-only root filesystem.
+- API startup, readiness, and liveness probes remain attached to the container
+  after adding writable temporary storage.
 - API/worker image now includes the Alembic runtime files and PostgreSQL driver required
   by the Helm migration Job.
 - First installations now run Alembic after internal PostgreSQL becomes available,

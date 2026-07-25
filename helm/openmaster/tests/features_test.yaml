@@ -89,6 +89,24 @@ tests:
           path: spec.template.spec.volumes[0].emptyDir.sizeLimit
           value: 2Gi
         documentIndex: 0
+  - it: keeps API health probes on the container
+    template: templates/api-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.httpGet.path
+          value: /health/ready
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /health/ready
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /health/live
+      - notExists:
+          path: spec.template.spec.volumes[0].startupProbe
+      - notExists:
+          path: spec.template.spec.volumes[0].readinessProbe
+      - notExists:
+          path: spec.template.spec.volumes[0].livenessProbe
   - it: exposes non-secret RunPod endpoint configuration
     template: templates/configmap.yaml
     set:

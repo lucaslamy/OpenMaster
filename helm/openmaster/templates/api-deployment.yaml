@@ -35,12 +35,6 @@ spec:
             - secretRef: {name: {{ include "openmaster.secretName" . }}}
           resources: {{- toYaml .Values.api.resources | nindent 12 }}
           securityContext: {{- toYaml .Values.containerSecurityContext | nindent 12 }}
-          volumeMounts:
-            - {name: tmp, mountPath: /tmp}
-      volumes:
-        - name: tmp
-          emptyDir:
-            sizeLimit: {{ .Values.temporaryStorage.sizeLimit }}
           startupProbe:
             httpGet: {path: /health/ready, port: http}
             {{- toYaml .Values.api.probes.startup | nindent 12 }}
@@ -50,3 +44,9 @@ spec:
           livenessProbe:
             httpGet: {path: /health/live, port: http}
             {{- toYaml .Values.api.probes.liveness | nindent 12 }}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: {{ .Values.temporaryStorage.sizeLimit }}
