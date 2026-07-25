@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from pathlib import Path
 from typing import cast
 
 from packages.analysis_engine import AnalysisService
 from packages.audio_core import decode_audio, encode_wav
+from packages.database import AnalysisJobRepository
 from packages.dsp_engine import AutomaticMasteringService
 from packages.remote_compute import RemoteMasteringRequest, RunPodClient
-from packages.storage import MinioSignedUrlService
+from packages.storage import MinioObjectStore, MinioSignedUrlService
 
 from .celery_app import celery_app
 
@@ -21,6 +23,28 @@ from .celery_app import celery_app
 def analyze_audio(input_path: str) -> dict[str, object]:
     """Analyse one immutable input path and return its JSON-safe measurements."""
     return AnalysisService().analyze(input_path).to_dict()
+
+
+@celery_app.task(name="openmaster.analysis_object")
+def analyze_minio_object(job_id: str, object_name: str) -> dict[str, object]:
+    """Download an immutable MinIO object and persist its analysis result."""
+    repository = AnalysisJobRepository.from_environment()
+    repository.mark_running(job_id)
+    try:
+        suffix = Path(object_name).suffix.lower()
+        with tempfile.TemporaryDirectory(prefix="openmaster-analysis-") as directory:
+            source = Path(directory) / f"source{suffix}"
+            MinioObjectStore.from_environment().download(object_name, source)
+            result = AnalysisService().analyze(source).to_dict()
+        repository.mark_succeeded(job_id, result)
+        return result
+    except Exception as error:
+        repository.mark_failed(
+            job_id,
+            type(error).__name__,
+            "Audio analysis failed; inspect the analysis worker logs",
+        )
+        raise
 
 
 @celery_app.task(

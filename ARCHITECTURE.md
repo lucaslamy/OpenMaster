@@ -39,11 +39,14 @@ returns an immutable `AnalysisResult`. It has no network, database, or API depen
 | `packages/compute_backends` | Explicit CPU reference and optional GPU group-limiter backends | v2.0 implemented |
 | `packages/plugin_system` | Timeout-bounded isolated external DSP plugin execution | v2.0 implemented |
 | `apps/openmaster-worker` | Invoke analysis from a worker caller | Minimal adapter |
-| `apps/web` | Vue frontend and typed analysis-job client | v0.9 in progress |
-| `apps/api` | FastAPI HTTP boundary and Kubernetes health probes | Initial production boundary |
+| `apps/web` | Vue frontend and typed analysis-job client | Implemented analysis workflow |
+| `apps/api` | FastAPI upload, job polling, and Kubernetes health boundary | Implemented |
 | `packages/audio_core` | Reusable audio contracts, input safety, WAV and FFmpeg decoding | Implemented |
 | `packages/job_store` | Pure retry-safe analysis-job lifecycle contracts | Initial extraction |
-| Database, storage, auth, AI | Persistent platform concerns | Planned |
+| `packages/analysis_jobs` | Idempotent upload and asynchronous dispatch service | Implemented |
+| `packages/database` | Alembic metadata and durable analysis-job repository | Implemented |
+| `packages/storage` | Internal MinIO transfers and public signed URLs | Implemented |
+| Auth, AI | Future platform concerns | Planned |
 
 Applications may depend on packages. Packages must not depend on applications. FastAPI
 routes must call services; DSP and analysis logic must remain in packages.
@@ -161,15 +164,16 @@ move this adapter without changing analysis metrics.
 - Analysis currently operates on a fully decoded in-memory signal.
 - LUFS, true-peak, tempo, and key estimates require reference-corpus validation before
   compliance claims.
-- API, database, storage, Celery orchestration, and observability are not implemented.
-- API health endpoints report process liveness and completed application startup; business
-  routes, persistence, and asynchronous orchestration remain to be implemented.
+- Authentication and production observability are not implemented.
+- Analysis jobs currently stop after deterministic analysis; mastering and export are
+  separate task boundaries and are not yet chained by the web workflow.
 
-## Planned deployment flow
+## Deployed analysis flow
 
 ```text
 API -> persistent job -> queue -> analysis worker -> object storage -> API status
 ```
 
-This flow is planned, not implemented. Its job IDs, retries, state transitions, and
-storage contracts must be defined before API routes expose it.
+The API stores the source in MinIO, persists an idempotent PostgreSQL record, and
+dispatches the object key through Celery. The worker downloads into bounded temporary
+storage, persists a JSON result or failure, and the web client polls the API.

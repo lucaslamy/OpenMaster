@@ -4,6 +4,8 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-07-25
+
 ### Added
 
 - Optional RunPod Serverless client and hardened remote mastering worker using bounded
@@ -26,6 +28,11 @@ All notable changes to OpenMaster are documented in this file.
   storage while retaining a read-only root filesystem.
 - API startup, readiness, and liveness probes remain attached to the container
   after adding writable temporary storage.
+- The web client now sends analysis requests through the `/api` ingress route and
+  reports non-JSON proxy responses without exposing a JSON parser error.
+- Durable `/api/v1/analysis-jobs` upload and polling, private MinIO source storage,
+  PostgreSQL result persistence, and Celery object analysis with FFmpeg in the shared
+  API/worker image.
 - API/worker image now includes the Alembic runtime files and PostgreSQL driver required
   by the Helm migration Job.
 - First installations now run Alembic after internal PostgreSQL becomes available,

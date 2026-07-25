@@ -57,7 +57,7 @@ onBeforeUnmount(() => {
 <template>
   <main>
     <header>
-      <p class="eyebrow">OpenMaster v0.9</p>
+      <p class="eyebrow">OpenMaster v2.2</p>
       <h1>Analyse your master</h1>
       <p>Submit an audio file to the OpenMaster analysis service.</p>
     </header>

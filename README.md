@@ -1,4 +1,4 @@
-# OpenMaster v2.1.0
+# OpenMaster v2.2.0
 
 OpenMaster is an open-source professional audio mastering platform. v2.1 adds a
 production-oriented Kubernetes and k3s deployment layer around the deterministic
@@ -17,7 +17,7 @@ dependency.
 
 The Vue client in `apps/web` submits analysis jobs, polls non-terminal job states, and
 renders returned analysis results or errors. It expects the versioned analysis-job API
-contract documented in its typed client.
+contract documented in [docs/analysis-jobs.md](docs/analysis-jobs.md).
 
 ## DSP foundation
 

@@ -95,7 +95,7 @@ un registre privé configuré dans RunPod.
 cd /root/openmaster
 
 export REGISTRY=docker.io/REPLACE_WITH_ACCOUNT
-export VERSION=2.1.0
+export VERSION=2.2.0
 
 docker login
 ```
@@ -319,6 +319,20 @@ minio:
       enabled: true
       secretName: openmaster-minio-tls
 
+ingress:
+  enabled: true
+  className: nginx
+  controllerNamespace: ingress-nginx
+  controllerPodLabels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/component: controller
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "2048m"
+  host: openmaster.example.com
+  tls:
+    enabled: true
+    secretName: openmaster-tls
+
 workers:
   mastering:
     replicaCount: 1
@@ -337,6 +351,12 @@ autoscaling:
 podDisruptionBudget:
   enabled: false
 ```
+
+L’annotation `proxy-body-size` doit rester cohérente avec `MAX_UPLOAD_BYTES`. Sans
+elle, ingress-nginx peut rejeter un MP3 avant que l’API ne puisse produire une réponse
+JSON. Le workflow web utilise `POST /api/v1/analysis-jobs`, stocke la source dans le
+bucket `openmaster`, puis interroge `GET /api/v1/analysis-jobs/{id}` pendant le
+traitement Celery.
 
 ### Réutiliser le MinIO de ClipForge
 
@@ -397,13 +417,13 @@ Conservez également les images normales de k3s :
 
 ```yaml
 api:
-  image: REPLACE_WITH_REGISTRY/openmaster-api:2.1.0
+  image: REPLACE_WITH_REGISTRY/openmaster-api:2.2.0
 
 web:
-  image: REPLACE_WITH_REGISTRY/openmaster-web:2.1.0
+  image: REPLACE_WITH_REGISTRY/openmaster-web:2.2.0
 
 workers:
-  image: REPLACE_WITH_REGISTRY/openmaster-api:2.1.0
+  image: REPLACE_WITH_REGISTRY/openmaster-api:2.2.0
 ```
 
 L’image `openmaster-runpod` est configurée dans RunPod uniquement, pas dans Helm.

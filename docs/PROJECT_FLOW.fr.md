@@ -1,8 +1,8 @@
 # Fonctionnement d’OpenMaster et traitement d’un morceau
 
 Ce document explique l’architecture d’OpenMaster, le rôle de chaque composant et le
-parcours d’un morceau étape par étape. Il distingue le moteur audio déjà utilisable de
-la future orchestration complète par API et workers.
+parcours d’un morceau étape par étape. L’upload, l’analyse asynchrone et le polling
+API sont implémentés ; le chaînage automatique mastering/export reste à compléter.
 
 ## Vue d’ensemble
 
@@ -57,7 +57,7 @@ flowchart LR
 | Worker export | Encodage et publication du fichier final |
 | Vault et External Secrets | Injection des identifiants sans les stocker dans Helm |
 
-## Parcours cible d’un morceau
+## Parcours d’analyse implémenté et suite cible
 
 ```mermaid
 flowchart TD
@@ -79,9 +79,10 @@ flowchart TD
 
 ### 1. Envoi du morceau
 
-L’utilisateur choisit un fichier depuis l’interface. À terme, le navigateur l’envoie à
-l’API, qui crée un identifiant de job unique. Le fichier audio ne doit jamais être
-placé dans les logs.
+L’utilisateur choisit un fichier depuis l’interface. Le navigateur l’envoie à
+`POST /api/v1/analysis-jobs` avec une clé d’idempotence, puis interroge
+`GET /api/v1/analysis-jobs/{id}`. Le fichier audio ne doit jamais être placé dans les
+logs.
 
 ### 2. Validation
 
@@ -98,7 +99,7 @@ AIFF, FLAC, M4A, MP3, OGG et Opus passent par FFmpeg/FFprobe.
 
 ### 3. Stockage de la source
 
-Dans l’architecture distribuée cible, le fichier validé est stocké dans MinIO. La base
+Le fichier validé est stocké dans MinIO. La base
 de données conserve uniquement son identifiant, son état et ses métadonnées ; elle ne
 contient pas l’audio.
 

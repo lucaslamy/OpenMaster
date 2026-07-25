@@ -13,7 +13,7 @@ export function isTerminalStatus(status: AnalysisJob["status"]): boolean {
 }
 
 export class AnalysisApiClient {
-  public constructor(private readonly baseUrl = "/v1") {}
+  public constructor(private readonly baseUrl = "/api/v1") {}
 
   public async submit(file: File, idempotencyKey: string): Promise<AnalysisJob> {
     const body = new FormData();
@@ -31,6 +31,12 @@ export class AnalysisApiClient {
 
   private async request(path: string, init?: RequestInit): Promise<AnalysisJob> {
     const response = await fetch(`${this.baseUrl}${path}`, init);
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.toLowerCase().includes("application/json")) {
+      throw new Error(
+        `Analysis API returned a non-JSON response (HTTP ${response.status}). Check the API route and ingress configuration.`,
+      );
+    }
     const payload = (await response.json()) as AnalysisJob | { detail?: string };
     if (!response.ok) {
       throw new Error("detail" in payload ? payload.detail ?? "Analysis request failed" : "Analysis request failed");

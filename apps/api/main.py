@@ -3,7 +3,10 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
-app = FastAPI(title="OpenMaster API", version="2.0.0")
+from .analysis_routes import router as analysis_router
+
+app = FastAPI(title="OpenMaster API", version="2.2.0")
+app.include_router(analysis_router)
 
 
 @app.get("/health/live", include_in_schema=False)

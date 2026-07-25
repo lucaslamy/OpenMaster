@@ -42,7 +42,7 @@ ci-dessous par votre registre et votre version :
 
 ```bash
 export REGISTRY=harbor.lucaslamy.fr/private/openmaster
-export VERSION=2.1.0
+export VERSION=2.2.0
 
 docker build -f Dockerfile.api -t "${REGISTRY}/api:${VERSION}" .
 docker build -f Dockerfile.web -t "${REGISTRY}/web:${VERSION}" .
@@ -150,13 +150,13 @@ externalSecrets:
   existingSecretName: openmaster-secrets
 
 api:
-  image: harbor.lucaslamy.fr/private/openmaster/api:2.1.0
+  image: harbor.lucaslamy.fr/private/openmaster/api:2.2.0
 
 web:
-  image: harbor.lucaslamy.fr/private/openmaster/web:2.1.0
+  image: harbor.lucaslamy.fr/private/openmaster/web:2.2.0
 
 workers:
-  image: harbor.lucaslamy.fr/private/openmaster/api:2.1.0
+  image: harbor.lucaslamy.fr/private/openmaster/api:2.2.0
 
 postgresql:
   persistence:
@@ -171,9 +171,12 @@ minio:
 ingress:
   enabled: true
   className: nginx
-  controllerNamespace: kube-system
+  controllerNamespace: ingress-nginx
   controllerPodLabels:
-    app.kubernetes.io/name: nginx
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/component: controller
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "2048m"
   host: openmaster.lucaslamy.fr
   tls:
     enabled: true

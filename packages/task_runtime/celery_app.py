@@ -13,6 +13,7 @@ celery_app.conf.update(
     task_default_queue="analysis",
     task_routes={
         "openmaster.analysis": {"queue": "analysis"},
+        "openmaster.analysis_object": {"queue": "analysis"},
         "openmaster.mastering": {"queue": "mastering"},
         "openmaster.remote_mastering": {"queue": "mastering"},
         "openmaster.remote_mastering_minio": {"queue": "mastering"},

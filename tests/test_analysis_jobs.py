@@ -1,0 +1,143 @@
+"""Integration tests for durable upload and analysis-job coordination."""
+
+from __future__ import annotations
+
+from io import BytesIO
+from typing import Any, cast
+
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.pool import StaticPool
+
+from packages.analysis_jobs import AnalysisJobService, InvalidUploadError
+from packages.database import AnalysisJobRepository, metadata
+from packages.storage import MinioObjectStore
+
+
+class FakeObjectStore:
+    """Capture immutable uploads without a MinIO server."""
+
+    def __init__(self) -> None:
+        self.objects: dict[str, bytes] = {}
+
+    def upload(
+        self,
+        object_name: str,
+        stream: Any,
+        *,
+        length: int,
+        content_type: str,
+    ) -> None:
+        del content_type
+        self.objects[object_name] = stream.read(length)
+
+
+def _repository() -> AnalysisJobRepository:
+    engine = create_engine(
+        "sqlite+pysqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    metadata.create_all(engine)
+    return AnalysisJobRepository(engine)
+
+
+def test_submit_persists_upload_and_dispatches_one_job() -> None:
+    repository = _repository()
+    storage = FakeObjectStore()
+    dispatched: list[tuple[str, str]] = []
+    service = AnalysisJobService(
+        repository,
+        cast(MinioObjectStore, storage),
+        lambda job_id, object_name: dispatched.append((job_id, object_name)),
+        maximum_upload_bytes=1024,
+    )
+
+    job = service.submit(
+        filename="../../mix.mp3",
+        content_type="audio/mpeg",
+        stream=BytesIO(b"encoded-audio"),
+        length=13,
+        idempotency_key="request-1",
+    )
+
+    assert job.status == "queued"
+    assert job.original_filename == "mix.mp3"
+    assert storage.objects[job.object_name] == b"encoded-audio"
+    assert dispatched == [(job.id, job.object_name)]
+    assert service.get(job.id) == job
+
+
+def test_idempotent_retry_returns_same_job_without_second_upload() -> None:
+    repository = _repository()
+    storage = FakeObjectStore()
+    dispatched: list[tuple[str, str]] = []
+    service = AnalysisJobService(
+        repository,
+        cast(MinioObjectStore, storage),
+        lambda job_id, object_name: dispatched.append((job_id, object_name)),
+        maximum_upload_bytes=1024,
+    )
+    arguments = {
+        "filename": "mix.mp3",
+        "content_type": "audio/mpeg",
+        "length": 5,
+        "idempotency_key": "same-request",
+    }
+
+    first = service.submit(stream=BytesIO(b"first"), **arguments)
+    second = service.submit(stream=BytesIO(b"other"), **arguments)
+
+    assert second.id == first.id
+    assert len(storage.objects) == 1
+    assert dispatched == [(first.id, first.object_name), (first.id, first.object_name)]
+
+
+@pytest.mark.parametrize(
+    ("filename", "length", "message"),
+    [
+        ("notes.txt", 5, "Unsupported audio format"),
+        ("empty.wav", 0, "empty"),
+        ("huge.wav", 2048, "MAX_UPLOAD_BYTES"),
+    ],
+)
+def test_submit_rejects_invalid_uploads(filename: str, length: int, message: str) -> None:
+    service = AnalysisJobService(
+        _repository(),
+        cast(MinioObjectStore, FakeObjectStore()),
+        lambda _job_id, _object_name: None,
+        maximum_upload_bytes=1024,
+    )
+
+    with pytest.raises(InvalidUploadError, match=message):
+        service.submit(
+            filename=filename,
+            content_type="application/octet-stream",
+            stream=BytesIO(b"x"),
+            length=length,
+            idempotency_key="request",
+        )
+
+
+def test_repository_persists_worker_result_and_failure() -> None:
+    repository = _repository()
+    job, _ = repository.create_or_get(
+        job_id="job-1",
+        idempotency_key="request-1",
+        object_name="analysis/job-1/source.wav",
+        original_filename="source.wav",
+    )
+
+    repository.mark_running(job.id)
+    repository.mark_succeeded(job.id, {"lufs": -14.0})
+    completed = repository.get(job.id)
+    assert completed is not None
+    assert completed.status == "succeeded"
+    assert completed.attempt_count == 1
+    assert completed.result == {"lufs": -14.0}
+
+    repository.mark_failed(job.id, "DecodeError", "invalid audio")
+    failed = repository.get(job.id)
+    assert failed is not None
+    assert failed.status == "failed"
+    assert failed.error_code == "DecodeError"
