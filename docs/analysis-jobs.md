@@ -41,8 +41,19 @@ curl -fsS \
 The normal state sequence is `queued -> running -> mastering -> succeeded`. Terminal
 states are `succeeded` and `failed`. A successful response contains the deterministic
 analysis in `result`, the explainable assistant output in `recommendation`, the render
-audit record in `mastering_result`, and a relative `download_url`. The download endpoint
-redirects to a short-lived signed URL for the private MinIO object.
+audit record in `mastering_result`, compact `source_waveform` and `master_waveform`
+envelopes, and relative `preview_url` and `download_url` values. Preview redirects
+inline for the A/B audio player; download adds a signed attachment filename while both
+keep the MinIO object private.
+
+The exported name is stable across retries and follows:
+
+```text
+<original-stem>-<bit-depth>bit-openmaster-<UTC timestamp>.wav
+```
+
+For example, `My mix.wav` created at 12:34:56 UTC becomes
+`My-mix-24bit-openmaster-20260725T123456Z.wav`.
 
 Download the final WAV:
 
@@ -60,7 +71,7 @@ broker publication was interrupted.
 
 ## Operational requirements
 
-- Alembic revision `0004` must be applied.
+- Alembic revision `0005` must be applied.
 - API and analysis-worker images must contain FFmpeg and `python-multipart`.
 - `DATABASE_URL`, Celery URLs, and MinIO credentials must be present in the runtime
   Secret.
@@ -91,6 +102,10 @@ These values are persisted with the job and sent unchanged to local or RunPod
 mastering. The assistant can still reduce effective gain when measured peak headroom
 requires it.
 
+The web safeguard switches are shortcuts over these same fields: extra headroom lowers
+the ceiling, gentle correction narrows the gain bound, and high resolution selects
+24-bit output. They do not enable undisclosed processors.
+
 ## Expected 404 response
 
 `GET /api/v1/analysis-jobs/inexistant` intentionally returns HTTP 404 because that job
@@ -106,6 +121,11 @@ The expected body is `{"detail":"Analysis job not found"}`.
 ## Current web scope
 
 The single-file web path exposes upload, analysis, assistant recommendation, automatic
-mastering, WAV export, and download. Reference matching, aligned multi-stem sessions,
-and third-party plugin configuration have distinct multi-file or privileged execution
-contracts and are not yet exposed by this endpoint.
+mastering, six measurement views, contextual control documentation, WAV export,
+download, synchronized A/B playback, and a draggable source/master waveform comparison.
+Waveforms are normalized compact peak envelopes for visual navigation, not loudness
+meters. The spectral view places the measured centroid on a logarithmic audible axis;
+it deliberately does not invent a full spectrum that the aggregate API does not return.
+Reference matching, aligned multi-stem sessions, and third-party plugin configuration
+have distinct multi-file or privileged execution contracts and are not yet exposed by
+this endpoint.

@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import tempfile
 from dataclasses import asdict
 from pathlib import Path
 from typing import cast
 
 from packages.analysis_engine import AnalysisResult, AnalysisService
-from packages.audio_core import decode_audio, encode_wav
-from packages.database import AnalysisJobRepository
+from packages.audio_core import decode_audio, encode_wav, waveform_envelope
+from packages.database import AnalysisJobRecord, AnalysisJobRepository
 from packages.dsp_engine import AutomaticMasteringService, MasteringPolicy
 from packages.mastering_assistant import MasteringAssistant
 from packages.remote_compute import RemoteMasteringRequest, RunPodClient
@@ -58,7 +59,7 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
     job = repository.get(job_id)
     if job is None or job.result is None:
         raise ValueError("Analysis result is required before mastering")
-    output_object = f"mastering/{job_id}/master-{job.bit_depth}bit.wav"
+    output_object = f"mastering/{job_id}/{_master_filename(job)}"
     storage = MinioObjectStore.from_environment()
     try:
         with tempfile.TemporaryDirectory(prefix="openmaster-mastering-") as directory:
@@ -92,6 +93,11 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
                     **remote_result,
                     "bit_depth": job.bit_depth,
                 }
+                output = remote_result.get("output")
+                if not isinstance(output, dict):
+                    raise ValueError("RunPod result does not contain waveform output")
+                source_waveform = _waveform_list(output.get("source_waveform"))
+                master_waveform = _waveform_list(output.get("master_waveform"))
             else:
                 decoded = decode_audio(source)
                 policy = MasteringPolicy(
@@ -119,11 +125,15 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
                     "processors": list(mastered.mastering.render.applied_processors),
                     "bit_depth": job.bit_depth,
                 }
+                source_waveform = waveform_envelope(decoded.samples)
+                master_waveform = waveform_envelope(mastered.mastering.render.samples)
         repository.mark_mastered(
             job_id,
             recommendation=recommendation.to_dict(),
             mastering_result=mastering_result,
             output_object_name=output_object,
+            source_waveform=source_waveform,
+            master_waveform=master_waveform,
         )
         return mastering_result
     except Exception as error:
@@ -239,3 +249,25 @@ def _sha256_file(path: Path) -> str:
         while chunk := stream.read(1024 * 1024):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _master_filename(job: AnalysisJobRecord) -> str:
+    """Build one retry-stable, browser-safe master name from the source contract."""
+    stem = (
+        re.sub(r"[^A-Za-z0-9._-]+", "-", Path(job.original_filename).stem).strip("-._") or "track"
+    )
+    created_at = job.created_at
+    if created_at is None:
+        raise ValueError("Job creation timestamp is required for master naming")
+    timestamp = created_at.strftime("%Y%m%dT%H%M%SZ")
+    return f"{stem}-{job.bit_depth}bit-openmaster-{timestamp}.wav"
+
+
+def _waveform_list(value: object) -> list[float]:
+    """Validate the small waveform document returned across the RunPod boundary."""
+    if not isinstance(value, list) or not 16 <= len(value) <= 2048:
+        raise ValueError("RunPod waveform output is invalid")
+    points = [float(point) for point in value]
+    if any(point < 0.0 or point > 1.0 for point in points):
+        raise ValueError("RunPod waveform points are outside [0, 1]")
+    return points

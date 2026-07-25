@@ -8,6 +8,7 @@ from .limits import DEFAULT_DECODE_LIMITS, DecodeLimits
 from .models import AudioMetadata, DecodedAudio, FloatSamples
 from .wav_decoder import WAV_SUFFIXES, decode_wav
 from .wav_encoder import encode_wav
+from .waveform import waveform_envelope
 
 __all__ = [
     "AudioInputError",
@@ -24,6 +25,7 @@ __all__ = [
     "WAV_SUFFIXES",
     "decode_wav",
     "encode_wav",
+    "waveform_envelope",
     "decode_audio",
     "decode_with_ffmpeg",
     "validate_audio_path",

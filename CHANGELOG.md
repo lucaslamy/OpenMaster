@@ -4,6 +4,30 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-07-25
+
+### Added
+
+- Six truthful analysis views for overview, levels, dynamics, stereo, spectral centroid,
+  and source metadata, derived exclusively from persisted analysis measurements.
+- Transparent, Streaming, Podcast, Club, Loud, and Dynamic mastering intentions that
+  apply editable combinations of target LUFS, peak ceiling, gain bound, and WAV depth.
+- Accessible hover/focus explanations for every mastering control and key sound metric.
+- Integrated field-guide page covering the processing pipeline, measurement glossary,
+  mastering controls, limitations, and practical delivery starting points.
+- Real headroom, correction-strength, and output-resolution safeguard switches backed
+  by the existing deterministic mastering policy rather than hidden processing.
+- Persisted source/master waveform envelopes and an A/B player with synchronized
+  switching and a draggable before/after waveform reveal.
+- Retry-stable WAV names derived from the original filename, selected bit depth, and
+  job timestamp, plus separate inline preview and attachment download URLs.
+- Alembic revision `0005` for durable source and master waveform envelopes.
+
+### Changed
+
+- The in-app guide now explains integrated LUFS, perceptual weighting, silence gating,
+  peak-ceiling interactions, practical targets, and playback normalization.
+
 ## [2.4.0] - 2026-07-25
 
 ### Added

@@ -15,6 +15,7 @@ class FakeMinioClient:
     def __init__(self, *, bucket_exists: bool = True) -> None:
         self.exists = bucket_exists
         self.created: list[str] = []
+        self.get_headers: dict[str, str] | None = None
 
     def bucket_exists(self, bucket_name: str) -> bool:
         return self.exists
@@ -27,7 +28,9 @@ class FakeMinioClient:
         bucket_name: str,
         object_name: str,
         expires: timedelta,
+        response_headers: dict[str, str] | None = None,
     ) -> str:
+        self.get_headers = response_headers
         return f"https://s3.example.com/{bucket_name}/{object_name}?get={expires.seconds}"
 
     def presigned_put_object(
@@ -59,6 +62,11 @@ def test_service_creates_private_bucket_and_public_signed_transfer() -> None:
     assert service.create_download_url("output/master.wav") == (
         "https://s3.example.com/openmaster/output/master.wav?get=900"
     )
+    assert public.get_headers is None
+    service.create_download_url("output/master.wav", download_name="mix-24bit-openmaster.wav")
+    assert public.get_headers == {
+        "response-content-disposition": 'attachment; filename="mix-24bit-openmaster.wav"'
+    }
 
 
 @pytest.mark.parametrize("object_name", ["", "/absolute.wav", "../escape.wav", "folder/"])

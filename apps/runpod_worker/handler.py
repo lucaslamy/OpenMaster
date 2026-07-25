@@ -13,7 +13,7 @@ from urllib.parse import urlsplit
 from urllib.request import urlopen
 
 from packages.analysis_engine import AnalysisService
-from packages.audio_core import decode_audio
+from packages.audio_core import decode_audio, waveform_envelope
 from packages.dsp_engine import AutomaticMasteringService, MasteringPolicy
 from packages.remote_compute import RemoteMasteringRequest
 
@@ -54,7 +54,10 @@ def _download(url: str, destination: Path, maximum_bytes: int) -> str:
 def _upload(url: str, source: Path) -> None:
     _validate_storage_host(url)
     parsed = urlsplit(url)
-    connection = http.client.HTTPSConnection(parsed.hostname, parsed.port or 443, timeout=300)
+    hostname = parsed.hostname
+    if hostname is None:  # pragma: no cover - already enforced by host validation
+        raise ValueError("Signed destination URL must contain a hostname")
+    connection = http.client.HTTPSConnection(hostname, parsed.port or 443, timeout=300)
     path = parsed.path + (f"?{parsed.query}" if parsed.query else "")
     connection.putrequest("PUT", path)
     connection.putheader("Content-Type", "audio/wav")
@@ -120,12 +123,14 @@ def handler(event: dict[str, Any]) -> dict[str, object]:
             "analysis": analysis.to_dict(),
             "decision": asdict(result.mastering.decision),
             "processors": list(result.mastering.render.applied_processors),
+            "source_waveform": waveform_envelope(decoded.samples),
+            "master_waveform": waveform_envelope(result.mastering.render.samples),
         }
 
 
 def main() -> None:
     """Start the queue-based RunPod worker."""
-    import runpod
+    import runpod  # type: ignore[import-not-found]
 
     runpod.serverless.start({"handler": handler})
 

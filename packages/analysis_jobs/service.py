@@ -124,4 +124,16 @@ class AnalysisJobService:
             return None
         if self._signed_urls is None:
             raise RuntimeError("Public MinIO signing is not configured")
+        return self._signed_urls.create_download_url(
+            job.output_object_name,
+            download_name=Path(job.output_object_name).name,
+        )
+
+    def create_preview_url(self, job_id: str) -> str | None:
+        """Return a short-lived inline URL for before/after playback."""
+        job = self._repository.get(job_id)
+        if job is None or job.output_object_name is None:
+            return None
+        if self._signed_urls is None:
+            raise RuntimeError("Public MinIO signing is not configured")
         return self._signed_urls.create_download_url(job.output_object_name)

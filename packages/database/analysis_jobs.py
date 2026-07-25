@@ -26,12 +26,15 @@ class AnalysisJobRecord:
     recommendation: dict[str, Any] | None = None
     mastering_result: dict[str, Any] | None = None
     output_object_name: str | None = None
+    source_waveform: list[float] | None = None
+    master_waveform: list[float] | None = None
     target_lufs: float = -14.0
     maximum_gain_adjustment_db: float = 12.0
     ceiling_dbfs: float = -1.0
     bit_depth: int = 24
     error_code: str | None = None
     error_message: str | None = None
+    created_at: datetime | None = None
 
 
 class AnalysisJobRepository:
@@ -136,6 +139,8 @@ class AnalysisJobRepository:
         recommendation: dict[str, Any],
         mastering_result: dict[str, Any],
         output_object_name: str,
+        source_waveform: list[float],
+        master_waveform: list[float],
     ) -> None:
         """Persist the auditable decision and downloadable master."""
         self._update(
@@ -144,6 +149,8 @@ class AnalysisJobRepository:
             recommendation=recommendation,
             mastering_result=mastering_result,
             output_object_name=output_object_name,
+            source_waveform=source_waveform,
+            master_waveform=master_waveform,
         )
 
     def mark_failed(self, job_id: str, code: str, message: str) -> None:
@@ -180,10 +187,13 @@ def _record(row: Any) -> AnalysisJobRecord:
         recommendation=row["recommendation"],
         mastering_result=row["mastering_result"],
         output_object_name=row["output_object_name"],
+        source_waveform=row["source_waveform"],
+        master_waveform=row["master_waveform"],
         target_lufs=row["target_lufs"],
         maximum_gain_adjustment_db=row["maximum_gain_adjustment_db"],
         ceiling_dbfs=row["ceiling_dbfs"],
         bit_depth=row["bit_depth"],
         error_code=row["error_code"],
         error_message=row["error_message"],
+        created_at=row["created_at"],
     )

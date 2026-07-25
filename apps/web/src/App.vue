@@ -8,22 +8,29 @@ import {
   isTerminalStatus,
 } from "./api/analysis";
 import AudioWaveform from "./components/AudioWaveform.vue";
+import AnalysisDashboard from "./components/AnalysisDashboard.vue";
+import BeforeAfterPlayer from "./components/BeforeAfterPlayer.vue";
+import GuidePage from "./components/GuidePage.vue";
+import InfoTip from "./components/InfoTip.vue";
 import {
-  metric,
-  meterPercent,
-  peakHeadroom,
   pipelineStages,
   recommendationFindings,
   stageIndex,
-  textMetric,
 } from "./presentation";
 
-const presets = [
-  { value: -9, name: "Club", note: "Dense & loud" },
-  { value: -14, name: "Streaming", note: "Balanced standard" },
-  { value: -16, name: "Natural", note: "More dynamics" },
-  { value: -18, name: "Wide", note: "Maximum breathing room" },
+const intents = [
+  { name: "Transparent", note: "Preserve contrast", target: -16, ceiling: -1.5, gain: 6, depth: 24, description: "Gentle gain bounds and extra peak headroom preserve the source balance." },
+  { name: "Streaming", note: "Balanced delivery", target: -14, ceiling: -1, gain: 9, depth: 24, description: "A neutral starting point for normalized music streaming playback." },
+  { name: "Podcast", note: "Clear & controlled", target: -16, ceiling: -1, gain: 6, depth: 16, description: "Moderate loudness and conservative gain for spoken-word delivery." },
+  { name: "Club", note: "Dense & forward", target: -9, ceiling: -0.3, gain: 12, depth: 24, description: "A loud target and high ceiling for dense playback systems; expect more limiting." },
+  { name: "Loud", note: "Modern impact", target: -10, ceiling: -0.5, gain: 12, depth: 24, description: "Strong loudness with a small peak margin for modern high-impact masters." },
+  { name: "Dynamic", note: "Maximum space", target: -18, ceiling: -2, gain: 5, depth: 24, description: "Lower loudness, wider headroom and restrained correction for dynamic material." },
 ];
+const page = ref<"studio" | "guide">("studio");
+const activeIntent = ref("Streaming");
+const extraHeadroom = ref(false);
+const gentleCorrection = ref(false);
+const highResolution = ref(true);
 const selectedFile = ref<File | null>(null);
 const sourceUrl = ref<string | null>(null);
 const job = ref<AnalysisJob | null>(null);
@@ -42,6 +49,35 @@ const fileSize = computed(() =>
   selectedFile.value ? `${(selectedFile.value.size / 1024 / 1024).toFixed(1)} MB` : "",
 );
 let pollTimer: ReturnType<typeof setTimeout> | undefined;
+
+function applyIntent(intent: (typeof intents)[number]): void {
+  activeIntent.value = intent.name;
+  targetLufs.value = intent.target;
+  ceilingDbfs.value = intent.ceiling;
+  maximumGainAdjustmentDb.value = intent.gain;
+  bitDepth.value = intent.depth;
+  extraHeadroom.value = intent.ceiling <= -1.5;
+  gentleCorrection.value = intent.gain <= 6;
+  highResolution.value = intent.depth >= 24;
+}
+
+function toggleHeadroom(): void {
+  extraHeadroom.value = !extraHeadroom.value;
+  ceilingDbfs.value = extraHeadroom.value ? -2 : -1;
+  activeIntent.value = "Custom";
+}
+
+function toggleCorrection(): void {
+  gentleCorrection.value = !gentleCorrection.value;
+  maximumGainAdjustmentDb.value = gentleCorrection.value ? 6 : 12;
+  activeIntent.value = "Custom";
+}
+
+function toggleResolution(): void {
+  highResolution.value = !highResolution.value;
+  bitDepth.value = highResolution.value ? 24 : 16;
+  activeIntent.value = "Custom";
+}
 
 function selectFile(event: Event): void {
   const target = event.target as HTMLInputElement;
@@ -104,15 +140,20 @@ onBeforeUnmount(() => {
 <template>
   <div class="app-shell">
     <nav class="topbar">
-      <a class="brand" href="#" aria-label="OpenMaster home">
+      <button class="brand brand-button" type="button" aria-label="OpenMaster studio" @click="page = 'studio'">
         <span class="brand-mark"><i></i><i></i><i></i><i></i></span>
         <span>OPEN<span>MASTER</span></span>
-      </a>
+      </button>
       <span class="studio-status"><i></i> Engine online</span>
-      <a class="github-link" href="https://github.com/lucaslamy/OpenMaster">Open source ↗</a>
+      <div class="nav-links">
+        <button type="button" :class="{ active: page === 'studio' }" @click="page = 'studio'">Studio</button>
+        <button type="button" :class="{ active: page === 'guide' }" @click="page = 'guide'">Guide</button>
+        <a class="github-link" href="https://github.com/lucaslamy/OpenMaster">Source ↗</a>
+      </div>
     </nav>
 
-    <main>
+    <GuidePage v-if="page === 'guide'" @back="page = 'studio'" />
+    <main v-else>
       <header class="hero">
         <p class="eyebrow">Professional mastering workspace</p>
         <h1>Make every detail<br /><em>feel intentional.</em></h1>
@@ -154,23 +195,24 @@ onBeforeUnmount(() => {
           </div>
 
           <fieldset>
-            <legend>Mastering profile</legend>
+            <legend>Mastering intent <InfoTip text="Applies a coherent starting point across loudness target, limiter ceiling, gain bounds and export depth. Every value remains editable." /></legend>
             <button
-              v-for="preset in presets"
-              :key="preset.value"
+              v-for="intent in intents"
+              :key="intent.name"
               class="preset"
-              :class="{ active: targetLufs === preset.value }"
+              :class="{ active: activeIntent === intent.name }"
+              :title="intent.description"
               type="button"
-              @click="targetLufs = preset.value"
+              @click="applyIntent(intent)"
             >
-              <span><strong>{{ preset.name }}</strong><small>{{ preset.note }}</small></span>
-              <b>{{ preset.value }}<small> LUFS</small></b>
+              <span><strong>{{ intent.name }}</strong><small>{{ intent.note }}</small></span>
+              <b>{{ intent.target }}<small> LUFS</small></b>
             </button>
           </fieldset>
 
           <fieldset class="continuous-control">
             <div class="control-heading">
-              <legend>Custom loudness target</legend>
+              <legend>Custom loudness target <InfoTip text="Changes the requested perceived programme loudness. Peak protection can reduce the effective gain when headroom is insufficient." /></legend>
               <output>{{ targetLufs.toFixed(1) }} LUFS</output>
             </div>
             <input
@@ -180,26 +222,27 @@ onBeforeUnmount(() => {
               max="-8"
               step="0.5"
               aria-label="Custom loudness target"
+              @input="activeIntent = 'Custom'"
             />
             <div class="range-labels"><span>Dynamic −24</span><span>Loud −8</span></div>
           </fieldset>
 
           <fieldset>
-            <legend>WAV depth</legend>
+            <legend>WAV depth <InfoTip text="Sets the PCM resolution of the downloaded WAV. 24 bit is the normal production choice; 16 bit is common for final delivery." /></legend>
             <div class="segments">
               <button
                 v-for="depth in [16, 24, 32]"
                 :key="depth"
                 type="button"
                 :class="{ active: bitDepth === depth }"
-                @click="bitDepth = depth"
+                @click="bitDepth = depth; activeIntent = 'Custom'"
               >{{ depth }} bit</button>
             </div>
           </fieldset>
 
           <fieldset class="continuous-control">
             <div class="control-heading">
-              <legend>Limiter ceiling</legend>
+              <legend>Limiter ceiling <InfoTip text="Sets the highest linked sample peak allowed in the master. A lower ceiling leaves more playback and conversion headroom." /></legend>
               <output>{{ ceilingDbfs.toFixed(1) }} dBFS</output>
             </div>
             <input
@@ -209,13 +252,14 @@ onBeforeUnmount(() => {
               max="-0.1"
               step="0.1"
               aria-label="Limiter ceiling"
+              @input="activeIntent = 'Custom'"
             />
             <div class="range-labels"><span>Safer −3 dB</span><span>Hot −0.1 dB</span></div>
           </fieldset>
 
           <fieldset class="continuous-control">
             <div class="control-heading">
-              <legend>Maximum gain correction</legend>
+              <legend>Maximum gain correction <InfoTip text="Limits how much automatic gain may raise or lower the track. Smaller values preserve more of the source level." /></legend>
               <output>±{{ maximumGainAdjustmentDb.toFixed(0) }} dB</output>
             </div>
             <input
@@ -225,14 +269,25 @@ onBeforeUnmount(() => {
               max="12"
               step="1"
               aria-label="Maximum gain correction"
+              @input="activeIntent = 'Custom'"
             />
             <div class="range-labels"><span>Conservative</span><span>Maximum</span></div>
           </fieldset>
 
-          <div class="safety-note">
-            <span>◇</span>
-            <p><strong>Deterministic safety</strong><br />Peak-aware gain and linked limiting stay auditable.</p>
-          </div>
+          <fieldset>
+            <legend>Master safeguards <InfoTip text="Convenient policy switches that adjust existing deterministic controls. They never add hidden processing." /></legend>
+            <div class="safeguard-grid">
+              <button type="button" :class="{ active: extraHeadroom }" @click="toggleHeadroom" title="Sets the limiter ceiling to −2 dBFS for extra conversion and playback headroom.">
+                <span>◇</span><strong>Extra headroom</strong><small>−2 dBFS ceiling</small>
+              </button>
+              <button type="button" :class="{ active: gentleCorrection }" @click="toggleCorrection" title="Limits automatic gain correction to ±6 dB to preserve more of the source balance.">
+                <span>↕</span><strong>Gentle correction</strong><small>Maximum ±6 dB</small>
+              </button>
+              <button type="button" :class="{ active: highResolution }" @click="toggleResolution" title="Exports a 24-bit production WAV instead of a smaller 16-bit delivery file.">
+                <span>✦</span><strong>High resolution</strong><small>24-bit PCM WAV</small>
+              </button>
+            </div>
+          </fieldset>
 
           <button class="master-button" type="submit" :disabled="!canSubmit">
             <span>{{ submitting ? "Uploading source…" : "Create master" }}</span>
@@ -262,68 +317,22 @@ onBeforeUnmount(() => {
           <div v-if="!isTerminalStatus(job.status)" class="progress-line"><i></i></div>
         </div>
 
-        <div v-if="job.result" class="metrics-grid">
-          <article class="metric-card accent">
-            <span>Integrated loudness</span>
-            <strong>{{ metric(job.result, "lufs", " LUFS") }}</strong>
-            <small>Target {{ targetLufs }} LUFS</small>
-          </article>
-          <article class="metric-card">
-            <span>True peak</span>
-            <strong>{{ metric(job.result, "true_peak_dbfs", " dB") }}</strong>
-            <small>Estimated dBFS</small>
-          </article>
-          <article class="metric-card">
-            <span>Dynamic range</span>
-            <strong>{{ metric(job.result, "dynamic_range_db", " dB") }}</strong>
-            <small>Crest {{ metric(job.result, "crest_factor_db", " dB") }}</small>
-          </article>
-          <article class="metric-card">
-            <span>Tempo & key</span>
-            <strong>{{ metric(job.result, "bpm", " BPM", 0) }}</strong>
-            <small>{{ textMetric(job.result, "musical_key") }} · {{ metric(job.result, "duration_seconds", " sec", 0) }}</small>
-          </article>
-          <article class="metric-card">
-            <span>Stereo image</span>
-            <strong>{{ metric(job.result, "stereo_width", "", 2) }}</strong>
-            <small>Phase {{ metric(job.result, "phase_correlation", "", 2) }}</small>
-          </article>
-          <article class="metric-card">
-            <span>Spectral center</span>
-            <strong>{{ metric(job.result, "spectral_centroid_hz", " Hz", 0) }}</strong>
-            <small>{{ metric(job.result, "sample_rate_hz", " Hz", 0) }} source</small>
-          </article>
-          <article class="metric-card compact">
-            <span>RMS energy</span>
-            <strong>{{ metric(job.result, "rms_dbfs", " dB") }}</strong>
-            <div class="meter"><i :style="{ width: `${meterPercent(job.result, 'rms_dbfs', -60, 0)}%` }"></i></div>
-          </article>
-          <article class="metric-card compact">
-            <span>Sample peak</span>
-            <strong>{{ metric(job.result, "peak_dbfs", " dB") }}</strong>
-            <div class="meter hot"><i :style="{ width: `${meterPercent(job.result, 'peak_dbfs', -24, 0)}%` }"></i></div>
-          </article>
-          <article class="metric-card compact">
-            <span>Phase correlation</span>
-            <strong>{{ metric(job.result, "phase_correlation", "", 2) }}</strong>
-            <div class="bipolar-meter"><i :style="{ left: `${meterPercent(job.result, 'phase_correlation', -1, 1)}%` }"></i></div>
-          </article>
-          <article class="metric-card compact">
-            <span>Source format</span>
-            <strong>{{ metric(job.result, "channels", " ch", 0) }}</strong>
-            <small>{{ metric(job.result, "bit_depth", " bit", 0) }} · {{ metric(job.result, "sample_rate_hz", " Hz", 0) }}</small>
-          </article>
-          <article class="metric-card compact">
-            <span>Peak headroom</span>
-            <strong>{{ peakHeadroom(job.result, ceilingDbfs) }}</strong>
-            <small>Ceiling configured at {{ ceilingDbfs.toFixed(1) }} dBFS</small>
-          </article>
-          <article class="metric-card compact">
-            <span>Master policy</span>
-            <strong>±{{ maximumGainAdjustmentDb }} dB</strong>
-            <small>Maximum correction · {{ bitDepth }}-bit delivery</small>
-          </article>
-        </div>
+        <AnalysisDashboard
+          v-if="job.result"
+          :result="job.result"
+          :target-lufs="targetLufs"
+          :ceiling-dbfs="ceilingDbfs"
+          :maximum-gain-adjustment-db="maximumGainAdjustmentDb"
+          :bit-depth="bitDepth"
+        />
+
+        <BeforeAfterPlayer
+          v-if="sourceUrl && job.preview_url && job.source_waveform && job.master_waveform"
+          :before-url="sourceUrl"
+          :after-url="job.preview_url"
+          :before-waveform="job.source_waveform"
+          :after-waveform="job.master_waveform"
+        />
 
         <div v-if="findings.length" class="panel assistant-panel">
           <div class="assistant-intro">

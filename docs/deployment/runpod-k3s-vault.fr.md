@@ -95,7 +95,7 @@ un registre privé configuré dans RunPod.
 cd /root/openmaster
 
 export REGISTRY=docker.io/REPLACE_WITH_ACCOUNT
-export VERSION=2.4.0
+export VERSION=2.5.0
 
 docker login
 ```
@@ -417,13 +417,13 @@ Conservez également les images normales de k3s :
 
 ```yaml
 api:
-  image: REPLACE_WITH_REGISTRY/openmaster-api:2.4.0
+  image: REPLACE_WITH_REGISTRY/openmaster-api:2.5.0
 
 web:
-  image: REPLACE_WITH_REGISTRY/openmaster-web:2.4.0
+  image: REPLACE_WITH_REGISTRY/openmaster-web:2.5.0
 
 workers:
-  image: REPLACE_WITH_REGISTRY/openmaster-api:2.4.0
+  image: REPLACE_WITH_REGISTRY/openmaster-api:2.5.0
 ```
 
 L’image `openmaster-runpod` est configurée dans RunPod uniquement, pas dans Helm.

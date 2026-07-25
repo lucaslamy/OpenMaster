@@ -24,6 +24,9 @@ class AnalysisJobResponse(BaseModel):
     recommendation: dict[str, Any] | None = None
     mastering_result: dict[str, Any] | None = None
     download_url: str | None = None
+    preview_url: str | None = None
+    source_waveform: list[float] | None = None
+    master_waveform: list[float] | None = None
     error_code: str | None = None
     error_message: str | None = None
 
@@ -94,6 +97,21 @@ def download_master(
     return RedirectResponse(url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
 
+@router.get("/analysis-jobs/{job_id}/preview", response_class=RedirectResponse)
+def preview_master(
+    job_id: str,
+    service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+) -> RedirectResponse:
+    """Redirect an authorized caller to a short-lived inline master URL."""
+    url = service.create_preview_url(job_id)
+    if url is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Master is not available",
+        )
+    return RedirectResponse(url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
+
 @router.get("/analysis-jobs/{job_id}", response_model=AnalysisJobResponse)
 def get_analysis_job(
     job_id: str,
@@ -118,6 +136,13 @@ def _response(job: AnalysisJobRecord) -> AnalysisJobResponse:
             if job.output_object_name is not None
             else None
         ),
+        preview_url=(
+            f"/api/v1/analysis-jobs/{job.id}/preview"
+            if job.output_object_name is not None
+            else None
+        ),
+        source_waveform=job.source_waveform,
+        master_waveform=job.master_waveform,
         error_code=job.error_code,
         error_message=job.error_message,
     )

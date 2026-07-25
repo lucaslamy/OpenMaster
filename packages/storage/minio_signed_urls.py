@@ -22,6 +22,7 @@ class MinioClient(Protocol):
         bucket_name: str,
         object_name: str,
         expires: timedelta,
+        response_headers: dict[str, str] | None = None,
     ) -> str: ...
 
     def presigned_put_object(
@@ -144,13 +145,28 @@ class MinioSignedUrlService:
         object_name: str,
         *,
         expires_in_seconds: int = 900,
+        download_name: str | None = None,
     ) -> str:
         """Sign a short-lived public GET for a completed private object."""
         _validate_object_name(object_name, "object_name")
+        if download_name is not None and (
+            not download_name
+            or "/" in download_name
+            or "\\" in download_name
+            or '"' in download_name
+            or "\r" in download_name
+            or "\n" in download_name
+        ):
+            raise ValueError("download_name must be a safe basename")
         if not 60 <= expires_in_seconds <= 86_400:
             raise ValueError("Signed URL lifetime must be between 60 seconds and 24 hours")
         return self._public.presigned_get_object(
             self._bucket,
             object_name,
             timedelta(seconds=expires_in_seconds),
+            (
+                {"response-content-disposition": f'attachment; filename="{download_name}"'}
+                if download_name is not None
+                else None
+            ),
         )

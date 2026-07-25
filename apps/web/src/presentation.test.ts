@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  frequencyPercent,
   metric,
   meterPercent,
   peakHeadroom,
@@ -49,5 +50,12 @@ describe("mastering result presentation", () => {
   it("derives available peak headroom from the active ceiling", () => {
     expect(peakHeadroom({ peak_dbfs: -6 }, -1)).toBe("5.0 dB");
     expect(peakHeadroom({ peak_dbfs: -0.2 }, -1)).toBe("0.0 dB");
+  });
+
+  it("places the spectral centroid on a logarithmic audible-frequency axis", () => {
+    expect(frequencyPercent({ spectral_centroid_hz: 20 })).toBe(0);
+    expect(frequencyPercent({ spectral_centroid_hz: 20_000 })).toBe(100);
+    expect(frequencyPercent({ spectral_centroid_hz: 2_000 })).toBeGreaterThan(50);
+    expect(frequencyPercent(undefined)).toBe(0);
   });
 });

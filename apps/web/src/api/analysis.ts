@@ -7,6 +7,9 @@ export interface AnalysisJob {
   recommendation?: Record<string, unknown>;
   mastering_result?: Record<string, unknown>;
   download_url?: string;
+  preview_url?: string;
+  source_waveform?: number[];
+  master_waveform?: number[];
   error_code?: string;
   error_message?: string;
 }

@@ -67,3 +67,13 @@ export function peakHeadroom(
     ? `${Math.max(0, ceilingDbfs - peak).toFixed(1)} dB`
     : "—";
 }
+
+export function frequencyPercent(result: Record<string, unknown> | undefined): number {
+  const value = result?.spectral_centroid_hz;
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return 0;
+  const minimum = Math.log10(20);
+  const maximum = Math.log10(20_000);
+  return Math.round(
+    Math.max(0, Math.min(1, (Math.log10(value) - minimum) / (maximum - minimum))) * 100,
+  );
+}

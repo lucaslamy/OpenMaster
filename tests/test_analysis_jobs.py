@@ -177,6 +177,8 @@ def test_repository_persists_worker_result_and_failure() -> None:
         recommendation={"confidence": 0.9},
         mastering_result={"processors": ["gain"]},
         output_object_name="mastering/job-1/master.wav",
+        source_waveform=[0.25] * 16,
+        master_waveform=[0.5] * 16,
     )
     completed = repository.get(job.id)
     assert completed is not None
@@ -185,6 +187,8 @@ def test_repository_persists_worker_result_and_failure() -> None:
     assert completed.result == {"lufs": -14.0}
     assert completed.recommendation == {"confidence": 0.9}
     assert completed.output_object_name == "mastering/job-1/master.wav"
+    assert completed.source_waveform == [0.25] * 16
+    assert completed.master_waveform == [0.5] * 16
 
     repository.mark_failed(job.id, "DecodeError", "invalid audio")
     failed = repository.get(job.id)

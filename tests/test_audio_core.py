@@ -15,6 +15,7 @@ from packages.audio_core import (
     decode_audio,
     decode_wav,
     encode_wav,
+    waveform_envelope,
 )
 
 
@@ -90,3 +91,22 @@ def test_encode_wav_refuses_unrequested_overwrite_and_invalid_samples(tmp_path: 
             np.array([[1.01]], dtype=np.float64),
             48_000,
         )
+
+
+def test_waveform_envelope_is_compact_normalized_and_channel_aware() -> None:
+    samples = np.array(
+        [[0.0, 0.25], [0.5, -1.0], [0.1, 0.2], [-0.5, 0.0]],
+        dtype=np.float64,
+    )
+
+    envelope = waveform_envelope(samples, points=16)
+
+    assert len(envelope) == 16
+    assert max(envelope) == 1.0
+    assert min(envelope) >= 0.0
+
+
+def test_waveform_envelope_handles_silence_and_rejects_unsafe_size() -> None:
+    assert waveform_envelope(np.zeros((10, 2), dtype=np.float64), points=16) == [0.0] * 16
+    with pytest.raises(ValueError, match="between 16 and 2048"):
+        waveform_envelope(np.zeros((10, 1), dtype=np.float64), points=8)
