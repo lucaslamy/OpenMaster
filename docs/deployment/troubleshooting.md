@@ -32,3 +32,5 @@ workload lacks resource requests. The chart supplies requests; verify the metric
 means an older chart applied the generic application security context to an official
 data-service image. Current values set the documented runtime UID/GID explicitly for
 PostgreSQL, Redis, and MinIO; PostgreSQL also receives a writable runtime socket volume.
+PostgreSQL additionally uses a short-lived, capability-limited init container to assign
+the persistent volume to UID/GID `70`; the database process itself remains non-root.

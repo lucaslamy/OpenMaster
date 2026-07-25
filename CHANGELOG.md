@@ -20,6 +20,10 @@ All notable changes to OpenMaster are documented in this file.
 
 - API, migration, RunPod, and Celery worker containers now use the explicit
   non-root UID/GID `10001`, allowing kubelet to enforce `runAsNonRoot`.
+- PostgreSQL now initializes persistent-volume ownership in a capability-limited
+  init container before starting the database as UID/GID `70`.
+- Web, API, migration, and Celery workloads now mount bounded writable temporary
+  storage while retaining a read-only root filesystem.
 - API/worker image now includes the Alembic runtime files and PostgreSQL driver required
   by the Helm migration Job.
 - First installations now run Alembic after internal PostgreSQL becomes available,

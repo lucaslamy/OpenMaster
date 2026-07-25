@@ -70,6 +70,25 @@ tests:
           path: spec.template.spec.securityContext.runAsGroup
           value: 10001
         documentIndex: 0
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].mountPath
+          value: /tmp
+        documentIndex: 0
+  - it: gives unprivileged nginx writable temporary storage
+    template: templates/web.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsUser
+          value: 101
+        documentIndex: 0
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].mountPath
+          value: /tmp
+        documentIndex: 0
+      - equal:
+          path: spec.template.spec.volumes[0].emptyDir.sizeLimit
+          value: 2Gi
+        documentIndex: 0
   - it: exposes non-secret RunPod endpoint configuration
     template: templates/configmap.yaml
     set:

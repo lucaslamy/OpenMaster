@@ -33,4 +33,10 @@ spec:
             - secretRef: {name: {{ include "openmaster.secretName" . }}}
           resources: {{- toYaml .Values.migration.resources | nindent 12 }}
           securityContext: {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: {{ .Values.temporaryStorage.sizeLimit }}
 {{- end }}

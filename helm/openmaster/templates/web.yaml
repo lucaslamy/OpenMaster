@@ -13,7 +13,7 @@ spec:
     spec:
       serviceAccountName: {{ include "openmaster.fullname" . }}
       automountServiceAccountToken: false
-      securityContext: {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      securityContext: {{- toYaml .Values.web.podSecurityContext | nindent 8 }}
       containers:
         - name: web
           image: {{ default (include "openmaster.image" .) .Values.web.image | quote }}
@@ -27,6 +27,12 @@ spec:
           livenessProbe:
             httpGet: {path: /, port: http}
             {{- toYaml .Values.web.probes.liveness | nindent 12 }}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: {{ .Values.temporaryStorage.sizeLimit }}
 ---
 apiVersion: v1
 kind: Service

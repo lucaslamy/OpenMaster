@@ -13,6 +13,14 @@ tests:
           path: metadata.name
           value: RELEASE-NAME-openmaster-postgres
         documentIndex: 1
+      - equal:
+          path: spec.template.spec.initContainers[0].securityContext.runAsUser
+          value: 0
+        documentIndex: 1
+      - equal:
+          path: spec.template.spec.initContainers[0].command[2]
+          value: chown -R 70:70 /var/lib/postgresql/data /var/run/postgresql
+        documentIndex: 1
       - isKind:
           of: StatefulSet
         documentIndex: 3

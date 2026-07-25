@@ -59,12 +59,23 @@ api:
 web:
   image: ""
   replicaCount: 1
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 101
+    runAsGroup: 101
+    fsGroup: 101
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
   resources:
     requests: {cpu: 25m, memory: 64Mi}
     limits: {cpu: 250m, memory: 256Mi}
   probes:
     readiness: {periodSeconds: 10}
     liveness: {periodSeconds: 20}
+
+temporaryStorage:
+  sizeLimit: 2Gi
 
 workers:
   image: ""
@@ -116,6 +127,7 @@ ingress:
 postgresql:
   enabled: true
   image: postgres:16-alpine
+  volumePermissionsImage: busybox:1.36.1
   podSecurityContext:
     runAsNonRoot: true
     runAsUser: 70

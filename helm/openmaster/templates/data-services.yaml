@@ -23,6 +23,22 @@ spec:
       labels: {{- include "openmaster.componentLabels" (dict "root" . "component" "postgresql") | nindent 8 }}
     spec:
       securityContext: {{- toYaml .Values.postgresql.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: volume-permissions
+          image: {{ .Values.postgresql.volumePermissionsImage | quote }}
+          command: ["sh", "-ec", "chown -R 70:70 /var/lib/postgresql/data /var/run/postgresql"]
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/postgresql/data}
+            - {name: runtime, mountPath: /var/run/postgresql}
+          securityContext:
+            runAsNonRoot: false
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+              add: [CHOWN, DAC_OVERRIDE, FOWNER]
       containers:
         - name: postgres
           image: {{ .Values.postgresql.image | quote }}
