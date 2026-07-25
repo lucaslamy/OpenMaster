@@ -23,6 +23,11 @@ class AnalysisJobRecord:
     original_filename: str
     attempt_count: int
     result: dict[str, Any] | None = None
+    recommendation: dict[str, Any] | None = None
+    mastering_result: dict[str, Any] | None = None
+    output_object_name: str | None = None
+    target_lufs: float = -14.0
+    bit_depth: int = 24
     error_code: str | None = None
     error_message: str | None = None
 
@@ -45,6 +50,8 @@ class AnalysisJobRepository:
         idempotency_key: str,
         object_name: str,
         original_filename: str,
+        target_lufs: float = -14.0,
+        bit_depth: int = 24,
     ) -> tuple[AnalysisJobRecord, bool]:
         """Insert one queued job, returning the existing row on a key race."""
         existing = self.get_by_idempotency_key(idempotency_key)
@@ -60,6 +67,8 @@ class AnalysisJobRepository:
                         status="queued",
                         object_name=object_name,
                         original_filename=original_filename,
+                        target_lufs=target_lufs,
+                        bit_depth=bit_depth,
                         attempt_count=0,
                         updated_at=now,
                     )
@@ -110,6 +119,27 @@ class AnalysisJobRepository:
         """Persist a JSON-safe analysis result."""
         self._update(job_id, status="succeeded", result=result)
 
+    def mark_analysis_complete(self, job_id: str, result: dict[str, Any]) -> None:
+        """Persist analysis and expose that mastering is now running."""
+        self._update(job_id, status="mastering", result=result)
+
+    def mark_mastered(
+        self,
+        job_id: str,
+        *,
+        recommendation: dict[str, Any],
+        mastering_result: dict[str, Any],
+        output_object_name: str,
+    ) -> None:
+        """Persist the auditable decision and downloadable master."""
+        self._update(
+            job_id,
+            status="succeeded",
+            recommendation=recommendation,
+            mastering_result=mastering_result,
+            output_object_name=output_object_name,
+        )
+
     def mark_failed(self, job_id: str, code: str, message: str) -> None:
         """Persist a bounded public failure description."""
         self._update(
@@ -141,6 +171,11 @@ def _record(row: Any) -> AnalysisJobRecord:
         original_filename=original_filename,
         attempt_count=row["attempt_count"],
         result=row["result"],
+        recommendation=row["recommendation"],
+        mastering_result=row["mastering_result"],
+        output_object_name=row["output_object_name"],
+        target_lufs=row["target_lufs"],
+        bit_depth=row["bit_depth"],
         error_code=row["error_code"],
         error_message=row["error_message"],
     )

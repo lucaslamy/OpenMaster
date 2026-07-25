@@ -30,15 +30,22 @@ for service in postgresql redis minio; do
     redis) host=redis.example.internal ;;
     minio) host=minio.example.internal ;;
   esac
-  render -f "${CHART}/values.yaml" \
-    --set "${service}.enabled=false" --set "${service}.externalHost=${host}"
+  if [[ "${service}" == "minio" ]]; then
+    render -f "${CHART}/values.yaml" \
+      --set minio.enabled=false --set "minio.externalHost=${host}" \
+      --set minio.externalPublicEndpoint=https://s3.example.com
+  else
+    render -f "${CHART}/values.yaml" \
+      --set "${service}.enabled=false" --set "${service}.externalHost=${host}"
+  fi
   grep -Eq "externalName: \"?${host}\"?" "${RENDERED}"
 done
 
 render -f "${CHART}/values.yaml" \
   --set postgresql.enabled=false --set postgresql.externalHost=postgres.example.internal \
   --set redis.enabled=false --set redis.externalHost=redis.example.internal \
-  --set minio.enabled=false --set minio.externalHost=minio.example.internal
+  --set minio.enabled=false --set minio.externalHost=minio.example.internal \
+  --set minio.externalPublicEndpoint=https://s3.example.com
 [[ "$(grep -c 'type: ExternalName' "${RENDERED}")" -eq 3 ]]
 
 render -f "${CHART}/values.yaml" --set networkPolicy.enabled=false

@@ -1,8 +1,9 @@
 # Fonctionnement d’OpenMaster et traitement d’un morceau
 
 Ce document explique l’architecture d’OpenMaster, le rôle de chaque composant et le
-parcours d’un morceau étape par étape. L’upload, l’analyse asynchrone et le polling
-API sont implémentés ; le chaînage automatique mastering/export reste à compléter.
+parcours d’un morceau étape par étape. L’upload, l’analyse asynchrone, la recommandation,
+le mastering, l’export WAV et le téléchargement sont reliés dans le parcours web
+mono-fichier.
 
 ## Vue d’ensemble
 
@@ -57,7 +58,7 @@ flowchart LR
 | Worker export | Encodage et publication du fichier final |
 | Vault et External Secrets | Injection des identifiants sans les stocker dans Helm |
 
-## Parcours d’analyse implémenté et suite cible
+## Parcours web implémenté
 
 ```mermaid
 flowchart TD
@@ -72,7 +73,7 @@ flowchart TD
     H --> I[9. Chaîne DSP déterministe]
     I --> J[10. Contrôle du résultat]
     J --> K[11. Export WAV]
-    K --> L[12. Stockage du master dans MinIO]
+    K --> L[12. Stockage privé du master dans MinIO]
     L --> M[13. Job terminé dans PostgreSQL]
     M --> N[14. Téléchargement par l’utilisateur]
 ```
@@ -105,12 +106,13 @@ contient pas l’audio.
 
 ### 4. Création du job
 
-PostgreSQL enregistre le job avec un UUID et un état initial. Les transitions doivent
-être persistantes et auditables, par exemple :
+PostgreSQL enregistre le job avec un UUID et un état initial. Les transitions sont
+persistantes et auditables :
 
 ```text
-queued -> analysing -> mastering -> exporting -> completed
-                                      \-> failed
+queued -> running -> mastering -> succeeded
+                \        \          \-> failed
+                 \---------> failed
 ```
 
 ### 5. Mise en file
@@ -183,9 +185,10 @@ existant n’est jamais écrasé sans option explicite.
 
 ### 12 à 14. Publication et téléchargement
 
-Dans la cible k3s, le worker d’export place le master dans MinIO, marque le job terminé
-dans PostgreSQL et permet à l’API de fournir un téléchargement autorisé à
-l’utilisateur.
+Dans le parcours web actuel, le worker de mastering encode le WAV, place le master
+dans MinIO et marque le job terminé dans PostgreSQL. L’API fournit ensuite une
+redirection vers une URL MinIO présignée de courte durée. Le worker d’export séparé
+reste réservé aux futurs formats et politiques de livraison.
 
 ## Ce qui fonctionne actuellement
 
@@ -219,17 +222,18 @@ python -m packages.stem_mastering --mix mix.wav \
   --output-dir mastered-stems
 ```
 
-## Ce qui reste à connecter dans k3s
+## Limites actuelles de l’interface web
 
-Le chart k3s déploie déjà l’API, le web, les workers, PostgreSQL, Redis et MinIO, avec
-leurs contrôles de sécurité et d’exploitation. Toutefois, l’application ne fournit pas
-encore le flux distribué complet upload → stockage → job Celery → master téléchargeable.
+Le chart k3s déploie le flux distribué mono-fichier complet :
+upload → MinIO → PostgreSQL → Celery → analyse → mastering → téléchargement.
 
-L’API actuellement déployée expose principalement ses probes de santé. Les contrats de
-jobs et les moteurs audio existent, mais leur raccordement persistant à PostgreSQL,
-Redis, MinIO et aux routes métier doit encore être implémenté. Déployer le chart valide
-donc l’infrastructure ; cela ne transforme pas encore l’interface web en service de
-mastering en ligne complet.
+Les fonctions spécialisées suivantes existent dans les packages et les CLI mais
+nécessitent encore leurs propres écrans et contrats API :
+
+- comparaison avec un morceau de référence, qui reçoit deux fichiers ;
+- mastering de stems alignés, qui reçoit un groupe nommé de fichiers ;
+- sélection et configuration de plugins externes, qui exige un modèle de permissions
+  et ne doit pas accepter une commande arbitraire depuis le navigateur.
 
 ## Garanties de conception
 

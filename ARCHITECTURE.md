@@ -39,8 +39,8 @@ returns an immutable `AnalysisResult`. It has no network, database, or API depen
 | `packages/compute_backends` | Explicit CPU reference and optional GPU group-limiter backends | v2.0 implemented |
 | `packages/plugin_system` | Timeout-bounded isolated external DSP plugin execution | v2.0 implemented |
 | `apps/openmaster-worker` | Invoke analysis from a worker caller | Minimal adapter |
-| `apps/web` | Vue frontend and typed analysis-job client | Implemented analysis workflow |
-| `apps/api` | FastAPI upload, job polling, and Kubernetes health boundary | Implemented |
+| `apps/web` | Vue frontend for upload, mastering controls, progress, audit results, and download | Implemented single-file workflow |
+| `apps/api` | FastAPI upload, job polling, signed download, and Kubernetes health boundary | Implemented |
 | `packages/audio_core` | Reusable audio contracts, input safety, WAV and FFmpeg decoding | Implemented |
 | `packages/job_store` | Pure retry-safe analysis-job lifecycle contracts | Initial extraction |
 | `packages/analysis_jobs` | Idempotent upload and asynchronous dispatch service | Implemented |
@@ -165,15 +165,26 @@ move this adapter without changing analysis metrics.
 - LUFS, true-peak, tempo, and key estimates require reference-corpus validation before
   compliance claims.
 - Authentication and production observability are not implemented.
-- Analysis jobs currently stop after deterministic analysis; mastering and export are
-  separate task boundaries and are not yet chained by the web workflow.
+- Reference matching, aligned stem sessions, and isolated external plugins currently
+  remain local typed workflows and are not exposed by the web application.
+- The first deployed workflow exports in the mastering task. The dedicated export queue
+  remains available for future alternate formats and delivery policies.
 
-## Deployed analysis flow
+## Deployed single-file workflow
 
 ```text
-API -> persistent job -> queue -> analysis worker -> object storage -> API status
+Web -> API -> PostgreSQL + MinIO -> Redis -> analysis worker
+                                      |
+                                      v
+                            mastering worker
+                         (local CPU or RunPod)
+                                      |
+                                      v
+                  MinIO master -> signed download -> Web
 ```
 
 The API stores the source in MinIO, persists an idempotent PostgreSQL record, and
-dispatches the object key through Celery. The worker downloads into bounded temporary
-storage, persists a JSON result or failure, and the web client polls the API.
+dispatches the object key through Celery. The analysis worker persists the deterministic
+measurements and chains the mastering task. The mastering worker stores the recommendation,
+render audit record, and final object identifier. The web client polls the API and follows
+the download endpoint to a short-lived signed MinIO URL.

@@ -2,8 +2,11 @@
 
 export interface AnalysisJob {
   id: string;
-  status: "queued" | "running" | "retry_wait" | "succeeded" | "failed";
+  status: "queued" | "running" | "mastering" | "retry_wait" | "succeeded" | "failed";
   result?: Record<string, unknown>;
+  recommendation?: Record<string, unknown>;
+  mastering_result?: Record<string, unknown>;
+  download_url?: string;
   error_code?: string;
   error_message?: string;
 }
@@ -15,9 +18,16 @@ export function isTerminalStatus(status: AnalysisJob["status"]): boolean {
 export class AnalysisApiClient {
   public constructor(private readonly baseUrl = "/api/v1") {}
 
-  public async submit(file: File, idempotencyKey: string): Promise<AnalysisJob> {
+  public async submit(
+    file: File,
+    idempotencyKey: string,
+    targetLufs = -14,
+    bitDepth = 24,
+  ): Promise<AnalysisJob> {
     const body = new FormData();
     body.append("file", file);
+    body.append("target_lufs", String(targetLufs));
+    body.append("bit_depth", String(bitDepth));
     return this.request("/analysis-jobs", {
       method: "POST",
       body,

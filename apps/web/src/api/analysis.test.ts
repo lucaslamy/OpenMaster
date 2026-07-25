@@ -20,10 +20,14 @@ describe("AnalysisApiClient", () => {
       "/v1/analysis-jobs",
       expect.objectContaining({ headers: { "Idempotency-Key": "key-1" }, method: "POST" }),
     );
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect((request.body as FormData).get("target_lufs")).toBe("-14");
+    expect((request.body as FormData).get("bit_depth")).toBe("24");
   });
 
   it("identifies terminal job states", () => {
     expect(isTerminalStatus("queued")).toBe(false);
+    expect(isTerminalStatus("mastering")).toBe(false);
     expect(isTerminalStatus("succeeded")).toBe(true);
     expect(isTerminalStatus("failed")).toBe(true);
   });

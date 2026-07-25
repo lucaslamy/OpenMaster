@@ -59,10 +59,13 @@ def test_submit_persists_upload_and_dispatches_one_job() -> None:
         stream=BytesIO(b"encoded-audio"),
         length=13,
         idempotency_key="request-1",
+        target_lufs=-16.0,
+        bit_depth=24,
     )
 
     assert job.status == "queued"
     assert job.original_filename == "mix.mp3"
+    assert job.target_lufs == -16.0
     assert storage.objects[job.object_name] == b"encoded-audio"
     assert dispatched == [(job.id, job.object_name)]
     assert service.get(job.id) == job
@@ -129,12 +132,23 @@ def test_repository_persists_worker_result_and_failure() -> None:
     )
 
     repository.mark_running(job.id)
-    repository.mark_succeeded(job.id, {"lufs": -14.0})
+    repository.mark_analysis_complete(job.id, {"lufs": -14.0})
+    analysing = repository.get(job.id)
+    assert analysing is not None
+    assert analysing.status == "mastering"
+    repository.mark_mastered(
+        job.id,
+        recommendation={"confidence": 0.9},
+        mastering_result={"processors": ["gain"]},
+        output_object_name="mastering/job-1/master.wav",
+    )
     completed = repository.get(job.id)
     assert completed is not None
     assert completed.status == "succeeded"
     assert completed.attempt_count == 1
     assert completed.result == {"lufs": -14.0}
+    assert completed.recommendation == {"confidence": 0.9}
+    assert completed.output_object_name == "mastering/job-1/master.wav"
 
     repository.mark_failed(job.id, "DecodeError", "invalid audio")
     failed = repository.get(job.id)

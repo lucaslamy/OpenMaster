@@ -74,6 +74,10 @@ tests:
           path: spec.template.spec.containers[0].volumeMounts[0].mountPath
           value: /tmp
         documentIndex: 0
+      - equal:
+          path: spec.template.spec.initContainers[0].command[2]
+          value: packages.task_runtime.wait_for_broker
+        documentIndex: 0
   - it: gives unprivileged nginx writable temporary storage
     template: templates/web.yaml
     asserts:

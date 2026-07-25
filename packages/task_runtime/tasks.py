@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import tempfile
+from dataclasses import asdict
 from pathlib import Path
 from typing import cast
 
-from packages.analysis_engine import AnalysisService
+from packages.analysis_engine import AnalysisResult, AnalysisService
 from packages.audio_core import decode_audio, encode_wav
 from packages.database import AnalysisJobRepository
-from packages.dsp_engine import AutomaticMasteringService
+from packages.dsp_engine import AutomaticMasteringService, MasteringPolicy
+from packages.mastering_assistant import MasteringAssistant
 from packages.remote_compute import RemoteMasteringRequest, RunPodClient
 from packages.storage import MinioObjectStore, MinioSignedUrlService
 
@@ -36,13 +39,90 @@ def analyze_minio_object(job_id: str, object_name: str) -> dict[str, object]:
             source = Path(directory) / f"source{suffix}"
             MinioObjectStore.from_environment().download(object_name, source)
             result = AnalysisService().analyze(source).to_dict()
-        repository.mark_succeeded(job_id, result)
+        repository.mark_analysis_complete(job_id, result)
+        master_minio_object.apply_async(args=(job_id, object_name), queue="mastering")
         return result
     except Exception as error:
         repository.mark_failed(
             job_id,
             type(error).__name__,
             "Audio analysis failed; inspect the analysis worker logs",
+        )
+        raise
+
+
+@celery_app.task(name="openmaster.mastering_object")
+def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
+    """Render, upload, and persist an auditable WAV master for one analysed job."""
+    repository = AnalysisJobRepository.from_environment()
+    job = repository.get(job_id)
+    if job is None or job.result is None:
+        raise ValueError("Analysis result is required before mastering")
+    output_object = f"mastering/{job_id}/master-{job.bit_depth}bit.wav"
+    storage = MinioObjectStore.from_environment()
+    try:
+        with tempfile.TemporaryDirectory(prefix="openmaster-mastering-") as directory:
+            suffix = Path(object_name).suffix.lower()
+            source = Path(directory) / f"source{suffix}"
+            destination = Path(directory) / "master.wav"
+            storage.download(object_name, source)
+            analysis = AnalysisResult(**job.result)
+            recommendation = MasteringAssistant().recommend(
+                analysis,
+                target_lufs=job.target_lufs,
+            )
+            if os.environ.get("OPENMASTER_REMOTE_COMPUTE_ENABLED", "false").lower() == "true":
+                source_sha256 = _sha256_file(source)
+                remote_result = cast(
+                    dict[str, object],
+                    remote_master_minio_object.run(
+                        object_name,
+                        output_object,
+                        source_sha256,
+                        job.target_lufs,
+                        job.bit_depth,
+                    ),
+                )
+                mastering_result: dict[str, object] = {
+                    "execution": "runpod",
+                    **remote_result,
+                    "bit_depth": job.bit_depth,
+                }
+            else:
+                decoded = decode_audio(source)
+                policy = MasteringPolicy(target_lufs=job.target_lufs)
+                mastered = AutomaticMasteringService(policy).master_to_wav(
+                    decoded.samples,
+                    decoded.metadata.sample_rate_hz,
+                    analysis,
+                    destination,
+                    bit_depth=job.bit_depth,
+                )
+                with mastered.output_path.open("rb") as stream:
+                    storage.upload(
+                        output_object,
+                        stream,
+                        length=mastered.output_path.stat().st_size,
+                        content_type="audio/wav",
+                    )
+                mastering_result = {
+                    "execution": "local",
+                    "decision": asdict(mastered.mastering.decision),
+                    "processors": list(mastered.mastering.render.applied_processors),
+                    "bit_depth": job.bit_depth,
+                }
+        repository.mark_mastered(
+            job_id,
+            recommendation=recommendation.to_dict(),
+            mastering_result=mastering_result,
+            output_object_name=output_object,
+        )
+        return mastering_result
+    except Exception as error:
+        repository.mark_failed(
+            job_id,
+            type(error).__name__,
+            "Mastering failed; inspect the mastering worker logs",
         )
         raise
 
@@ -134,3 +214,12 @@ def export_wav(input_path: str, output_path: str, bit_depth: int = 24) -> dict[s
         overwrite=True,
     )
     return {"output_path": str(output), "bit_depth": bit_depth}
+
+
+def _sha256_file(path: Path) -> str:
+    """Hash one worker-local file without retaining it in memory."""
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        while chunk := stream.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()

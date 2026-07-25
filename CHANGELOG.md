@@ -4,6 +4,24 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-07-25
+
+### Added
+
+- End-to-end web workflow from one audio upload through deterministic analysis,
+  explainable mastering recommendation, local or RunPod mastering, private MinIO
+  publication, and short-lived master download.
+- Web controls for target loudness and 16-, 24-, or 32-bit WAV output, with durable
+  analysis, recommendation, mastering, failure, and download states.
+- Alembic revision `0003` for mastering settings, recommendation and render audit
+  records, and the final MinIO object identifier.
+
+### Fixed
+
+- Celery workers now wait for Redis to accept connections in an init container,
+  removing the normal k3s startup race that previously produced repeated
+  `Connection refused` messages after a fresh deployment.
+
 ## [2.2.0] - 2026-07-25
 
 ### Added

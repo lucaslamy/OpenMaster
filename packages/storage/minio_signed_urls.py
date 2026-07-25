@@ -138,3 +138,19 @@ class MinioSignedUrlService:
             ),
             expires_in_seconds=expires_in_seconds,
         )
+
+    def create_download_url(
+        self,
+        object_name: str,
+        *,
+        expires_in_seconds: int = 900,
+    ) -> str:
+        """Sign a short-lived public GET for a completed private object."""
+        _validate_object_name(object_name, "object_name")
+        if not 60 <= expires_in_seconds <= 86_400:
+            raise ValueError("Signed URL lifetime must be between 60 seconds and 24 hours")
+        return self._public.presigned_get_object(
+            self._bucket,
+            object_name,
+            timedelta(seconds=expires_in_seconds),
+        )

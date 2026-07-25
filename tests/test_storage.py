@@ -56,6 +56,9 @@ def test_service_creates_private_bucket_and_public_signed_transfer() -> None:
     assert transfer.destination_url == (
         "https://s3.example.com/openmaster/output/master.wav?put=3600"
     )
+    assert service.create_download_url("output/master.wav") == (
+        "https://s3.example.com/openmaster/output/master.wav?get=900"
+    )
 
 
 @pytest.mark.parametrize("object_name", ["", "/absolute.wav", "../escape.wav", "folder/"])

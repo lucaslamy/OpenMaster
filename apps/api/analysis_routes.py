@@ -5,8 +5,9 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, Header, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, Form, Header, HTTPException, UploadFile, status
 from pydantic import BaseModel
+from starlette.responses import RedirectResponse
 
 from packages.analysis_jobs import AnalysisJobService, InvalidUploadError
 from packages.database import AnalysisJobRecord
@@ -18,8 +19,11 @@ class AnalysisJobResponse(BaseModel):
     """Public job state polled by the web application."""
 
     id: str
-    status: Literal["queued", "running", "retry_wait", "succeeded", "failed"]
+    status: Literal["queued", "running", "mastering", "retry_wait", "succeeded", "failed"]
     result: dict[str, Any] | None = None
+    recommendation: dict[str, Any] | None = None
+    mastering_result: dict[str, Any] | None = None
+    download_url: str | None = None
     error_code: str | None = None
     error_message: str | None = None
 
@@ -39,6 +43,8 @@ async def create_analysis_job(
     file: UploadFile,
     idempotency_key: Annotated[str, Header(alias="Idempotency-Key")],
     service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+    target_lufs: Annotated[float, Form()] = -14.0,
+    bit_depth: Annotated[int, Form()] = 24,
 ) -> AnalysisJobResponse:
     """Store one supported audio upload and queue its deterministic analysis."""
     try:
@@ -53,6 +59,8 @@ async def create_analysis_job(
             stream=file.file,
             length=length,
             idempotency_key=idempotency_key,
+            target_lufs=target_lufs,
+            bit_depth=bit_depth,
         )
     except InvalidUploadError as error:
         message = str(error)
@@ -65,6 +73,21 @@ async def create_analysis_job(
     finally:
         await file.close()
     return _response(job)
+
+
+@router.get("/analysis-jobs/{job_id}/download", response_class=RedirectResponse)
+def download_master(
+    job_id: str,
+    service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+) -> RedirectResponse:
+    """Redirect an authorized caller to a short-lived private master URL."""
+    url = service.create_download_url(job_id)
+    if url is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Master is not available",
+        )
+    return RedirectResponse(url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
 
 @router.get("/analysis-jobs/{job_id}", response_model=AnalysisJobResponse)
@@ -84,6 +107,13 @@ def _response(job: AnalysisJobRecord) -> AnalysisJobResponse:
         id=job.id,
         status=job.status,  # type: ignore[arg-type]
         result=job.result,
+        recommendation=job.recommendation,
+        mastering_result=job.mastering_result,
+        download_url=(
+            f"/api/v1/analysis-jobs/{job.id}/download"
+            if job.output_object_name is not None
+            else None
+        ),
         error_code=job.error_code,
         error_message=job.error_message,
     )
