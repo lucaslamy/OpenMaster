@@ -23,6 +23,8 @@ describe("AnalysisApiClient", () => {
     const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
     expect((request.body as FormData).get("target_lufs")).toBe("-14");
     expect((request.body as FormData).get("bit_depth")).toBe("24");
+    expect((request.body as FormData).get("maximum_gain_adjustment_db")).toBe("12");
+    expect((request.body as FormData).get("ceiling_dbfs")).toBe("-1");
   });
 
   it("identifies terminal job states", () => {

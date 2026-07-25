@@ -1,4 +1,4 @@
-# OpenMaster v2.3.1
+# OpenMaster v2.4.0
 
 OpenMaster is an open-source professional audio mastering platform. v2.1 adds a
 production-oriented Kubernetes and k3s deployment layer around the deterministic

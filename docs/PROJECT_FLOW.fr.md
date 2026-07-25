@@ -159,6 +159,11 @@ secrètement le signal.
 La décision contient les paramètres retenus, les limites de sécurité, la confiance et
 les raisons ayant conduit à la recommandation.
 
+Depuis l’interface web, l’utilisateur peut régler la cible LUFS, la correction de gain
+maximale, le plafond du limiteur et la profondeur du WAV. Ces valeurs sont validées par
+l’API, enregistrées avec le job, puis appliquées de façon identique par le chemin CPU
+local ou RunPod.
+
 ### 9. Rendu DSP
 
 Le moteur DSP reste déterministe. Le socle actuellement implémenté applique :

@@ -12,6 +12,8 @@ curl -fsS -X POST \
   -H "Idempotency-Key: $(uuidgen)" \
   -F "file=@mix.mp3" \
   -F "target_lufs=-14" \
+  -F "maximum_gain_adjustment_db=12" \
+  -F "ceiling_dbfs=-1" \
   -F "bit_depth=24" \
   https://openmaster.example.com/api/v1/analysis-jobs
 ```
@@ -58,7 +60,7 @@ broker publication was interrupted.
 
 ## Operational requirements
 
-- Alembic revision `0003` must be applied.
+- Alembic revision `0004` must be applied.
 - API and analysis-worker images must contain FFmpeg and `python-multipart`.
 - `DATABASE_URL`, Celery URLs, and MinIO credentials must be present in the runtime
   Secret.
@@ -73,6 +75,21 @@ broker publication was interrupted.
 - ingress-nginx must allow a request body at least as large as `MAX_UPLOAD_BYTES`.
 
 Audio objects are intentionally not placed in PostgreSQL or application logs.
+
+## Mastering controls
+
+The upload contract exposes only settings implemented by the deterministic engine:
+
+| Field | Allowed range | Default | Effect |
+| --- | --- | --- | --- |
+| `target_lufs` | -24 to -8 | -14 | Requested integrated-loudness target |
+| `maximum_gain_adjustment_db` | 0 to 12 | 12 | Bounds positive and negative gain correction |
+| `ceiling_dbfs` | -6 to -0.1 | -1 | Linked sample-peak limiter ceiling |
+| `bit_depth` | 16, 24, or 32 | 24 | Final PCM WAV depth |
+
+These values are persisted with the job and sent unchanged to local or RunPod
+mastering. The assistant can still reduce effective gain when measured peak headroom
+requires it.
 
 ## Expected 404 response
 

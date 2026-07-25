@@ -44,6 +44,8 @@ async def create_analysis_job(
     idempotency_key: Annotated[str, Header(alias="Idempotency-Key")],
     service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
     target_lufs: Annotated[float, Form()] = -14.0,
+    maximum_gain_adjustment_db: Annotated[float, Form()] = 12.0,
+    ceiling_dbfs: Annotated[float, Form()] = -1.0,
     bit_depth: Annotated[int, Form()] = 24,
 ) -> AnalysisJobResponse:
     """Store one supported audio upload and queue its deterministic analysis."""
@@ -60,6 +62,8 @@ async def create_analysis_job(
             length=length,
             idempotency_key=idempotency_key,
             target_lufs=target_lufs,
+            maximum_gain_adjustment_db=maximum_gain_adjustment_db,
+            ceiling_dbfs=ceiling_dbfs,
             bit_depth=bit_depth,
         )
     except InvalidUploadError as error:

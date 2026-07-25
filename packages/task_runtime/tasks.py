@@ -70,6 +70,8 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
             recommendation = MasteringAssistant().recommend(
                 analysis,
                 target_lufs=job.target_lufs,
+                maximum_gain_adjustment_db=job.maximum_gain_adjustment_db,
+                ceiling_dbfs=job.ceiling_dbfs,
             )
             if os.environ.get("OPENMASTER_REMOTE_COMPUTE_ENABLED", "false").lower() == "true":
                 source_sha256 = _sha256_file(source)
@@ -80,6 +82,8 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
                         output_object,
                         source_sha256,
                         job.target_lufs,
+                        job.maximum_gain_adjustment_db,
+                        job.ceiling_dbfs,
                         job.bit_depth,
                     ),
                 )
@@ -90,7 +94,11 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
                 }
             else:
                 decoded = decode_audio(source)
-                policy = MasteringPolicy(target_lufs=job.target_lufs)
+                policy = MasteringPolicy(
+                    target_lufs=job.target_lufs,
+                    maximum_gain_adjustment_db=job.maximum_gain_adjustment_db,
+                    ceiling_dbfs=job.ceiling_dbfs,
+                )
                 mastered = AutomaticMasteringService(policy).master_to_wav(
                     decoded.samples,
                     decoded.metadata.sample_rate_hz,
@@ -153,6 +161,8 @@ def remote_master_audio(
     destination_url: str,
     source_sha256: str,
     target_lufs: float = -14.0,
+    maximum_gain_adjustment_db: float = 12.0,
+    ceiling_dbfs: float = -1.0,
     bit_depth: int = 24,
 ) -> dict[str, object]:
     """Delegate one heavy job to RunPod while the local worker only monitors it."""
@@ -165,6 +175,8 @@ def remote_master_audio(
             destination_url=destination_url,
             source_sha256=source_sha256,
             target_lufs=target_lufs,
+            maximum_gain_adjustment_db=maximum_gain_adjustment_db,
+            ceiling_dbfs=ceiling_dbfs,
             bit_depth=bit_depth,
         )
     )
@@ -182,6 +194,8 @@ def remote_master_minio_object(
     destination_object: str,
     source_sha256: str,
     target_lufs: float = -14.0,
+    maximum_gain_adjustment_db: float = 12.0,
+    ceiling_dbfs: float = -1.0,
     bit_depth: int = 24,
 ) -> dict[str, object]:
     """Sign internal MinIO objects, then delegate processing to RunPod."""
@@ -195,6 +209,8 @@ def remote_master_minio_object(
             transfer.destination_url,
             source_sha256,
             target_lufs,
+            maximum_gain_adjustment_db,
+            ceiling_dbfs,
             bit_depth,
         ),
     )

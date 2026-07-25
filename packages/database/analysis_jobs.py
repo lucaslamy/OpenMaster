@@ -27,6 +27,8 @@ class AnalysisJobRecord:
     mastering_result: dict[str, Any] | None = None
     output_object_name: str | None = None
     target_lufs: float = -14.0
+    maximum_gain_adjustment_db: float = 12.0
+    ceiling_dbfs: float = -1.0
     bit_depth: int = 24
     error_code: str | None = None
     error_message: str | None = None
@@ -51,6 +53,8 @@ class AnalysisJobRepository:
         object_name: str,
         original_filename: str,
         target_lufs: float = -14.0,
+        maximum_gain_adjustment_db: float = 12.0,
+        ceiling_dbfs: float = -1.0,
         bit_depth: int = 24,
     ) -> tuple[AnalysisJobRecord, bool]:
         """Insert one queued job, returning the existing row on a key race."""
@@ -68,6 +72,8 @@ class AnalysisJobRepository:
                         object_name=object_name,
                         original_filename=original_filename,
                         target_lufs=target_lufs,
+                        maximum_gain_adjustment_db=maximum_gain_adjustment_db,
+                        ceiling_dbfs=ceiling_dbfs,
                         bit_depth=bit_depth,
                         attempt_count=0,
                         updated_at=now,
@@ -175,6 +181,8 @@ def _record(row: Any) -> AnalysisJobRecord:
         mastering_result=row["mastering_result"],
         output_object_name=row["output_object_name"],
         target_lufs=row["target_lufs"],
+        maximum_gain_adjustment_db=row["maximum_gain_adjustment_db"],
+        ceiling_dbfs=row["ceiling_dbfs"],
         bit_depth=row["bit_depth"],
         error_code=row["error_code"],
         error_message=row["error_message"],

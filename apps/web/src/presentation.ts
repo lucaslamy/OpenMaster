@@ -46,3 +46,24 @@ export function recommendationFindings(
       typeof (finding as Record<string, unknown>).message === "string",
   );
 }
+
+export function meterPercent(
+  result: Record<string, unknown> | undefined,
+  key: string,
+  minimum: number,
+  maximum: number,
+): number {
+  const value = result?.[key];
+  if (typeof value !== "number" || !Number.isFinite(value) || maximum <= minimum) return 0;
+  return Math.round(Math.max(0, Math.min(1, (value - minimum) / (maximum - minimum))) * 100);
+}
+
+export function peakHeadroom(
+  result: Record<string, unknown> | undefined,
+  ceilingDbfs: number,
+): string {
+  const peak = result?.peak_dbfs;
+  return typeof peak === "number" && Number.isFinite(peak)
+    ? `${Math.max(0, ceilingDbfs - peak).toFixed(1)} dB`
+    : "—";
+}

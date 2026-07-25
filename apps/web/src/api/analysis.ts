@@ -23,11 +23,15 @@ export class AnalysisApiClient {
     idempotencyKey: string,
     targetLufs = -14,
     bitDepth = 24,
+    maximumGainAdjustmentDb = 12,
+    ceilingDbfs = -1,
   ): Promise<AnalysisJob> {
     const body = new FormData();
     body.append("file", file);
     body.append("target_lufs", String(targetLufs));
     body.append("bit_depth", String(bitDepth));
+    body.append("maximum_gain_adjustment_db", String(maximumGainAdjustmentDb));
+    body.append("ceiling_dbfs", String(ceilingDbfs));
     return this.request("/analysis-jobs", {
       method: "POST",
       body,

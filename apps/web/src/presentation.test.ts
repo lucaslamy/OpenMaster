@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   metric,
+  meterPercent,
+  peakHeadroom,
   recommendationFindings,
   stageIndex,
   textMetric,
@@ -36,5 +38,16 @@ describe("mastering result presentation", () => {
     ).toEqual([
       { code: "loudness", message: "Gain stays inside the safety policy." },
     ]);
+  });
+
+  it("bounds visual meter values", () => {
+    expect(meterPercent({ phase: 0 }, "phase", -1, 1)).toBe(50);
+    expect(meterPercent({ phase: 2 }, "phase", -1, 1)).toBe(100);
+    expect(meterPercent(undefined, "phase", -1, 1)).toBe(0);
+  });
+
+  it("derives available peak headroom from the active ceiling", () => {
+    expect(peakHeadroom({ peak_dbfs: -6 }, -1)).toBe("5.0 dB");
+    expect(peakHeadroom({ peak_dbfs: -0.2 }, -1)).toBe("0.0 dB");
   });
 });

@@ -4,6 +4,8 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-07-25
+
 ### Added
 
 - Responsive mastering-studio interface with local drag-and-drop waveform preview,
@@ -11,6 +13,11 @@ All notable changes to OpenMaster are documented in this file.
   readable analysis cards, assistant findings, and a dedicated master delivery panel.
 - Typed presentation helpers and frontend regression tests for durable job progress,
   safe metric formatting, and assistant recommendation rendering.
+- Real mastering controls for limiter ceiling and maximum gain correction, persisted
+  in PostgreSQL and applied consistently by local and RunPod DSP execution.
+- Expanded in-progress analysis dashboard with RMS, sample peak, peak headroom, phase,
+  channel/bit-depth/sample-rate metadata, active policy, and bounded visual meters.
+- Alembic revision `0004` for durable mastering-policy settings.
 
 ### Fixed
 

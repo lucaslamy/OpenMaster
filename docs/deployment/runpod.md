@@ -47,7 +47,7 @@ les traitements GPU sans augmenter la RAM réservée sur k3s.
 
 ```bash
 export REGISTRY=registry.example.com/openmaster
-export VERSION=2.3.1
+export VERSION=2.4.0
 
 docker build -f Dockerfile.runpod -t "${REGISTRY}/runpod:${VERSION}" .
 docker push "${REGISTRY}/runpod:${VERSION}"

@@ -10,6 +10,8 @@ import {
 import AudioWaveform from "./components/AudioWaveform.vue";
 import {
   metric,
+  meterPercent,
+  peakHeadroom,
   pipelineStages,
   recommendationFindings,
   stageIndex,
@@ -29,6 +31,8 @@ const error = ref<string | null>(null);
 const submitting = ref(false);
 const targetLufs = ref(-14);
 const bitDepth = ref(24);
+const maximumGainAdjustmentDb = ref(12);
+const ceilingDbfs = ref(-1);
 const showTechnical = ref(false);
 const client = new AnalysisApiClient();
 const canSubmit = computed(() => selectedFile.value !== null && !submitting.value);
@@ -67,6 +71,8 @@ async function submit(): Promise<void> {
       createIdempotencyKey(),
       targetLufs.value,
       bitDepth.value,
+      maximumGainAdjustmentDb.value,
+      ceilingDbfs.value,
     );
     schedulePoll();
   } catch (reason) {
@@ -162,6 +168,22 @@ onBeforeUnmount(() => {
             </button>
           </fieldset>
 
+          <fieldset class="continuous-control">
+            <div class="control-heading">
+              <legend>Custom loudness target</legend>
+              <output>{{ targetLufs.toFixed(1) }} LUFS</output>
+            </div>
+            <input
+              v-model.number="targetLufs"
+              type="range"
+              min="-24"
+              max="-8"
+              step="0.5"
+              aria-label="Custom loudness target"
+            />
+            <div class="range-labels"><span>Dynamic −24</span><span>Loud −8</span></div>
+          </fieldset>
+
           <fieldset>
             <legend>WAV depth</legend>
             <div class="segments">
@@ -173,6 +195,38 @@ onBeforeUnmount(() => {
                 @click="bitDepth = depth"
               >{{ depth }} bit</button>
             </div>
+          </fieldset>
+
+          <fieldset class="continuous-control">
+            <div class="control-heading">
+              <legend>Limiter ceiling</legend>
+              <output>{{ ceilingDbfs.toFixed(1) }} dBFS</output>
+            </div>
+            <input
+              v-model.number="ceilingDbfs"
+              type="range"
+              min="-3"
+              max="-0.1"
+              step="0.1"
+              aria-label="Limiter ceiling"
+            />
+            <div class="range-labels"><span>Safer −3 dB</span><span>Hot −0.1 dB</span></div>
+          </fieldset>
+
+          <fieldset class="continuous-control">
+            <div class="control-heading">
+              <legend>Maximum gain correction</legend>
+              <output>±{{ maximumGainAdjustmentDb.toFixed(0) }} dB</output>
+            </div>
+            <input
+              v-model.number="maximumGainAdjustmentDb"
+              type="range"
+              min="0"
+              max="12"
+              step="1"
+              aria-label="Maximum gain correction"
+            />
+            <div class="range-labels"><span>Conservative</span><span>Maximum</span></div>
           </fieldset>
 
           <div class="safety-note">
@@ -238,6 +292,36 @@ onBeforeUnmount(() => {
             <span>Spectral center</span>
             <strong>{{ metric(job.result, "spectral_centroid_hz", " Hz", 0) }}</strong>
             <small>{{ metric(job.result, "sample_rate_hz", " Hz", 0) }} source</small>
+          </article>
+          <article class="metric-card compact">
+            <span>RMS energy</span>
+            <strong>{{ metric(job.result, "rms_dbfs", " dB") }}</strong>
+            <div class="meter"><i :style="{ width: `${meterPercent(job.result, 'rms_dbfs', -60, 0)}%` }"></i></div>
+          </article>
+          <article class="metric-card compact">
+            <span>Sample peak</span>
+            <strong>{{ metric(job.result, "peak_dbfs", " dB") }}</strong>
+            <div class="meter hot"><i :style="{ width: `${meterPercent(job.result, 'peak_dbfs', -24, 0)}%` }"></i></div>
+          </article>
+          <article class="metric-card compact">
+            <span>Phase correlation</span>
+            <strong>{{ metric(job.result, "phase_correlation", "", 2) }}</strong>
+            <div class="bipolar-meter"><i :style="{ left: `${meterPercent(job.result, 'phase_correlation', -1, 1)}%` }"></i></div>
+          </article>
+          <article class="metric-card compact">
+            <span>Source format</span>
+            <strong>{{ metric(job.result, "channels", " ch", 0) }}</strong>
+            <small>{{ metric(job.result, "bit_depth", " bit", 0) }} · {{ metric(job.result, "sample_rate_hz", " Hz", 0) }}</small>
+          </article>
+          <article class="metric-card compact">
+            <span>Peak headroom</span>
+            <strong>{{ peakHeadroom(job.result, ceilingDbfs) }}</strong>
+            <small>Ceiling configured at {{ ceilingDbfs.toFixed(1) }} dBFS</small>
+          </article>
+          <article class="metric-card compact">
+            <span>Master policy</span>
+            <strong>±{{ maximumGainAdjustmentDb }} dB</strong>
+            <small>Maximum correction · {{ bitDepth }}-bit delivery</small>
           </article>
         </div>
 

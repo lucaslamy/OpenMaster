@@ -60,12 +60,16 @@ def test_submit_persists_upload_and_dispatches_one_job() -> None:
         length=13,
         idempotency_key="request-1",
         target_lufs=-16.0,
+        maximum_gain_adjustment_db=8.0,
+        ceiling_dbfs=-1.5,
         bit_depth=24,
     )
 
     assert job.status == "queued"
     assert job.original_filename == "mix.mp3"
     assert job.target_lufs == -16.0
+    assert job.maximum_gain_adjustment_db == 8.0
+    assert job.ceiling_dbfs == -1.5
     assert storage.objects[job.object_name] == b"encoded-audio"
     assert dispatched == [(job.id, job.object_name)]
     assert service.get(job.id) == job
@@ -120,6 +124,38 @@ def test_submit_rejects_invalid_uploads(filename: str, length: int, message: str
             length=length,
             idempotency_key="request",
         )
+
+
+@pytest.mark.parametrize(
+    ("setting", "value", "message"),
+    [
+        ("target_lufs", -30.0, "target_lufs"),
+        ("maximum_gain_adjustment_db", 13.0, "maximum_gain_adjustment_db"),
+        ("ceiling_dbfs", 0.0, "ceiling_dbfs"),
+        ("bit_depth", 20, "bit_depth"),
+    ],
+)
+def test_submit_rejects_unsafe_mastering_policy(
+    setting: str,
+    value: float,
+    message: str,
+) -> None:
+    service = AnalysisJobService(
+        _repository(),
+        cast(MinioObjectStore, FakeObjectStore()),
+        lambda _job_id, _object_name: None,
+        maximum_upload_bytes=1024,
+    )
+    arguments: dict[str, object] = {
+        "filename": "mix.wav",
+        "content_type": "audio/wav",
+        "stream": BytesIO(b"audio"),
+        "length": 5,
+        "idempotency_key": f"unsafe-{setting}",
+        setting: value,
+    }
+    with pytest.raises(InvalidUploadError, match=message):
+        service.submit(**arguments)  # type: ignore[arg-type]
 
 
 def test_repository_persists_worker_result_and_failure() -> None:

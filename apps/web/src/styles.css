@@ -75,6 +75,12 @@ legend { width: 100%; color: var(--muted); font: .65rem "DM Mono", monospace; te
 .segments { display: grid; grid-template-columns: repeat(3, 1fr); padding: 3px; border-radius: 8px; background: #0d0f14; }
 .segments button { color: var(--muted); background: transparent; border: 0; border-radius: 6px; padding: .6rem; font: .68rem "DM Mono", monospace; cursor: pointer; }
 .segments button.active { color: #fff; background: #282b34; box-shadow: 0 2px 8px #000; }
+.control-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: .55rem; }
+.control-heading legend { width: auto; margin: 0; }
+.control-heading output { color: var(--mint); font: .7rem "DM Mono", monospace; }
+.continuous-control input[type="range"] { width: 100%; height: 4px; appearance: none; border-radius: 4px; outline: none; background: linear-gradient(90deg, var(--mint), #4f5360); accent-color: var(--mint); }
+.continuous-control input[type="range"]::-webkit-slider-thumb { width: 15px; height: 15px; appearance: none; border: 3px solid #111319; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 1px var(--mint), 0 0 15px rgba(110,231,193,.3); cursor: grab; }
+.range-labels { display: flex; justify-content: space-between; margin-top: .55rem; color: #5f6572; font: .56rem "DM Mono", monospace; }
 .safety-note { display: flex; gap: .8rem; align-items: flex-start; border-top: 1px solid var(--line); padding: 1.2rem 0; color: var(--violet); }
 .safety-note p { margin: 0; color: var(--muted); font-size: .72rem; line-height: 1.55; }
 .safety-note strong { color: #d9dce3; }
@@ -101,6 +107,14 @@ legend { width: 100%; color: var(--muted); font: .65rem "DM Mono", monospace; te
 .metric-card strong { font: 500 clamp(1.45rem, 3vw, 2.3rem) "DM Mono", monospace; letter-spacing: -.06em; }
 .metric-card small { color: #686e7b; }
 .metric-card.accent strong { color: var(--mint); }
+.metric-card.compact { min-height: 132px; }
+.metric-card.compact strong { font-size: clamp(1.25rem, 2.5vw, 1.8rem); }
+.meter { height: 4px; overflow: hidden; border-radius: 4px; background: #272a31; }
+.meter i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #546bff, var(--mint)); }
+.meter.hot i { background: linear-gradient(90deg, var(--mint), #f8c36b, #ff7373); }
+.bipolar-meter { position: relative; height: 4px; border-radius: 4px; background: linear-gradient(90deg, #ff7373, #343842 50%, var(--mint)); }
+.bipolar-meter::after { content: ""; position: absolute; left: 50%; top: -3px; height: 10px; border-left: 1px solid #7b808c; }
+.bipolar-meter i { position: absolute; top: -4px; width: 3px; height: 12px; border-radius: 2px; background: #fff; box-shadow: 0 0 8px #fff; transform: translateX(-50%); }
 .assistant-panel { display: grid; grid-template-columns: .8fr 1.2fr; gap: 2rem; }
 .assistant-intro { display: flex; align-items: flex-start; gap: 1rem; }
 .assistant-intro .eyebrow { margin-bottom: .45rem; }

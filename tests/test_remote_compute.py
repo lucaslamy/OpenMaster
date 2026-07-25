@@ -54,7 +54,10 @@ def test_client_submits_async_job_without_api_key_in_payload() -> None:
     assert captured[0].full_url.endswith("/endpoint-123/run")
     payload = captured[0].data or b""
     assert b"secret-api-key" not in payload
-    assert json.loads(payload)["input"]["source_sha256"] == "a" * 64
+    submitted = json.loads(payload)["input"]
+    assert submitted["source_sha256"] == "a" * 64
+    assert submitted["maximum_gain_adjustment_db"] == 12.0
+    assert submitted["ceiling_dbfs"] == -1.0
     assert captured[0].headers["Authorization"] == "Bearer secret-api-key"
 
 

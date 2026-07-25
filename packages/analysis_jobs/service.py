@@ -61,6 +61,8 @@ class AnalysisJobService:
         length: int,
         idempotency_key: str,
         target_lufs: float = -14.0,
+        maximum_gain_adjustment_db: float = 12.0,
+        ceiling_dbfs: float = -1.0,
         bit_depth: int = 24,
     ) -> AnalysisJobRecord:
         """Validate, store, persist, and enqueue one upload exactly once."""
@@ -82,6 +84,10 @@ class AnalysisJobService:
             raise InvalidUploadError("Uploaded audio file exceeds MAX_UPLOAD_BYTES")
         if not -24.0 <= target_lufs <= -8.0:
             raise InvalidUploadError("target_lufs must be between -24 and -8")
+        if not 0.0 <= maximum_gain_adjustment_db <= 12.0:
+            raise InvalidUploadError("maximum_gain_adjustment_db must be between 0 and 12")
+        if not -6.0 <= ceiling_dbfs <= -0.1:
+            raise InvalidUploadError("ceiling_dbfs must be between -6 and -0.1")
         if bit_depth not in {16, 24, 32}:
             raise InvalidUploadError("bit_depth must be 16, 24, or 32")
 
@@ -99,6 +105,8 @@ class AnalysisJobService:
             object_name=object_name,
             original_filename=safe_filename,
             target_lufs=target_lufs,
+            maximum_gain_adjustment_db=maximum_gain_adjustment_db,
+            ceiling_dbfs=ceiling_dbfs,
             bit_depth=bit_depth,
         )
         if created or job.status == "queued":

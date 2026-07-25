@@ -17,6 +17,8 @@ analysis_jobs = Table(
     Column("mastering_result", JSON, nullable=True),
     Column("output_object_name", Text, nullable=True),
     Column("target_lufs", Float, nullable=False, server_default="-14.0"),
+    Column("maximum_gain_adjustment_db", Float, nullable=False, server_default="12.0"),
+    Column("ceiling_dbfs", Float, nullable=False, server_default="-1.0"),
     Column("bit_depth", Integer, nullable=False, server_default="24"),
     Column("error_code", String(64), nullable=True),
     Column("error_message", Text, nullable=True),
