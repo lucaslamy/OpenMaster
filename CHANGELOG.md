@@ -4,6 +4,13 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-07-25
+
+### Fixed
+
+- Broker readiness no longer imports the complete Celery, DSP, and audio worker graph,
+  keeping the `wait-for-broker` init container below its 64 MiB memory limit.
+
 ## [2.3.0] - 2026-07-25
 
 ### Added
