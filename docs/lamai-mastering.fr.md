@@ -69,3 +69,15 @@ kubectl exec -n openmaster \
 - `fallback_reason` lorsque la politique initiale a été conservée.
 
 Le secret LamAI et le prompt complet ne sont jamais persistés.
+L’interface affiche également un audit visuel de la recommandation :
+
+- modèle LamAI ayant produit la proposition ;
+- justification textuelle ;
+- valeur demandée et valeur IA pour chaque réglage modifié ;
+- position avant/après sur l’étendue autorisée du contrôle ;
+- indication explicite du repli déterministe lorsque LamAI est indisponible.
+
+Les données persistées dans `mastering_result.ai_assistance` incluent
+`settings_before`, `settings_after` et `changes`. Elles correspondent aux réglages
+exacts transmis au moteur DSP déterministe. Les anciens jobs créés avant cette
+évolution ne disposent pas de cette comparaison et doivent être relancés.

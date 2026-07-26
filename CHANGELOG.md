@@ -4,6 +4,13 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [2.9.0] - 2026-07-26
+
+### Added
+
+- Auditable LamAI mastering comparison with exact settings before and after AI advice,
+  localized change cards, rationale, model identity, and explicit fallback state.
+
 ## [2.8.0] - 2026-07-26
 
 ### Added

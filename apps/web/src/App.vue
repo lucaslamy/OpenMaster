@@ -9,6 +9,7 @@ import {
 } from "./api/analysis";
 import AudioWaveform from "./components/AudioWaveform.vue";
 import AnalysisDashboard from "./components/AnalysisDashboard.vue";
+import AiMasteringChanges from "./components/AiMasteringChanges.vue";
 import BeforeAfterPlayer from "./components/BeforeAfterPlayer.vue";
 import GuidePage from "./components/GuidePage.vue";
 import InfoTip from "./components/InfoTip.vue";
@@ -85,6 +86,12 @@ const passwordError = ref<string | null>(null);
 const client = new AnalysisApiClient();
 const canSubmit = computed(() => selectedFile.value !== null && !submitting.value);
 const currentStage = computed(() => (job.value ? stageIndex(job.value.status) : -1));
+const aiAssistance = computed<Record<string, unknown> | null>(() => {
+  const value = job.value?.mastering_result?.ai_assistance;
+  return typeof value === "object" && value !== null
+    ? value as Record<string, unknown>
+    : null;
+});
 const findings = computed(() =>
   recommendationFindings(job.value?.recommendation).map((finding) => ({
     ...finding,
@@ -561,6 +568,12 @@ watch(
             </li>
           </ul>
         </div>
+
+        <AiMasteringChanges
+          v-if="aiAssistance"
+          :assistance="aiAssistance"
+          :locale="locale"
+        />
 
         <div v-if="job.download_url" class="delivery panel">
           <div>

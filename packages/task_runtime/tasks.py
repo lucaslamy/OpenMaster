@@ -76,9 +76,13 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
             storage.download(object_name, source)
             analysis = AnalysisResult(**job.result)
             effective_policy = _job_policy(job)
+            requested_policy = effective_policy
             ai_assistance: dict[str, object] = {
                 "requested": job.ai_assist_enabled,
                 "applied": False,
+                "settings_before": asdict(requested_policy),
+                "settings_after": asdict(requested_policy),
+                "changes": [],
             }
             if job.ai_assist_enabled:
                 if os.environ.get("LAMAI_ENABLED", "false").lower() == "true":
@@ -93,6 +97,9 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
                             "applied": True,
                             "model": advice.model,
                             "rationale": advice.rationale,
+                            "settings_before": asdict(requested_policy),
+                            "settings_after": asdict(effective_policy),
+                            "changes": _policy_changes(requested_policy, effective_policy),
                         }
                     except (LamAiMasteringError, OSError, ValueError):
                         ai_assistance["fallback_reason"] = "lamai_advice_unavailable"
@@ -203,6 +210,24 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
             "Mastering failed; inspect the mastering worker logs",
         )
         raise
+
+
+def _policy_changes(
+    before: MasteringPolicy,
+    after: MasteringPolicy,
+) -> list[dict[str, object]]:
+    """Return the exact policy fields LamAI changed before deterministic rendering."""
+    before_values = asdict(before)
+    after_values = asdict(after)
+    return [
+        {
+            "parameter": parameter,
+            "before": before_values[parameter],
+            "after": after_values[parameter],
+        }
+        for parameter in before_values
+        if before_values[parameter] != after_values[parameter]
+    ]
 
 
 @celery_app.task(
