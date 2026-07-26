@@ -20,5 +20,7 @@ Saving settings performs no audio work. An authorized idempotent final-render ch
 points to the existing source, copies completed analysis, and dispatches directly to
 mastering. The local preview is approximate; the downloadable WAV uses the full engine.
 
-Passwords are never put in URLs or persisted in the browser. Each POST validates the
-password before creating or dispatching work.
+Passwords are never put in URLs or persisted in the browser. A small password-only POST
+returns a signed proof valid for 60 seconds. Upload and final-render endpoints require
+that proof, so a bad password returns before audio transfer and direct calls cannot
+bypass authorization.

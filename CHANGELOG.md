@@ -4,6 +4,21 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [3.0.2] - 2026-07-26
+
+### Added
+
+- Lightweight password-only authorization endpoint issuing a signed 60-second
+  mastering proof before any audio upload begins.
+
+### Changed
+
+- Incorrect passwords now produce an immediate localized error inside the still-open
+  authorization dialog; the password field is cleared and no upload, job, Celery task,
+  RunPod request, credit, or quota is consumed.
+- Initial and final render creation require the signed proof, preventing callers from
+  bypassing the preliminary password check.
+
 ## [3.0.1] - 2026-07-26
 
 ### Added

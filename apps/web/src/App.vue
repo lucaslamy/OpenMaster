@@ -68,6 +68,7 @@ const sourceUrl = ref<string | null>(null);
 const job = ref<AnalysisJob | null>(null);
 const error = ref<string | null>(null);
 const submitting = ref(false);
+const authorizing = ref(false);
 const targetLufs = ref(-14);
 const bitDepth = ref(24);
 const maximumGainAdjustmentDb = ref(12);
@@ -203,11 +204,23 @@ async function confirmMaster(): Promise<void> {
     passwordError.value = t("passwordRequired");
     return;
   }
-  const password = masteringPassword.value;
+  authorizing.value = true;
+  passwordError.value = null;
   const purpose = passwordPurpose.value;
-  closePasswordDialog();
-  if (purpose === "initial") await submit(password);
-  else await renderFinal(password);
+  try {
+    const authorization = await client.authorize(masteringPassword.value);
+    masteringPassword.value = "";
+    closePasswordDialog();
+    if (purpose === "initial") await submit(authorization);
+    else await renderFinal(authorization);
+  } catch (reason) {
+    masteringPassword.value = "";
+    passwordError.value = reason instanceof Error
+      ? translateApiError(locale.value, reason.message)
+      : t("requestFailed");
+  } finally {
+    authorizing.value = false;
+  }
 }
 
 function requestFinalRender(): void {
@@ -232,7 +245,7 @@ async function saveSettings(): Promise<void> {
   }
 }
 
-async function renderFinal(password: string): Promise<void> {
+async function renderFinal(authorization: string): Promise<void> {
   if (!job.value) return;
   submitting.value = true;
   try {
@@ -243,7 +256,7 @@ async function renderFinal(password: string): Promise<void> {
       bit_depth: bitDepth.value,
       ai_assist_enabled: aiAssistEnabled.value,
       high_pass_enabled: highPassEnabled.value,
-    }, password, createIdempotencyKey());
+    }, authorization, createIdempotencyKey());
     schedulePoll();
   } catch (reason) {
     error.value = reason instanceof Error ? translateApiError(locale.value, reason.message) : t("requestFailed");
@@ -263,7 +276,7 @@ function resetInteractiveSettings(): void {
   activeIntent.value = "Custom";
 }
 
-async function submit(password: string): Promise<void> {
+async function submit(authorization: string): Promise<void> {
   if (!selectedFile.value) return;
   submitting.value = true;
   error.value = null;
@@ -276,7 +289,7 @@ async function submit(password: string): Promise<void> {
       bitDepth.value,
       maximumGainAdjustmentDb.value,
       ceilingDbfs.value,
-      password,
+      authorization,
       eqLowGainDb.value,
       eqMidGainDb.value,
       eqHighGainDb.value,
@@ -724,7 +737,10 @@ watch(
         <p v-if="passwordError" class="modal-error" role="alert">{{ passwordError }}</p>
         <div class="modal-actions">
           <button type="button" @click="closePasswordDialog">{{ t("cancel") }}</button>
-          <button type="submit">{{ t("authorize") }} <span>→</span></button>
+          <button type="submit" :disabled="authorizing">
+            {{ authorizing ? (locale === "fr" ? "Vérification…" : "Checking…") : t("authorize") }}
+            <span>→</span>
+          </button>
         </div>
       </form>
     </div>

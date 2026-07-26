@@ -28,6 +28,23 @@ export function isTerminalStatus(status: AnalysisJob["status"]): boolean {
 export class AnalysisApiClient {
   public constructor(private readonly baseUrl = "/api/v1") {}
 
+  public async authorize(password: string): Promise<string> {
+    const response = await fetch(`${this.baseUrl}/mastering-access`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.toLowerCase().includes("application/json")) {
+      throw new Error(`Analysis API returned a non-JSON response (HTTP ${response.status}).`);
+    }
+    const payload = (await response.json()) as { token?: string; detail?: string };
+    if (!response.ok || !payload.token) {
+      throw new Error(payload.detail ?? "Mastering authorization failed");
+    }
+    return payload.token;
+  }
+
   public async submit(
     file: File,
     idempotencyKey: string,
@@ -35,7 +52,7 @@ export class AnalysisApiClient {
     bitDepth = 24,
     maximumGainAdjustmentDb = 12,
     ceilingDbfs = -1,
-    masteringPassword = "",
+    masteringAuthorization = "",
     eqLowGainDb = 0,
     eqMidGainDb = 0,
     eqHighGainDb = 0,
@@ -69,12 +86,12 @@ export class AnalysisApiClient {
     body.append("de_esser_reduction_db", String(deEsserReductionDb));
     body.append("saturation_amount", String(saturationAmount));
     body.append("ai_assist_enabled", String(aiAssistEnabled));
-    body.append("mastering_password", masteringPassword);
     return this.request("/analysis-jobs", {
       method: "POST",
       body,
       headers: {
         "Idempotency-Key": idempotencyKey,
+        "X-Mastering-Authorization": masteringAuthorization,
       },
     });
   }
@@ -94,13 +111,17 @@ export class AnalysisApiClient {
   public async renderFinal(
     jobId: string,
     settings: Record<string, number | boolean>,
-    password: string,
+    masteringAuthorization: string,
     idempotencyKey: string,
   ): Promise<AnalysisJob> {
     return this.request(`/analysis-jobs/${encodeURIComponent(jobId)}/final-renders`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
-      body: JSON.stringify({ settings, mastering_password: password }),
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+        "X-Mastering-Authorization": masteringAuthorization,
+      },
+      body: JSON.stringify({ settings }),
     });
   }
 

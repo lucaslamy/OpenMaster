@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import hmac
 import os
+import secrets
+import time
+from base64 import urlsafe_b64encode
 from functools import lru_cache
 from typing import Annotated, Any, Literal
 
@@ -44,7 +47,19 @@ class MasteringSettingsRequest(BaseModel):
     """Bounded settings are validated by the service shared with job creation."""
 
     settings: dict[str, float | int | bool]
-    mastering_password: str | None = None
+
+
+class MasteringAccessRequest(BaseModel):
+    """Password sent alone before any potentially large upload."""
+
+    password: str
+
+
+class MasteringAccessResponse(BaseModel):
+    """Short-lived proof accepted by protected mastering operations."""
+
+    token: str
+    expires_in_seconds: int
 
 
 @lru_cache(maxsize=1)
@@ -71,6 +86,51 @@ def verify_mastering_access(
         )
 
 
+def create_mastering_token(password: str | None) -> MasteringAccessResponse:
+    """Validate the shared password and issue a short-lived signed proof."""
+    verify_mastering_access(password)
+    configured = os.environ["MASTERING_ACCESS_PASSWORD"]
+    expires_in_seconds = 60
+    expires_at = int(time.time()) + expires_in_seconds
+    nonce = secrets.token_urlsafe(18)
+    payload = f"{expires_at}.{nonce}"
+    signature = (
+        urlsafe_b64encode(hmac.digest(configured.encode(), payload.encode(), "sha256"))
+        .decode()
+        .rstrip("=")
+    )
+    return MasteringAccessResponse(
+        token=f"{payload}.{signature}",
+        expires_in_seconds=expires_in_seconds,
+    )
+
+
+def verify_mastering_token(token: str | None) -> None:
+    """Reject missing, expired, malformed, or forged mastering proofs."""
+    configured = os.environ.get("MASTERING_ACCESS_PASSWORD")
+    if not configured:
+        raise HTTPException(status_code=503, detail="Mastering access is not configured")
+    try:
+        expires, nonce, signature = (token or "").split(".", 2)
+        expires_at = int(expires)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=401, detail="Mastering authorization is invalid") from None
+    payload = f"{expires_at}.{nonce}"
+    expected = (
+        urlsafe_b64encode(hmac.digest(configured.encode(), payload.encode(), "sha256"))
+        .decode()
+        .rstrip("=")
+    )
+    if expires_at < int(time.time()) or not hmac.compare_digest(signature, expected):
+        raise HTTPException(status_code=401, detail="Mastering authorization is invalid")
+
+
+@router.post("/mastering-access", response_model=MasteringAccessResponse)
+def authorize_mastering(request: MasteringAccessRequest) -> MasteringAccessResponse:
+    """Validate only the password so failures return before an upload starts."""
+    return create_mastering_token(request.password)
+
+
 @router.post(
     "/analysis-jobs",
     response_model=AnalysisJobResponse,
@@ -80,7 +140,9 @@ async def create_analysis_job(
     file: UploadFile,
     idempotency_key: Annotated[str, Header(alias="Idempotency-Key")],
     service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
-    mastering_password: Annotated[str, Form()],
+    mastering_authorization: Annotated[
+        str | None, Header(alias="X-Mastering-Authorization")
+    ] = None,
     target_lufs: Annotated[float, Form()] = -14.0,
     maximum_gain_adjustment_db: Annotated[float, Form()] = 12.0,
     ceiling_dbfs: Annotated[float, Form()] = -1.0,
@@ -100,7 +162,7 @@ async def create_analysis_job(
     bit_depth: Annotated[int, Form()] = 24,
 ) -> AnalysisJobResponse:
     """Store one supported audio upload and queue its deterministic analysis."""
-    verify_mastering_access(mastering_password)
+    verify_mastering_token(mastering_authorization)
     try:
         length = file.size
         if length is None:
@@ -167,9 +229,12 @@ def create_final_render(
     request: MasteringSettingsRequest,
     idempotency_key: Annotated[str, Header(alias="Idempotency-Key")],
     service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+    mastering_authorization: Annotated[
+        str | None, Header(alias="X-Mastering-Authorization")
+    ] = None,
 ) -> AnalysisJobResponse:
     """Authorize and dispatch a final render while reusing source and analysis."""
-    verify_mastering_access(request.mastering_password)
+    verify_mastering_token(mastering_authorization)
     try:
         job = service.render_final(job_id, request.settings, idempotency_key)
     except InvalidUploadError as error:

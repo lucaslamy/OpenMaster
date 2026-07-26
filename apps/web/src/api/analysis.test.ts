@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { AnalysisApiClient, isTerminalStatus } from "./analysis";
 
 describe("AnalysisApiClient", () => {
-  it("submits an upload with the idempotency key", async () => {
+  it("authorizes before submitting an upload with the short-lived proof", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ id: "job-1", status: "queued" }), {
         status: 202,
@@ -20,7 +20,7 @@ describe("AnalysisApiClient", () => {
       24,
       12,
       -1,
-      "secret",
+      "signed-proof",
     );
 
     expect(job.status).toBe("queued");
@@ -29,6 +29,7 @@ describe("AnalysisApiClient", () => {
       expect.objectContaining({
         headers: {
           "Idempotency-Key": "key-1",
+          "X-Mastering-Authorization": "signed-proof",
         },
         method: "POST",
       }),
@@ -49,7 +50,25 @@ describe("AnalysisApiClient", () => {
     expect((request.body as FormData).get("de_esser_reduction_db")).toBe("0");
     expect((request.body as FormData).get("saturation_amount")).toBe("0");
     expect((request.body as FormData).get("ai_assist_enabled")).toBe("false");
-    expect((request.body as FormData).get("mastering_password")).toBe("secret");
+    expect((request.body as FormData).has("mastering_password")).toBe(false);
+  });
+
+  it("returns a password error before any upload request is made", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ detail: "Invalid mastering password" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(new AnalysisApiClient("/v1").authorize("wrong")).rejects.toThrow(
+      "Invalid mastering password",
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/v1/mastering-access");
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(request.body).toBe(JSON.stringify({ password: "wrong" }));
   });
 
   it("identifies terminal job states", () => {

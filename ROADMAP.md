@@ -151,6 +151,9 @@ lineage.
 Patch `3.0.1` extends the local preview through an AudioWorklet and corrects loudness
 gain staging plus the Rap starting point.
 
+Patch `3.0.2` moves password validation ahead of audio transfer through a short-lived
+signed authorization proof and keeps authentication failures inside the dialog.
+
 ## Planning rules
 
 - Do not start a version by adding its UI before its package-level contracts exist.
