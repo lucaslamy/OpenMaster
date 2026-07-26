@@ -94,10 +94,10 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - s3.REPLACE_WITH_DOMAIN
-      secretName: shared-minio-tls
+        - s3.lucaslamy.fr
+      secretName: wildcard-lucaslamy-fr-tls
   rules:
-    - host: s3.REPLACE_WITH_DOMAIN
+    - host: s3.lucaslamy.fr
       http:
         paths:
           - path: /
