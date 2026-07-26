@@ -119,7 +119,7 @@ lamai:
   enabled: false
   baseUrl: ""
   timeoutSeconds: 90
-  servicePort: 8000
+  servicePort: 8080
   networkPolicy:
     namespaceSelector: {}
     podSelector: {}

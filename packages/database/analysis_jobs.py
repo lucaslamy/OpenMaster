@@ -26,6 +26,9 @@ class AnalysisJobRecord:
     recommendation: dict[str, Any] | None = None
     mastering_result: dict[str, Any] | None = None
     output_object_name: str | None = None
+    initial_output_object_name: str | None = None
+    parent_job_id: str | None = None
+    interactive_settings: dict[str, Any] | None = None
     source_waveform: list[float] | None = None
     master_waveform: list[float] | None = None
     source_spectrum: list[float] | None = None
@@ -213,6 +216,55 @@ class AnalysisJobRepository:
             error_message=message[:2000],
         )
 
+    def save_interactive_settings(self, job_id: str, settings: dict[str, Any]) -> AnalysisJobRecord:
+        """Persist validated preview settings without starting background work."""
+        self._update(job_id, interactive_settings=settings)
+        saved = self.get(job_id)
+        if saved is None:
+            raise KeyError(f"Unknown analysis job {job_id}")
+        return saved
+
+    def create_final_render(
+        self,
+        *,
+        parent: AnalysisJobRecord,
+        job_id: str,
+        idempotency_key: str,
+        settings: dict[str, Any],
+    ) -> tuple[AnalysisJobRecord, bool]:
+        """Create an idempotent child render reusing source and completed analysis."""
+        existing = self.get_by_idempotency_key(idempotency_key)
+        if existing is not None:
+            return existing, False
+        try:
+            with self._engine.begin() as connection:
+                connection.execute(
+                    insert(analysis_jobs).values(
+                        id=job_id,
+                        idempotency_key=idempotency_key,
+                        status="mastering",
+                        object_name=parent.object_name,
+                        original_filename=parent.original_filename,
+                        attempt_count=0,
+                        result=parent.result,
+                        parent_job_id=parent.id,
+                        initial_output_object_name=parent.initial_output_object_name
+                        or parent.output_object_name,
+                        interactive_settings=settings,
+                        updated_at=datetime.now(UTC),
+                        **settings,
+                    )
+                )
+        except IntegrityError:
+            raced = self.get_by_idempotency_key(idempotency_key)
+            if raced is None:
+                raise
+            return raced, False
+        created = self.get(job_id)
+        if created is None:
+            raise RuntimeError("Final render job disappeared after insertion")
+        return created, True
+
     def _update(self, job_id: str, **values: Any) -> None:
         values["updated_at"] = datetime.now(UTC)
         with self._engine.begin() as connection:
@@ -238,6 +290,9 @@ def _record(row: Any) -> AnalysisJobRecord:
         recommendation=row["recommendation"],
         mastering_result=row["mastering_result"],
         output_object_name=row["output_object_name"],
+        initial_output_object_name=row["initial_output_object_name"],
+        parent_job_id=row["parent_job_id"],
+        interactive_settings=row["interactive_settings"],
         source_waveform=row["source_waveform"],
         master_waveform=row["master_waveform"],
         source_spectrum=row["source_spectrum"],

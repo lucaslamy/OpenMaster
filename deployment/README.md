@@ -18,3 +18,5 @@ probe, or rollout causes Helm to restore the previous release.
 
 Un guide k3s complet en français est disponible dans
 [`docs/deployment/k3s-quickstart.fr.md`](../docs/deployment/k3s-quickstart.fr.md).
+Pour la mise à niveau `3.0.1`, utilisez le
+[runbook de release](../docs/deployment/release-3.0.1.fr.md).

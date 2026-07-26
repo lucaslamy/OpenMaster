@@ -4,6 +4,39 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-07-26
+
+### Added
+
+- AudioWorklet preview for loudness-target gain, maximum correction, normalized soft
+  clipping, saturation, lookahead/release limiting, and dithered 16/24/32-bit
+  quantization audition without backend rendering.
+- Visible preset-character descriptions and a regression test ensuring driven masters
+  increase programme loudness while retaining the configured true-peak ceiling.
+
+### Changed
+
+- Rap now targets −9 LUFS and −1 dBTP with 12 dB correction headroom, stronger low-end
+  weight, restrained spectral reduction, lighter 2 dB clipping, and subtle saturation.
+- Clipper normalization now preserves programme level as drive increases.
+- Automatic loudness gain is no longer blocked by raw input peaks before the clipper
+  and true-peak limiter; the final limiter remains responsible for peak safety.
+- The default LamAI service and matching NetworkPolicy test now use port `8080`.
+
+## [3.0.0] - 2026-07-26
+
+### Added
+
+- Real-time Web Audio preview with smoothed EQ, high-pass, light dynamics, reset, and
+  position-preserving A/B bypass.
+- Central parameter metadata and idempotent final-render jobs reusing source and analysis.
+- Reversible Alembic revision `0010` and settings/final-render API operations.
+
+### Changed
+
+- The studio is now a centered responsive single-column workflow.
+- Password validation occurs from the POST body before upload, persistence, or dispatch.
+
 ## [2.9.0] - 2026-07-26
 
 ### Added

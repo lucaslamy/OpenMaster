@@ -29,7 +29,6 @@ describe("AnalysisApiClient", () => {
       expect.objectContaining({
         headers: {
           "Idempotency-Key": "key-1",
-          "X-Mastering-Password": "secret",
         },
         method: "POST",
       }),
@@ -50,6 +49,7 @@ describe("AnalysisApiClient", () => {
     expect((request.body as FormData).get("de_esser_reduction_db")).toBe("0");
     expect((request.body as FormData).get("saturation_amount")).toBe("0");
     expect((request.body as FormData).get("ai_assist_enabled")).toBe("false");
+    expect((request.body as FormData).get("mastering_password")).toBe("secret");
   });
 
   it("identifies terminal job states", () => {

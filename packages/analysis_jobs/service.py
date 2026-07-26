@@ -166,6 +166,44 @@ class AnalysisJobService:
         """Return one job without leaking its internal object name."""
         return self._repository.get(job_id)
 
+    def save_settings(self, job_id: str, settings: dict[str, object]) -> AnalysisJobRecord | None:
+        """Validate and persist current browser settings without dispatching work."""
+        job = self._repository.get(job_id)
+        if job is None:
+            return None
+        validated = _validated_settings(settings, job)
+        return self._repository.save_interactive_settings(job_id, validated)
+
+    def render_final(
+        self,
+        job_id: str,
+        settings: dict[str, object],
+        idempotency_key: str,
+    ) -> AnalysisJobRecord | None:
+        """Create a child render that reuses the source object and persisted analysis."""
+        parent = self._repository.get(job_id)
+        if parent is None:
+            return None
+        if (
+            parent.status != "succeeded"
+            or parent.result is None
+            or parent.output_object_name is None
+        ):
+            raise InvalidUploadError("Initial master is not available")
+        key = idempotency_key.strip()
+        if not key or len(key) > 255:
+            raise InvalidUploadError("Idempotency-Key must contain between 1 and 255 characters")
+        validated = _validated_settings(settings, parent)
+        child, created = self._repository.create_final_render(
+            parent=parent,
+            job_id=str(uuid4()),
+            idempotency_key=f"final:{parent.id}:{key}",
+            settings=validated,
+        )
+        if created:
+            self._enqueue_master(child.id, child.object_name)
+        return child
+
     def create_download_url(self, job_id: str) -> str | None:
         """Return a short-lived download URL only for a completed master."""
         job = self._repository.get(job_id)
@@ -186,3 +224,101 @@ class AnalysisJobService:
         if self._signed_urls is None:
             raise RuntimeError("Public MinIO signing is not configured")
         return self._signed_urls.create_download_url(job.output_object_name)
+
+    def create_initial_preview_url(self, job_id: str) -> str | None:
+        """Return the immutable first master for a final-render child."""
+        job = self._repository.get(job_id)
+        if job is None or job.initial_output_object_name is None:
+            return None
+        if self._signed_urls is None:
+            raise RuntimeError("Public MinIO signing is not configured")
+        return self._signed_urls.create_download_url(job.initial_output_object_name)
+
+    def _enqueue_master(self, job_id: str, object_name: str) -> None:
+        """Dispatch directly to mastering, preserving cached analysis."""
+        from packages.task_runtime.tasks import master_minio_object
+
+        master_minio_object.apply_async(args=(job_id, object_name), queue="mastering")
+
+
+def _validated_settings(
+    values: dict[str, object], fallback: AnalysisJobRecord
+) -> dict[str, float | int | bool]:
+    """Return the supported final-render policy after applying the normal bounds."""
+    settings: dict[str, float | int | bool] = {
+        "target_lufs": float(values.get("target_lufs", fallback.target_lufs)),
+        "maximum_gain_adjustment_db": float(
+            values.get("maximum_gain_adjustment_db", fallback.maximum_gain_adjustment_db)
+        ),
+        "ceiling_dbfs": float(values.get("ceiling_dbfs", fallback.ceiling_dbfs)),
+        "eq_low_gain_db": float(values.get("eq_low_gain_db", fallback.eq_low_gain_db)),
+        "eq_mid_gain_db": float(values.get("eq_mid_gain_db", fallback.eq_mid_gain_db)),
+        "eq_high_gain_db": float(values.get("eq_high_gain_db", fallback.eq_high_gain_db)),
+        "clipper_drive_db": float(values.get("clipper_drive_db", fallback.clipper_drive_db)),
+        "limiter_lookahead_ms": float(
+            values.get("limiter_lookahead_ms", fallback.limiter_lookahead_ms)
+        ),
+        "limiter_release_ms": float(values.get("limiter_release_ms", fallback.limiter_release_ms)),
+        "high_pass_enabled": bool(values.get("high_pass_enabled", fallback.high_pass_enabled)),
+        "high_pass_cutoff_hz": float(
+            values.get("high_pass_cutoff_hz", fallback.high_pass_cutoff_hz)
+        ),
+        "dynamic_eq_reduction_db": float(
+            values.get("dynamic_eq_reduction_db", fallback.dynamic_eq_reduction_db)
+        ),
+        "bass_control_reduction_db": float(
+            values.get("bass_control_reduction_db", fallback.bass_control_reduction_db)
+        ),
+        "de_esser_reduction_db": float(
+            values.get("de_esser_reduction_db", fallback.de_esser_reduction_db)
+        ),
+        "saturation_amount": float(values.get("saturation_amount", fallback.saturation_amount)),
+        "bit_depth": int(values.get("bit_depth", fallback.bit_depth)),
+        "ai_assist_enabled": bool(values.get("ai_assist_enabled", fallback.ai_assist_enabled)),
+    }
+    # Reuse the existing submission validator without touching storage.
+    checks = (
+        (-24 <= settings["target_lufs"] <= -8, "target_lufs must be between -24 and -8"),
+        (
+            0 <= settings["maximum_gain_adjustment_db"] <= 12,
+            "maximum_gain_adjustment_db must be between 0 and 12",
+        ),
+        (-6 <= settings["ceiling_dbfs"] <= -0.1, "ceiling_dbfs must be between -6 and -0.1"),
+        (
+            all(
+                -6 <= settings[name] <= 6
+                for name in ("eq_low_gain_db", "eq_mid_gain_db", "eq_high_gain_db")
+            ),
+            "equalizer gains must be between -6 and 6",
+        ),
+        (0 <= settings["clipper_drive_db"] <= 12, "clipper_drive_db must be between 0 and 12"),
+        (
+            0 <= settings["limiter_lookahead_ms"] <= 10,
+            "limiter_lookahead_ms must be between 0 and 10",
+        ),
+        (
+            10 <= settings["limiter_release_ms"] <= 500,
+            "limiter_release_ms must be between 10 and 500",
+        ),
+        (
+            15 <= settings["high_pass_cutoff_hz"] <= 80,
+            "high_pass_cutoff_hz must be between 15 and 80",
+        ),
+        (
+            all(
+                0 <= settings[name] <= 12
+                for name in (
+                    "dynamic_eq_reduction_db",
+                    "bass_control_reduction_db",
+                    "de_esser_reduction_db",
+                )
+            ),
+            "selective dynamics reductions must be between 0 and 12",
+        ),
+        (0 <= settings["saturation_amount"] <= 1, "saturation_amount must be between 0 and 1"),
+        (settings["bit_depth"] in {16, 24, 32}, "bit_depth must be 16, 24, or 32"),
+    )
+    for valid, message in checks:
+        if not valid:
+            raise InvalidUploadError(message)
+    return settings

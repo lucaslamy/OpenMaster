@@ -176,7 +176,7 @@ tests:
     asserts:
       - equal:
           path: spec.egress[3].ports[0].port
-          value: 8000
+          value: 8080
         documentIndex: 6
   - it: exposes only the MinIO S3 service through its dedicated ingress
     template: templates/minio-ingress.yaml

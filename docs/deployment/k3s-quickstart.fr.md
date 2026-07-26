@@ -1,13 +1,13 @@
 # Déployer OpenMaster sur k3s
 
-Ce guide déploie OpenMaster v2.1 sur un cluster k3s avec Helm. Il utilise les services
+Ce guide déploie OpenMaster v3.0.1 sur un cluster k3s avec Helm. Il utilise les services
 PostgreSQL, Redis et MinIO internes au chart. Pour une production à haute disponibilité,
 utilisez plutôt des services managés externes et consultez la section dédiée plus bas.
 
 Le schéma d’architecture et le parcours détaillé d’un morceau sont présentés dans
-[`../PROJECT_FLOW.fr.md`](../PROJECT_FLOW.fr.md). À ce stade, le chart déploie
-l’infrastructure, mais le workflow web distribué complet n’est pas encore raccordé ;
-le traitement audio de bout en bout est utilisable localement en ligne de commande.
+[`../PROJECT_FLOW.fr.md`](../PROJECT_FLOW.fr.md). Le workflow web distribué couvre
+l’upload, l’analyse Celery, le mastering local ou RunPod, la pré-écoute interactive et
+le rendu final réutilisant la source et l’analyse.
 Pour réduire les ressources k3s en louant le calcul à la demande, consultez
 [`runpod.md`](runpod.md) puis le
 [runbook RunPod + k3s + Vault](runpod-k3s-vault.fr.md).
@@ -42,7 +42,7 @@ ci-dessous par votre registre et votre version :
 
 ```bash
 export REGISTRY=harbor.lucaslamy.fr/private/openmaster
-export VERSION=2.8.0
+export VERSION=3.0.1
 
 docker build -f Dockerfile.api -t "${REGISTRY}/api:${VERSION}" .
 docker build -f Dockerfile.web -t "${REGISTRY}/web:${VERSION}" .
@@ -162,13 +162,13 @@ externalSecrets:
   existingSecretName: openmaster-secrets
 
 api:
-  image: harbor.lucaslamy.fr/private/openmaster/api:2.8.0
+  image: harbor.lucaslamy.fr/private/openmaster/api:3.0.1
 
 web:
-  image: harbor.lucaslamy.fr/private/openmaster/web:2.8.0
+  image: harbor.lucaslamy.fr/private/openmaster/web:3.0.1
 
 workers:
-  image: harbor.lucaslamy.fr/private/openmaster/api:2.8.0
+  image: harbor.lucaslamy.fr/private/openmaster/api:3.0.1
 
 postgresql:
   persistence:

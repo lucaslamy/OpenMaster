@@ -13,6 +13,8 @@ import AiMasteringChanges from "./components/AiMasteringChanges.vue";
 import BeforeAfterPlayer from "./components/BeforeAfterPlayer.vue";
 import GuidePage from "./components/GuidePage.vue";
 import InfoTip from "./components/InfoTip.vue";
+import InteractivePreview from "./components/InteractivePreview.vue";
+import { backendSettings, type InteractiveSettings } from "./masteringParameters";
 import type { Locale } from "./i18n";
 import { translate, translateApiError, translateFinding } from "./i18n";
 import {
@@ -24,7 +26,7 @@ const intents = [
   { key: "Transparent", copy: "Transparent", target: -16, ceiling: -1.5, gain: 6, depth: 24, eq: [0, 0, 0], clip: 0, spectral: [0, 0, 0, 0] },
   { key: "Streaming", copy: "Streaming", target: -14, ceiling: -1, gain: 9, depth: 24, eq: [0, 0, 0], clip: 1, spectral: [1.5, 1.5, 1.5, 0.1] },
   { key: "Podcast", copy: "Podcast", target: -16, ceiling: -1, gain: 6, depth: 16, eq: [-0.5, 1, 0.5], clip: 1, spectral: [2, 1, 4, 0.1] },
-  { key: "Rap", copy: "Rap", target: -10, ceiling: -0.8, gain: 9, depth: 24, eq: [1, 0.5, 0.5], clip: 4, spectral: [2, 3, 3, 0.2] },
+  { key: "Rap", copy: "Rap", target: -9, ceiling: -1, gain: 12, depth: 24, eq: [1.5, 0.5, 0.75], clip: 2, spectral: [0.5, 1.5, 1.5, 0.15] },
   { key: "Club", copy: "Club", target: -9, ceiling: -0.3, gain: 12, depth: 24, eq: [1.5, -0.5, 1], clip: 6, spectral: [2, 4, 2, 0.25] },
   { key: "Loud", copy: "Loud", target: -10, ceiling: -0.5, gain: 12, depth: 24, eq: [0.5, 0, 0.5], clip: 5, spectral: [3, 3, 3, 0.25] },
   { key: "Dynamic", copy: "Dynamic", target: -18, ceiling: -2, gain: 5, depth: 24, eq: [0, 0, 0], clip: 0, spectral: [0, 0, 0, 0] },
@@ -53,6 +55,10 @@ const activeIntentLabel = computed(() => {
   if (activeIntent.value === "Custom") return t("custom");
   const intent = intents.find((candidate) => candidate.key === activeIntent.value);
   return intent ? intentName(intent) : t("custom");
+});
+const activeIntentDescription = computed(() => {
+  const intent = intents.find((candidate) => candidate.key === activeIntent.value);
+  return intent ? intentDescription(intent) : t("intentTip");
 });
 const extraHeadroom = ref(false);
 const gentleCorrection = ref(false);
@@ -83,8 +89,29 @@ const showTechnical = ref(false);
 const passwordDialogOpen = ref(false);
 const masteringPassword = ref("");
 const passwordError = ref<string | null>(null);
+const passwordPurpose = ref<"initial" | "final">("initial");
 const client = new AnalysisApiClient();
 const canSubmit = computed(() => selectedFile.value !== null && !submitting.value);
+const currentSettings = computed<InteractiveSettings>(() => ({
+  targetLufs: targetLufs.value,
+  maximumGainAdjustmentDb: maximumGainAdjustmentDb.value,
+  ceilingDbfs: ceilingDbfs.value,
+  eqLowGainDb: eqLowGainDb.value,
+  eqMidGainDb: eqMidGainDb.value,
+  eqHighGainDb: eqHighGainDb.value,
+  clipperDriveDb: clipperDriveDb.value,
+  limiterLookaheadMs: limiterLookaheadMs.value,
+  limiterReleaseMs: limiterReleaseMs.value,
+  highPassEnabled: highPassEnabled.value,
+  highPassCutoffHz: highPassCutoffHz.value,
+  dynamicEqReductionDb: dynamicEqReductionDb.value,
+  bassControlReductionDb: bassControlReductionDb.value,
+  deEsserReductionDb: deEsserReductionDb.value,
+  saturationAmount: saturationAmount.value,
+  bitDepth: bitDepth.value,
+  bit_depth: bitDepth.value,
+  ai_assist_enabled: aiAssistEnabled.value,
+}));
 const currentStage = computed(() => (job.value ? stageIndex(job.value.status) : -1));
 const aiAssistance = computed<Record<string, unknown> | null>(() => {
   const value = job.value?.mastering_result?.ai_assistance;
@@ -160,6 +187,7 @@ function setFile(file: File | null): void {
 function requestMaster(): void {
   if (!canSubmit.value) return;
   masteringPassword.value = "";
+  passwordPurpose.value = "initial";
   passwordError.value = null;
   passwordDialogOpen.value = true;
 }
@@ -176,8 +204,63 @@ async function confirmMaster(): Promise<void> {
     return;
   }
   const password = masteringPassword.value;
+  const purpose = passwordPurpose.value;
   closePasswordDialog();
-  await submit(password);
+  if (purpose === "initial") await submit(password);
+  else await renderFinal(password);
+}
+
+function requestFinalRender(): void {
+  if (!job.value || submitting.value) return;
+  passwordPurpose.value = "final";
+  masteringPassword.value = "";
+  passwordError.value = null;
+  passwordDialogOpen.value = true;
+}
+
+async function saveSettings(): Promise<void> {
+  if (!job.value) return;
+  try {
+    job.value = await client.saveSettings(job.value.id, {
+      ...backendSettings(currentSettings.value),
+      bit_depth: bitDepth.value,
+      ai_assist_enabled: aiAssistEnabled.value,
+      high_pass_enabled: highPassEnabled.value,
+    });
+  } catch (reason) {
+    error.value = reason instanceof Error ? reason.message : t("requestFailed");
+  }
+}
+
+async function renderFinal(password: string): Promise<void> {
+  if (!job.value) return;
+  submitting.value = true;
+  try {
+    await saveSettings();
+    if (!job.value) return;
+    job.value = await client.renderFinal(job.value.id, {
+      ...backendSettings(currentSettings.value),
+      bit_depth: bitDepth.value,
+      ai_assist_enabled: aiAssistEnabled.value,
+      high_pass_enabled: highPassEnabled.value,
+    }, password, createIdempotencyKey());
+    schedulePoll();
+  } catch (reason) {
+    error.value = reason instanceof Error ? translateApiError(locale.value, reason.message) : t("requestFailed");
+  } finally {
+    submitting.value = false;
+  }
+}
+
+function resetInteractiveSettings(): void {
+  eqLowGainDb.value = 0; eqMidGainDb.value = 0; eqHighGainDb.value = 0;
+  highPassCutoffHz.value = 25; highPassEnabled.value = true;
+  dynamicEqReductionDb.value = 0; bassControlReductionDb.value = 0;
+  deEsserReductionDb.value = 0; ceilingDbfs.value = -1;
+  targetLufs.value = -14; maximumGainAdjustmentDb.value = 12;
+  clipperDriveDb.value = 0; limiterLookaheadMs.value = 3;
+  limiterReleaseMs.value = 80; saturationAmount.value = 0; bitDepth.value = 24;
+  activeIntent.value = "Custom";
 }
 
 async function submit(password: string): Promise<void> {
@@ -326,6 +409,7 @@ watch(
                 <b>{{ intent.target }}<small> LUFS</small></b>
               </button>
             </div>
+            <p class="preset-description">{{ activeIntentDescription }}</p>
           </fieldset>
 
           <fieldset class="continuous-control">
@@ -556,6 +640,23 @@ watch(
           :before-level-timeline="job.source_level_timeline"
           :after-level-timeline="job.master_level_timeline"
         />
+
+        <InteractivePreview
+          v-if="job.preview_url || job.initial_preview_url"
+          :url="job.initial_preview_url || job.preview_url || ''"
+          :settings="currentSettings"
+          :locale="locale"
+          @reset="resetInteractiveSettings"
+        />
+
+        <div v-if="job.preview_url || job.initial_preview_url" class="final-render-actions panel">
+          <button type="button" :disabled="submitting" @click="saveSettings">
+            {{ locale === "fr" ? "Enregistrer les réglages" : "Save settings" }}
+          </button>
+          <button class="master-button" type="button" :disabled="submitting" @click="requestFinalRender">
+            {{ locale === "fr" ? "Générer le master final avec ces réglages" : "Generate final master with these settings" }}
+          </button>
+        </div>
 
         <div v-if="findings.length" class="panel assistant-panel">
           <div class="assistant-intro">

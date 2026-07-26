@@ -141,18 +141,19 @@ class AutomaticMasteringService:
             min(self._policy.maximum_gain_adjustment_db, requested_gain_db),
         )
         peak_headroom_gain_db = self._policy.ceiling_dbfs - analysis.peak_dbfs
-        input_gain_db = max(
-            -self._policy.maximum_gain_adjustment_db,
-            min(policy_bounded_gain_db, peak_headroom_gain_db),
-        )
+        # Positive loudness gain is intentionally allowed to feed the clipper and
+        # true-peak limiter. Bounding it by the raw input peak prevented dense mixes
+        # from ever approaching their loudness target. Downward correction remains
+        # policy-bounded and the final limiter still enforces the output ceiling.
+        input_gain_db = policy_bounded_gain_db
         return MasteringDecision(
             policy=self._policy,
             settings=self._settings(input_gain_db),
             requested_gain_db=requested_gain_db,
             gain_was_bounded=input_gain_db != requested_gain_db,
             peak_headroom_gain_db=peak_headroom_gain_db,
-            limited_by_peak_headroom=input_gain_db < policy_bounded_gain_db,
-            reason="gain derived from integrated loudness and constrained by peak headroom",
+            limited_by_peak_headroom=False,
+            reason="gain derived from integrated loudness; final stages enforce peak safety",
         )
 
     def _settings(self, input_gain_db: float) -> MasteringSettings:

@@ -27,6 +27,7 @@ class AnalysisJobResponse(BaseModel):
     mastering_result: dict[str, Any] | None = None
     download_url: str | None = None
     preview_url: str | None = None
+    initial_preview_url: str | None = None
     source_waveform: list[float] | None = None
     master_waveform: list[float] | None = None
     source_spectrum: list[float] | None = None
@@ -35,6 +36,15 @@ class AnalysisJobResponse(BaseModel):
     master_level_timeline: list[float] | None = None
     error_code: str | None = None
     error_message: str | None = None
+    parent_job_id: str | None = None
+    interactive_settings: dict[str, Any] | None = None
+
+
+class MasteringSettingsRequest(BaseModel):
+    """Bounded settings are validated by the service shared with job creation."""
+
+    settings: dict[str, float | int | bool]
+    mastering_password: str | None = None
 
 
 @lru_cache(maxsize=1)
@@ -44,7 +54,7 @@ def get_analysis_job_service() -> AnalysisJobService:
 
 
 def verify_mastering_access(
-    password: Annotated[str | None, Header(alias="X-Mastering-Password")] = None,
+    password: str | None,
 ) -> None:
     """Reject mastering submissions unless the configured shared secret matches."""
     configured = os.environ.get("MASTERING_ACCESS_PASSWORD")
@@ -70,7 +80,7 @@ async def create_analysis_job(
     file: UploadFile,
     idempotency_key: Annotated[str, Header(alias="Idempotency-Key")],
     service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
-    _: Annotated[None, Depends(verify_mastering_access)],
+    mastering_password: Annotated[str, Form()],
     target_lufs: Annotated[float, Form()] = -14.0,
     maximum_gain_adjustment_db: Annotated[float, Form()] = 12.0,
     ceiling_dbfs: Annotated[float, Form()] = -1.0,
@@ -90,6 +100,7 @@ async def create_analysis_job(
     bit_depth: Annotated[int, Form()] = 24,
 ) -> AnalysisJobResponse:
     """Store one supported audio upload and queue its deterministic analysis."""
+    verify_mastering_access(mastering_password)
     try:
         length = file.size
         if length is None:
@@ -133,6 +144,41 @@ async def create_analysis_job(
     return _response(job)
 
 
+@router.put("/analysis-jobs/{job_id}/settings", response_model=AnalysisJobResponse)
+def save_mastering_settings(
+    job_id: str,
+    request: MasteringSettingsRequest,
+    service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+) -> AnalysisJobResponse:
+    """Persist preview settings; this endpoint never dispatches audio work."""
+    job = service.save_settings(job_id, request.settings)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Analysis job not found")
+    return _response(job)
+
+
+@router.post(
+    "/analysis-jobs/{job_id}/final-renders",
+    response_model=AnalysisJobResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def create_final_render(
+    job_id: str,
+    request: MasteringSettingsRequest,
+    idempotency_key: Annotated[str, Header(alias="Idempotency-Key")],
+    service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+) -> AnalysisJobResponse:
+    """Authorize and dispatch a final render while reusing source and analysis."""
+    verify_mastering_access(request.mastering_password)
+    try:
+        job = service.render_final(job_id, request.settings, idempotency_key)
+    except InvalidUploadError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    if job is None:
+        raise HTTPException(status_code=404, detail="Analysis job not found")
+    return _response(job)
+
+
 @router.get("/analysis-jobs/{job_id}/download", response_class=RedirectResponse)
 def download_master(
     job_id: str,
@@ -160,6 +206,18 @@ def preview_master(
             status_code=status.HTTP_409_CONFLICT,
             detail="Master is not available",
         )
+    return RedirectResponse(url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
+
+@router.get("/analysis-jobs/{job_id}/initial-preview", response_class=RedirectResponse)
+def preview_initial_master(
+    job_id: str,
+    service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+) -> RedirectResponse:
+    """Redirect final-render children to their immutable initial master."""
+    url = service.create_initial_preview_url(job_id)
+    if url is None:
+        raise HTTPException(status_code=409, detail="Initial master is not available")
     return RedirectResponse(url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
 
@@ -192,6 +250,11 @@ def _response(job: AnalysisJobRecord) -> AnalysisJobResponse:
             if job.output_object_name is not None
             else None
         ),
+        initial_preview_url=(
+            f"/api/v1/analysis-jobs/{job.id}/initial-preview"
+            if job.initial_output_object_name is not None
+            else None
+        ),
         source_waveform=job.source_waveform,
         master_waveform=job.master_waveform,
         source_spectrum=job.source_spectrum,
@@ -200,4 +263,6 @@ def _response(job: AnalysisJobRecord) -> AnalysisJobResponse:
         master_level_timeline=job.master_level_timeline,
         error_code=job.error_code,
         error_message=job.error_message,
+        parent_job_id=job.parent_job_id,
+        interactive_settings=job.interactive_settings,
     )

@@ -8,6 +8,7 @@ export interface AnalysisJob {
   mastering_result?: Record<string, unknown>;
   download_url?: string;
   preview_url?: string;
+  initial_preview_url?: string;
   source_waveform?: number[];
   master_waveform?: number[];
   source_spectrum?: number[];
@@ -16,6 +17,8 @@ export interface AnalysisJob {
   master_level_timeline?: number[];
   error_code?: string;
   error_message?: string;
+  parent_job_id?: string;
+  interactive_settings?: Record<string, number | boolean>;
 }
 
 export function isTerminalStatus(status: AnalysisJob["status"]): boolean {
@@ -66,18 +69,39 @@ export class AnalysisApiClient {
     body.append("de_esser_reduction_db", String(deEsserReductionDb));
     body.append("saturation_amount", String(saturationAmount));
     body.append("ai_assist_enabled", String(aiAssistEnabled));
+    body.append("mastering_password", masteringPassword);
     return this.request("/analysis-jobs", {
       method: "POST",
       body,
       headers: {
         "Idempotency-Key": idempotencyKey,
-        "X-Mastering-Password": masteringPassword,
       },
     });
   }
 
   public async get(jobId: string): Promise<AnalysisJob> {
     return this.request(`/analysis-jobs/${encodeURIComponent(jobId)}`);
+  }
+
+  public async saveSettings(jobId: string, settings: Record<string, number | boolean>): Promise<AnalysisJob> {
+    return this.request(`/analysis-jobs/${encodeURIComponent(jobId)}/settings`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ settings }),
+    });
+  }
+
+  public async renderFinal(
+    jobId: string,
+    settings: Record<string, number | boolean>,
+    password: string,
+    idempotencyKey: string,
+  ): Promise<AnalysisJob> {
+    return this.request(`/analysis-jobs/${encodeURIComponent(jobId)}/final-renders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
+      body: JSON.stringify({ settings, mastering_password: password }),
+    });
   }
 
   private async request(path: string, init?: RequestInit): Promise<AnalysisJob> {

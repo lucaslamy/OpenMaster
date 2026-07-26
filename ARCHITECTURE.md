@@ -188,3 +188,7 @@ dispatches the object key through Celery. The analysis worker persists the deter
 measurements and chains the mastering task. The mastering worker stores the recommendation,
 render audit record, and final object identifier. The web client polls the API and follows
 the download endpoint to a short-lived signed MinIO URL.
+
+After an initial master, the browser can apply explicitly approximate Web Audio DSP
+without dispatching work. A final-render child reuses the parent's source object and
+analysis and enters the mastering queue directly; see `docs/INTERACTIVE_PREVIEW.md`.

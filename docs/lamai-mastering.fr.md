@@ -37,7 +37,7 @@ lamai:
   enabled: true
   baseUrl: http://lamai-api.lamai.svc.cluster.local:8080
   timeoutSeconds: 120
-  servicePort: 8000
+  servicePort: 8080
   networkPolicy:
     namespaceSelector:
       kubernetes.io/metadata.name: lamai

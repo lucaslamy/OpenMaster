@@ -142,6 +142,15 @@ Post-release v2 work: validate CPU/GPU equivalence on supported GPU hardware, ad
 plugin distribution and permissions, and broaden stem session metadata without weakening
 the alignment and deterministic-rendering contracts.
 
+## v3.0 — Unified interactive mastering
+
+Released: `3.0.0`. The single-column web workflow adds an approximate local Web Audio
+preview. Final renders reuse stored source audio and analysis and retain initial-master
+lineage.
+
+Patch `3.0.1` extends the local preview through an AudioWorklet and corrects loudness
+gain staging plus the Rap starting point.
+
 ## Planning rules
 
 - Do not start a version by adding its UI before its package-level contracts exist.

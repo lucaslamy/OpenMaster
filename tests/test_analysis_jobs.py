@@ -238,3 +238,40 @@ def test_repository_persists_worker_result_and_failure() -> None:
     assert failed is not None
     assert failed.status == "failed"
     assert failed.error_code == "DecodeError"
+
+
+def test_final_render_reuses_source_and_analysis() -> None:
+    repository = _repository()
+    parent, _ = repository.create_or_get(
+        job_id="parent",
+        idempotency_key="initial",
+        object_name="analysis/parent/source.wav",
+        original_filename="source.wav",
+    )
+    repository.mark_analysis_complete(parent.id, {"integrated_lufs": -14.0})
+    repository.mark_mastered(
+        parent.id,
+        recommendation={},
+        mastering_result={},
+        output_object_name="mastering/parent/initial.wav",
+        source_waveform=[],
+        master_waveform=[],
+        source_spectrum=[],
+        master_spectrum=[],
+        source_level_timeline=[],
+        master_level_timeline=[],
+    )
+    completed = repository.get(parent.id)
+    assert completed is not None
+    child, created = repository.create_final_render(
+        parent=completed,
+        job_id="child",
+        idempotency_key="final:parent:key",
+        settings={"eq_low_gain_db": 2.0},
+    )
+    assert created
+    assert child.status == "mastering"
+    assert child.object_name == parent.object_name
+    assert child.result == {"integrated_lufs": -14.0}
+    assert child.parent_job_id == parent.id
+    assert child.initial_output_object_name == "mastering/parent/initial.wav"

@@ -74,7 +74,7 @@ defineEmits<{ back: [] }>();
       <div class="delivery-table">
         <div><strong>Transparent</strong><span>−16 LUFS</span><span>−1.5 dBFS</span><span>±6 dB</span></div>
         <div><strong>Streaming</strong><span>−14 LUFS</span><span>−1.0 dBFS</span><span>±9 dB</span></div>
-        <div><strong>Rap</strong><span>−10 LUFS</span><span>−0.8 dBFS</span><span>±9 dB</span></div>
+        <div><strong>Rap</strong><span>−9 LUFS</span><span>−1 dBFS</span><span>±12 dB</span></div>
         <div><strong>Loud</strong><span>−9 LUFS</span><span>−0.5 dBFS</span><span>±12 dB</span></div>
         <div><strong>Podcast</strong><span>−16 LUFS</span><span>−1.0 dBFS</span><span>±6 dB</span></div>
       </div>
@@ -150,7 +150,7 @@ defineEmits<{ back: [] }>();
       <div class="delivery-table">
         <div><strong>Transparent</strong><span>−16 LUFS</span><span>−1,5 dBFS</span><span>±6 dB</span></div>
         <div><strong>Streaming</strong><span>−14 LUFS</span><span>−1,0 dBFS</span><span>±9 dB</span></div>
-        <div><strong>Rap</strong><span>−10 LUFS</span><span>−0,8 dBFS</span><span>±9 dB</span></div>
+        <div><strong>Rap</strong><span>−9 LUFS</span><span>−1 dBFS</span><span>±12 dB</span></div>
         <div><strong>Puissant</strong><span>−9 LUFS</span><span>−0,5 dBFS</span><span>±12 dB</span></div>
         <div><strong>Podcast</strong><span>−16 LUFS</span><span>−1,0 dBFS</span><span>±6 dB</span></div>
       </div>

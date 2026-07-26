@@ -96,10 +96,10 @@ def test_automatic_mastering_bounds_loudness_gain_and_records_decision() -> None
     result = service.master(np.array([[0.25]], dtype=np.float64), 48_000, analysis)
 
     assert result.decision.requested_gain_db == pytest.approx(16.0)
-    assert result.decision.settings.input_gain_db == pytest.approx(2.0)
+    assert result.decision.settings.input_gain_db == pytest.approx(6.0)
     assert result.decision.gain_was_bounded is True
     assert result.decision.peak_headroom_gain_db == pytest.approx(2.0)
-    assert result.decision.limited_by_peak_headroom is True
+    assert result.decision.limited_by_peak_headroom is False
     assert result.render.applied_processors[-1] == "true_peak_limiter"
 
 
@@ -121,7 +121,8 @@ def test_oversampled_clipper_is_bypassed_at_zero_and_densifies_driven_peaks() ->
     clipped = OversampledClipperProcessor(6.0).process(samples, 48_000)
 
     assert np.array_equal(bypassed, samples)
-    assert np.max(np.abs(clipped)) < np.max(np.abs(samples))
+    assert np.max(np.abs(clipped)) <= 1.01
+    assert np.sqrt(np.mean(clipped**2)) > np.sqrt(np.mean(samples**2))
     assert clipped.shape == samples.shape
 
 
@@ -208,6 +209,35 @@ def test_automatic_mastering_keeps_loudness_gain_when_peak_has_sufficient_headro
     assert decision.settings.input_gain_db == pytest.approx(4.0)
     assert decision.peak_headroom_gain_db == pytest.approx(11.0)
     assert decision.limited_by_peak_headroom is False
+
+
+def test_driven_master_increases_loudness_while_enforcing_true_peak_ceiling() -> None:
+    sample_rate_hz = 48_000
+    time = np.arange(sample_rate_hz * 3) / sample_rate_hz
+    body = 0.12 * np.sin(2 * np.pi * 110 * time)
+    transients = np.zeros_like(body)
+    transients[::2_400] = 0.85
+    samples = (body + transients)[:, np.newaxis]
+    source_lufs = integrated_lufs(samples, sample_rate_hz)
+    assert source_lufs is not None
+    service = AutomaticMasteringService(
+        MasteringPolicy(
+            target_lufs=-9.0,
+            maximum_gain_adjustment_db=12.0,
+            ceiling_dbfs=-1.0,
+            clipper_drive_db=2.0,
+        )
+    )
+
+    mastered = service.master(
+        samples,
+        sample_rate_hz,
+        _analysis_result(lufs=source_lufs, peak_dbfs=-1.4),
+    )
+
+    assert mastered.render.output_lufs is not None
+    assert mastered.render.output_lufs > source_lufs
+    assert mastered.render.output_true_peak_dbfs <= -1.0
 
 
 def test_automatic_mastering_is_repeatable_safe_and_reaches_target_when_unbounded() -> None:
