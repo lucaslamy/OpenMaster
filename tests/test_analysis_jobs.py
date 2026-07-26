@@ -62,6 +62,18 @@ def test_submit_persists_upload_and_dispatches_one_job() -> None:
         target_lufs=-16.0,
         maximum_gain_adjustment_db=8.0,
         ceiling_dbfs=-1.5,
+        eq_low_gain_db=1.0,
+        eq_mid_gain_db=-0.5,
+        eq_high_gain_db=1.5,
+        clipper_drive_db=4.0,
+        limiter_lookahead_ms=5.0,
+        limiter_release_ms=120.0,
+        high_pass_enabled=False,
+        high_pass_cutoff_hz=32.0,
+        dynamic_eq_reduction_db=3.0,
+        bass_control_reduction_db=4.0,
+        de_esser_reduction_db=5.0,
+        saturation_amount=0.25,
         bit_depth=24,
     )
 
@@ -70,6 +82,18 @@ def test_submit_persists_upload_and_dispatches_one_job() -> None:
     assert job.target_lufs == -16.0
     assert job.maximum_gain_adjustment_db == 8.0
     assert job.ceiling_dbfs == -1.5
+    assert job.eq_low_gain_db == 1.0
+    assert job.eq_mid_gain_db == -0.5
+    assert job.eq_high_gain_db == 1.5
+    assert job.clipper_drive_db == 4.0
+    assert job.limiter_lookahead_ms == 5.0
+    assert job.limiter_release_ms == 120.0
+    assert job.high_pass_enabled is False
+    assert job.high_pass_cutoff_hz == 32.0
+    assert job.dynamic_eq_reduction_db == 3.0
+    assert job.bass_control_reduction_db == 4.0
+    assert job.de_esser_reduction_db == 5.0
+    assert job.saturation_amount == 0.25
     assert storage.objects[job.object_name] == b"encoded-audio"
     assert dispatched == [(job.id, job.object_name)]
     assert service.get(job.id) == job
@@ -132,6 +156,15 @@ def test_submit_rejects_invalid_uploads(filename: str, length: int, message: str
         ("target_lufs", -30.0, "target_lufs"),
         ("maximum_gain_adjustment_db", 13.0, "maximum_gain_adjustment_db"),
         ("ceiling_dbfs", 0.0, "ceiling_dbfs"),
+        ("eq_low_gain_db", 7.0, "equalizer"),
+        ("clipper_drive_db", 13.0, "clipper_drive_db"),
+        ("limiter_lookahead_ms", 11.0, "limiter_lookahead_ms"),
+        ("limiter_release_ms", 501.0, "limiter_release_ms"),
+        ("high_pass_cutoff_hz", 81.0, "high_pass_cutoff_hz"),
+        ("dynamic_eq_reduction_db", 13.0, "selective dynamics"),
+        ("bass_control_reduction_db", 13.0, "selective dynamics"),
+        ("de_esser_reduction_db", 13.0, "selective dynamics"),
+        ("saturation_amount", 1.1, "saturation_amount"),
         ("bit_depth", 20, "bit_depth"),
     ],
 )
@@ -179,6 +212,10 @@ def test_repository_persists_worker_result_and_failure() -> None:
         output_object_name="mastering/job-1/master.wav",
         source_waveform=[0.25] * 16,
         master_waveform=[0.5] * 16,
+        source_spectrum=[0.2] * 16,
+        master_spectrum=[0.3] * 16,
+        source_level_timeline=[0.4] * 16,
+        master_level_timeline=[0.6] * 16,
     )
     completed = repository.get(job.id)
     assert completed is not None
@@ -189,6 +226,10 @@ def test_repository_persists_worker_result_and_failure() -> None:
     assert completed.output_object_name == "mastering/job-1/master.wav"
     assert completed.source_waveform == [0.25] * 16
     assert completed.master_waveform == [0.5] * 16
+    assert completed.source_spectrum == [0.2] * 16
+    assert completed.master_spectrum == [0.3] * 16
+    assert completed.source_level_timeline == [0.4] * 16
+    assert completed.master_level_timeline == [0.6] * 16
 
     repository.mark_failed(job.id, "DecodeError", "invalid audio")
     failed = repository.get(job.id)

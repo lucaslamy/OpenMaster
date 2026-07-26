@@ -29,6 +29,10 @@ class AnalysisJobResponse(BaseModel):
     preview_url: str | None = None
     source_waveform: list[float] | None = None
     master_waveform: list[float] | None = None
+    source_spectrum: list[float] | None = None
+    master_spectrum: list[float] | None = None
+    source_level_timeline: list[float] | None = None
+    master_level_timeline: list[float] | None = None
     error_code: str | None = None
     error_message: str | None = None
 
@@ -70,6 +74,18 @@ async def create_analysis_job(
     target_lufs: Annotated[float, Form()] = -14.0,
     maximum_gain_adjustment_db: Annotated[float, Form()] = 12.0,
     ceiling_dbfs: Annotated[float, Form()] = -1.0,
+    eq_low_gain_db: Annotated[float, Form()] = 0.0,
+    eq_mid_gain_db: Annotated[float, Form()] = 0.0,
+    eq_high_gain_db: Annotated[float, Form()] = 0.0,
+    clipper_drive_db: Annotated[float, Form()] = 0.0,
+    limiter_lookahead_ms: Annotated[float, Form()] = 3.0,
+    limiter_release_ms: Annotated[float, Form()] = 80.0,
+    high_pass_enabled: Annotated[bool, Form()] = True,
+    high_pass_cutoff_hz: Annotated[float, Form()] = 25.0,
+    dynamic_eq_reduction_db: Annotated[float, Form()] = 0.0,
+    bass_control_reduction_db: Annotated[float, Form()] = 0.0,
+    de_esser_reduction_db: Annotated[float, Form()] = 0.0,
+    saturation_amount: Annotated[float, Form()] = 0.0,
     bit_depth: Annotated[int, Form()] = 24,
 ) -> AnalysisJobResponse:
     """Store one supported audio upload and queue its deterministic analysis."""
@@ -88,6 +104,18 @@ async def create_analysis_job(
             target_lufs=target_lufs,
             maximum_gain_adjustment_db=maximum_gain_adjustment_db,
             ceiling_dbfs=ceiling_dbfs,
+            eq_low_gain_db=eq_low_gain_db,
+            eq_mid_gain_db=eq_mid_gain_db,
+            eq_high_gain_db=eq_high_gain_db,
+            clipper_drive_db=clipper_drive_db,
+            limiter_lookahead_ms=limiter_lookahead_ms,
+            limiter_release_ms=limiter_release_ms,
+            high_pass_enabled=high_pass_enabled,
+            high_pass_cutoff_hz=high_pass_cutoff_hz,
+            dynamic_eq_reduction_db=dynamic_eq_reduction_db,
+            bass_control_reduction_db=bass_control_reduction_db,
+            de_esser_reduction_db=de_esser_reduction_db,
+            saturation_amount=saturation_amount,
             bit_depth=bit_depth,
         )
     except InvalidUploadError as error:
@@ -164,6 +192,10 @@ def _response(job: AnalysisJobRecord) -> AnalysisJobResponse:
         ),
         source_waveform=job.source_waveform,
         master_waveform=job.master_waveform,
+        source_spectrum=job.source_spectrum,
+        master_spectrum=job.master_spectrum,
+        source_level_timeline=job.source_level_timeline,
+        master_level_timeline=job.master_level_timeline,
         error_code=job.error_code,
         error_message=job.error_message,
     )

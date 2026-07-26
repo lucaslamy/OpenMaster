@@ -20,7 +20,7 @@ defineEmits<{ back: [] }>();
         <article><b>1</b><h3>Upload</h3><p>The source is validated and stored privately in MinIO.</p></article>
         <article><b>2</b><h3>Analysis</h3><p>OpenMaster decodes the audio and measures levels, dynamics, stereo and spectral identity.</p></article>
         <article><b>3</b><h3>Decision</h3><p>The assistant derives a bounded gain decision from your policy and measured headroom.</p></article>
-        <article><b>4</b><h3>Render</h3><p>Deterministic gain and linked peak limiting run locally or on RunPod.</p></article>
+        <article><b>4</b><h3>Render</h3><p>High-pass, selective dynamics, saturation, clipping, True Peak limiting, output measurement and dither run locally or on RunPod.</p></article>
         <article><b>5</b><h3>Delivery</h3><p>A private WAV is published through a short-lived signed download.</p></article>
       </div>
     </section>
@@ -48,9 +48,14 @@ defineEmits<{ back: [] }>();
         <article><span>LUFS</span><div><h3>Loudness target</h3><p>Requests a gain change toward the chosen programme loudness. Peak safety may prevent reaching it exactly.</p></div></article>
         <article><span>dBFS</span><div><h3>Limiter ceiling</h3><p>Sets the maximum linked sample peak. Lower values preserve more output headroom.</p></div></article>
         <article><span>±dB</span><div><h3>Maximum correction</h3><p>Caps how far automatic gain may move in either direction, protecting against extreme decisions.</p></div></article>
+        <article><span>EQ</span><div><h3>Three-band equalizer</h3><p>Applies bounded corrections around 100 Hz, 1 kHz and 10 kHz before gain and dynamics.</p></div></article>
+        <article><span>HPF</span><div><h3>High-pass and selective dynamics</h3><p>The high-pass removes subsonic energy; dynamic EQ, bass control and de-essing attenuate only their frequency regions when triggered.</p></div></article>
+        <article><span>SAT</span><div><h3>Light saturation</h3><p>Adds bounded oversampled harmonic density before transient clipping.</p></div></article>
+        <article><span>×4</span><div><h3>Soft clipper</h3><p>Rounds short peaks at four times the sample rate. More drive creates density but can reduce punch.</p></div></article>
+        <article><span>ms</span><div><h3>Lookahead and release</h3><p>Lookahead anticipates peaks; release controls how quickly limiter gain returns afterward.</p></div></article>
         <article><span>PCM</span><div><h3>WAV depth</h3><p>16 bit is compact delivery, 24 bit is the normal production choice, and 32 bit preserves additional integer resolution.</p></div></article>
       </div>
-      <aside class="guide-callout"><strong>What OpenMaster does not hide</strong><p>The current automatic path applies explicit gain staging and linked sample-peak limiting. It does not silently add EQ, compression, stereo widening or saturation.</p></aside>
+      <aside class="guide-callout"><strong>What OpenMaster does not hide</strong><p>The active path is explicit: high-pass, tonal and dynamic EQ, bass control, de-essing, gain, saturation, clipping, True Peak limiting, output measurement and dither. Zero-strength stages are true bypasses.</p></aside>
     </section>
     <section id="comparisons" class="guide-section">
       <p class="eyebrow">04 · Comparisons</p><h2>Understand the interactive graphs</h2>
@@ -58,6 +63,8 @@ defineEmits<{ back: [] }>();
         <article><h3>Peak envelope</h3><p>Shows peak amplitude relative to digital full scale through time. The slider interpolates every point between the original and mastered envelopes, so the geometry visibly evolves.</p></article>
         <article><h3>Peak density</h3><p>A moving RMS calculation over the compact envelope. It reveals sustained dense passages but is not the audio signal RMS measurement.</p></article>
         <article><h3>Transient activity</h3><p>Shows point-to-point envelope variation. It helps locate rhythmic change, but it is neither a transient detector nor a spectrum.</p></article>
+        <article><h3>Spectral balance</h3><p>Shows averaged RMS energy on logarithmic frequencies from 40 Hz to 20 kHz. Its fixed −100 to 0 dBFS scale preserves real before/after differences.</p></article>
+        <article><h3>Windowed level</h3><p>Shows RMS energy through time on a fixed −60 to 0 dBFS scale. It is deliberately labelled RMS and must not be read as integrated LUFS.</p></article>
       </div>
       <aside class="guide-callout"><strong>How the sliders work</strong><p>At 0% the active curve is the original; at 100% it is the master. Intermediate positions interpolate the real stored measurements point by point. Faint reference lines keep both endpoints visible.</p></aside>
     </section>
@@ -88,7 +95,7 @@ defineEmits<{ back: [] }>();
         <article><b>1</b><h3>Envoi</h3><p>La source est validée puis stockée de manière privée dans MinIO.</p></article>
         <article><b>2</b><h3>Analyse</h3><p>OpenMaster décode le son et mesure les niveaux, la dynamique, la stéréo et l’identité spectrale.</p></article>
         <article><b>3</b><h3>Décision</h3><p>L’assistant détermine une correction de gain bornée à partir de votre politique et de la marge mesurée.</p></article>
-        <article><b>4</b><h3>Rendu</h3><p>Le gain déterministe et la limitation de crête liée s’exécutent localement ou sur RunPod.</p></article>
+        <article><b>4</b><h3>Rendu</h3><p>Coupe-bas, dynamique sélective, saturation, clipping, limitation True Peak, mesure de sortie et dither s’exécutent localement ou sur RunPod.</p></article>
         <article><b>5</b><h3>Livraison</h3><p>Un WAV privé est publié au moyen d’un téléchargement signé de courte durée.</p></article>
       </div>
     </section>
@@ -116,9 +123,14 @@ defineEmits<{ back: [] }>();
         <article><span>LUFS</span><div><h3>Niveau sonore cible</h3><p>Demande une correction vers le niveau global choisi. La protection des crêtes peut empêcher de l’atteindre exactement.</p></div></article>
         <article><span>dBFS</span><div><h3>Plafond du limiteur</h3><p>Définit la crête d’échantillon liée maximale. Une valeur plus basse conserve davantage de marge en sortie.</p></div></article>
         <article><span>±dB</span><div><h3>Correction maximale</h3><p>Limite le déplacement automatique du gain dans les deux directions afin d’éviter les décisions extrêmes.</p></div></article>
+        <article><span>EQ</span><div><h3>Égaliseur trois bandes</h3><p>Applique des corrections bornées autour de 100 Hz, 1 kHz et 10 kHz avant le gain et la dynamique.</p></div></article>
+        <article><span>HPF</span><div><h3>Coupe-bas et dynamique sélective</h3><p>Le coupe-bas retire l’infragrave ; l’EQ dynamique, le contrôle du grave et le de-esser n’atténuent leur zone que lorsqu’elle déclenche le détecteur.</p></div></article>
+        <article><span>SAT</span><div><h3>Saturation légère</h3><p>Ajoute une densité harmonique bornée et suréchantillonnée avant le traitement des crêtes.</p></div></article>
+        <article><span>×4</span><div><h3>Clipper doux</h3><p>Arrondit les crêtes courtes à quatre fois la fréquence d’échantillonnage. Un drive élevé densifie le son mais peut réduire l’impact.</p></div></article>
+        <article><span>ms</span><div><h3>Anticipation et relâchement</h3><p>L’anticipation prépare les crêtes ; le relâchement règle la vitesse de retour du gain du limiteur.</p></div></article>
         <article><span>PCM</span><div><h3>Résolution WAV</h3><p>16 bits est compact pour la livraison, 24 bits est le choix normal de production et 32 bits conserve une résolution entière supplémentaire.</p></div></article>
       </div>
-      <aside class="guide-callout"><strong>Ce qu’OpenMaster ne cache pas</strong><p>La chaîne automatique actuelle applique une mise à niveau explicite et une limitation liée des crêtes d’échantillon. Elle n’ajoute silencieusement ni égalisation, ni compression, ni élargissement stéréo, ni saturation.</p></aside>
+      <aside class="guide-callout"><strong>Ce qu’OpenMaster ne cache pas</strong><p>La chaîne est explicite : coupe-bas, EQ tonale et dynamique, contrôle du grave, de-esser, gain, saturation, clipper, limiteur True Peak, mesure de sortie et dither. Un étage réglé à zéro est réellement contourné.</p></aside>
     </section>
     <section id="comparaisons-fr" class="guide-section">
       <p class="eyebrow">04 · Comparaisons</p><h2>Comprendre les graphiques interactifs</h2>
@@ -126,6 +138,8 @@ defineEmits<{ back: [] }>();
         <article><h3>Enveloppe de crête</h3><p>Affiche l’amplitude des crêtes par rapport à la pleine échelle numérique. Le curseur interpole chaque point entre les enveloppes originale et masterisée : la géométrie évolue donc visiblement.</p></article>
         <article><h3>Densité des crêtes</h3><p>Calcul RMS glissant appliqué à l’enveloppe compacte. Il révèle les passages durablement denses, mais ne remplace pas la mesure RMS du signal audio.</p></article>
         <article><h3>Activité transitoire</h3><p>Affiche la variation entre les points de l’enveloppe. Elle aide à localiser les changements rythmiques, mais ne constitue ni un détecteur de transitoires ni un spectre.</p></article>
+        <article><h3>Équilibre spectral</h3><p>Affiche l’énergie RMS moyenne sur des fréquences logarithmiques de 40 Hz à 20 kHz. Son échelle fixe de −100 à 0 dBFS préserve les différences réelles avant/après.</p></article>
+        <article><h3>Niveau par fenêtre</h3><p>Affiche l’énergie RMS dans le temps sur une échelle fixe de −60 à 0 dBFS. Cette vue est explicitement un RMS et ne doit pas être lue comme des LUFS intégrés.</p></article>
       </div>
       <aside class="guide-callout"><strong>Fonctionnement des curseurs</strong><p>À 0 %, la courbe active est l’original ; à 100 %, elle correspond au master. Les positions intermédiaires interpolent point par point les mesures réellement enregistrées. Les lignes discrètes conservent les deux références visibles.</p></aside>
     </section>

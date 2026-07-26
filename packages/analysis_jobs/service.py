@@ -63,6 +63,18 @@ class AnalysisJobService:
         target_lufs: float = -14.0,
         maximum_gain_adjustment_db: float = 12.0,
         ceiling_dbfs: float = -1.0,
+        eq_low_gain_db: float = 0.0,
+        eq_mid_gain_db: float = 0.0,
+        eq_high_gain_db: float = 0.0,
+        clipper_drive_db: float = 0.0,
+        limiter_lookahead_ms: float = 3.0,
+        limiter_release_ms: float = 80.0,
+        high_pass_enabled: bool = True,
+        high_pass_cutoff_hz: float = 25.0,
+        dynamic_eq_reduction_db: float = 0.0,
+        bass_control_reduction_db: float = 0.0,
+        de_esser_reduction_db: float = 0.0,
+        saturation_amount: float = 0.0,
         bit_depth: int = 24,
     ) -> AnalysisJobRecord:
         """Validate, store, persist, and enqueue one upload exactly once."""
@@ -88,6 +100,29 @@ class AnalysisJobService:
             raise InvalidUploadError("maximum_gain_adjustment_db must be between 0 and 12")
         if not -6.0 <= ceiling_dbfs <= -0.1:
             raise InvalidUploadError("ceiling_dbfs must be between -6 and -0.1")
+        if any(
+            not -6.0 <= gain <= 6.0 for gain in (eq_low_gain_db, eq_mid_gain_db, eq_high_gain_db)
+        ):
+            raise InvalidUploadError("equalizer gains must be between -6 and 6")
+        if not 0.0 <= clipper_drive_db <= 12.0:
+            raise InvalidUploadError("clipper_drive_db must be between 0 and 12")
+        if not 0.0 <= limiter_lookahead_ms <= 10.0:
+            raise InvalidUploadError("limiter_lookahead_ms must be between 0 and 10")
+        if not 10.0 <= limiter_release_ms <= 500.0:
+            raise InvalidUploadError("limiter_release_ms must be between 10 and 500")
+        if not 15.0 <= high_pass_cutoff_hz <= 80.0:
+            raise InvalidUploadError("high_pass_cutoff_hz must be between 15 and 80")
+        if any(
+            not 0.0 <= reduction <= 12.0
+            for reduction in (
+                dynamic_eq_reduction_db,
+                bass_control_reduction_db,
+                de_esser_reduction_db,
+            )
+        ):
+            raise InvalidUploadError("selective dynamics reductions must be between 0 and 12")
+        if not 0.0 <= saturation_amount <= 1.0:
+            raise InvalidUploadError("saturation_amount must be between 0 and 1")
         if bit_depth not in {16, 24, 32}:
             raise InvalidUploadError("bit_depth must be 16, 24, or 32")
 
@@ -107,6 +142,18 @@ class AnalysisJobService:
             target_lufs=target_lufs,
             maximum_gain_adjustment_db=maximum_gain_adjustment_db,
             ceiling_dbfs=ceiling_dbfs,
+            eq_low_gain_db=eq_low_gain_db,
+            eq_mid_gain_db=eq_mid_gain_db,
+            eq_high_gain_db=eq_high_gain_db,
+            clipper_drive_db=clipper_drive_db,
+            limiter_lookahead_ms=limiter_lookahead_ms,
+            limiter_release_ms=limiter_release_ms,
+            high_pass_enabled=high_pass_enabled,
+            high_pass_cutoff_hz=high_pass_cutoff_hz,
+            dynamic_eq_reduction_db=dynamic_eq_reduction_db,
+            bass_control_reduction_db=bass_control_reduction_db,
+            de_esser_reduction_db=de_esser_reduction_db,
+            saturation_amount=saturation_amount,
             bit_depth=bit_depth,
         )
         if created or job.status == "queued":

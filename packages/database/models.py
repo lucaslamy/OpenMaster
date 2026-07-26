@@ -1,6 +1,18 @@
 """Persistent job schema with UUID primary identifiers."""
 
-from sqlalchemy import JSON, Column, DateTime, Float, Integer, MetaData, String, Table, Text, func
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    Text,
+    func,
+)
 
 metadata = MetaData()
 analysis_jobs = Table(
@@ -18,9 +30,25 @@ analysis_jobs = Table(
     Column("output_object_name", Text, nullable=True),
     Column("source_waveform", JSON, nullable=True),
     Column("master_waveform", JSON, nullable=True),
+    Column("source_spectrum", JSON, nullable=True),
+    Column("master_spectrum", JSON, nullable=True),
+    Column("source_level_timeline", JSON, nullable=True),
+    Column("master_level_timeline", JSON, nullable=True),
     Column("target_lufs", Float, nullable=False, server_default="-14.0"),
     Column("maximum_gain_adjustment_db", Float, nullable=False, server_default="12.0"),
     Column("ceiling_dbfs", Float, nullable=False, server_default="-1.0"),
+    Column("eq_low_gain_db", Float, nullable=False, server_default="0.0"),
+    Column("eq_mid_gain_db", Float, nullable=False, server_default="0.0"),
+    Column("eq_high_gain_db", Float, nullable=False, server_default="0.0"),
+    Column("clipper_drive_db", Float, nullable=False, server_default="0.0"),
+    Column("limiter_lookahead_ms", Float, nullable=False, server_default="3.0"),
+    Column("limiter_release_ms", Float, nullable=False, server_default="80.0"),
+    Column("high_pass_enabled", Boolean, nullable=False, server_default="true"),
+    Column("high_pass_cutoff_hz", Float, nullable=False, server_default="25.0"),
+    Column("dynamic_eq_reduction_db", Float, nullable=False, server_default="0.0"),
+    Column("bass_control_reduction_db", Float, nullable=False, server_default="0.0"),
+    Column("de_esser_reduction_db", Float, nullable=False, server_default="0.0"),
+    Column("saturation_amount", Float, nullable=False, server_default="0.0"),
     Column("bit_depth", Integer, nullable=False, server_default="24"),
     Column("error_code", String(64), nullable=True),
     Column("error_message", Text, nullable=True),

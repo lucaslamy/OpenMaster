@@ -239,7 +239,20 @@ def test_mastering_command_line_interface_exports_auditable_wav(tmp_path: Path) 
 
     assert completed.returncode == 0
     assert payload["output_path"] == str(output_path)
-    assert payload["processors"] == ["gain", "sample_peak_limiter"]
+    assert payload["processors"] == [
+        "high_pass",
+        "three_band_equalizer",
+        "dynamic_equalizer",
+        "bass_control",
+        "de_esser",
+        "gain",
+        "saturation",
+        "oversampled_clipper",
+        "true_peak_limiter",
+    ]
+    assert payload["output_lufs"] is not None
+    assert payload["output_true_peak_dbfs"] <= -1.0
+    assert payload["dither_applied"] is True
     assert output_path.is_file()
 
 

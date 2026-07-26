@@ -58,6 +58,16 @@ def test_client_submits_async_job_without_api_key_in_payload() -> None:
     assert submitted["source_sha256"] == "a" * 64
     assert submitted["maximum_gain_adjustment_db"] == 12.0
     assert submitted["ceiling_dbfs"] == -1.0
+    assert submitted["eq_low_gain_db"] == 0.0
+    assert submitted["clipper_drive_db"] == 0.0
+    assert submitted["limiter_lookahead_ms"] == 3.0
+    assert submitted["limiter_release_ms"] == 80.0
+    assert submitted["high_pass_enabled"] is True
+    assert submitted["high_pass_cutoff_hz"] == 25.0
+    assert submitted["dynamic_eq_reduction_db"] == 0.0
+    assert submitted["bass_control_reduction_db"] == 0.0
+    assert submitted["de_esser_reduction_db"] == 0.0
+    assert submitted["saturation_amount"] == 0.0
     assert captured[0].headers["Authorization"] == "Bearer secret-api-key"
 
 

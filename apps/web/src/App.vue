@@ -20,13 +20,13 @@ import {
 } from "./presentation";
 
 const intents = [
-  { key: "Transparent", copy: "Transparent", target: -16, ceiling: -1.5, gain: 6, depth: 24 },
-  { key: "Streaming", copy: "Streaming", target: -14, ceiling: -1, gain: 9, depth: 24 },
-  { key: "Podcast", copy: "Podcast", target: -16, ceiling: -1, gain: 6, depth: 16 },
-  { key: "Rap", copy: "Rap", target: -10, ceiling: -0.8, gain: 9, depth: 24 },
-  { key: "Club", copy: "Club", target: -9, ceiling: -0.3, gain: 12, depth: 24 },
-  { key: "Loud", copy: "Loud", target: -10, ceiling: -0.5, gain: 12, depth: 24 },
-  { key: "Dynamic", copy: "Dynamic", target: -18, ceiling: -2, gain: 5, depth: 24 },
+  { key: "Transparent", copy: "Transparent", target: -16, ceiling: -1.5, gain: 6, depth: 24, eq: [0, 0, 0], clip: 0, spectral: [0, 0, 0, 0] },
+  { key: "Streaming", copy: "Streaming", target: -14, ceiling: -1, gain: 9, depth: 24, eq: [0, 0, 0], clip: 1, spectral: [1.5, 1.5, 1.5, 0.1] },
+  { key: "Podcast", copy: "Podcast", target: -16, ceiling: -1, gain: 6, depth: 16, eq: [-0.5, 1, 0.5], clip: 1, spectral: [2, 1, 4, 0.1] },
+  { key: "Rap", copy: "Rap", target: -10, ceiling: -0.8, gain: 9, depth: 24, eq: [1, 0.5, 0.5], clip: 4, spectral: [2, 3, 3, 0.2] },
+  { key: "Club", copy: "Club", target: -9, ceiling: -0.3, gain: 12, depth: 24, eq: [1.5, -0.5, 1], clip: 6, spectral: [2, 4, 2, 0.25] },
+  { key: "Loud", copy: "Loud", target: -10, ceiling: -0.5, gain: 12, depth: 24, eq: [0.5, 0, 0.5], clip: 5, spectral: [3, 3, 3, 0.25] },
+  { key: "Dynamic", copy: "Dynamic", target: -18, ceiling: -2, gain: 5, depth: 24, eq: [0, 0, 0], clip: 0, spectral: [0, 0, 0, 0] },
 ];
 const storedLocale = localStorage.getItem("openmaster-locale");
 const locale = ref<Locale>(
@@ -65,6 +65,18 @@ const targetLufs = ref(-14);
 const bitDepth = ref(24);
 const maximumGainAdjustmentDb = ref(12);
 const ceilingDbfs = ref(-1);
+const eqLowGainDb = ref(0);
+const eqMidGainDb = ref(0);
+const eqHighGainDb = ref(0);
+const clipperDriveDb = ref(1);
+const limiterLookaheadMs = ref(3);
+const limiterReleaseMs = ref(80);
+const highPassEnabled = ref(true);
+const highPassCutoffHz = ref(25);
+const dynamicEqReductionDb = ref(0);
+const bassControlReductionDb = ref(0);
+const deEsserReductionDb = ref(0);
+const saturationAmount = ref(0);
 const showTechnical = ref(false);
 const passwordDialogOpen = ref(false);
 const masteringPassword = ref("");
@@ -89,6 +101,14 @@ function applyIntent(intent: (typeof intents)[number]): void {
   ceilingDbfs.value = intent.ceiling;
   maximumGainAdjustmentDb.value = intent.gain;
   bitDepth.value = intent.depth;
+  [eqLowGainDb.value, eqMidGainDb.value, eqHighGainDb.value] = intent.eq;
+  [
+    dynamicEqReductionDb.value,
+    bassControlReductionDb.value,
+    deEsserReductionDb.value,
+    saturationAmount.value,
+  ] = intent.spectral;
+  clipperDriveDb.value = intent.clip;
   extraHeadroom.value = intent.ceiling <= -1.5;
   gentleCorrection.value = intent.gain <= 6;
   highResolution.value = intent.depth >= 24;
@@ -166,6 +186,18 @@ async function submit(password: string): Promise<void> {
       maximumGainAdjustmentDb.value,
       ceilingDbfs.value,
       password,
+      eqLowGainDb.value,
+      eqMidGainDb.value,
+      eqHighGainDb.value,
+      clipperDriveDb.value,
+      limiterLookaheadMs.value,
+      limiterReleaseMs.value,
+      highPassEnabled.value,
+      highPassCutoffHz.value,
+      dynamicEqReductionDb.value,
+      bassControlReductionDb.value,
+      deEsserReductionDb.value,
+      saturationAmount.value,
     );
     schedulePoll();
   } catch (reason) {
@@ -351,6 +383,85 @@ watch(
             <div class="range-labels"><span>{{ t("conservative") }}</span><span>{{ t("maximum") }}</span></div>
           </fieldset>
 
+          <fieldset class="advanced-dsp">
+            <legend>{{ t("tonalEqualizer") }} <InfoTip :text="t('tonalEqualizerTip')" /></legend>
+            <div class="eq-curve" aria-hidden="true">
+              <svg viewBox="0 0 300 70" preserveAspectRatio="none">
+                <path class="eq-zero" d="M0 35 H300" />
+                <polyline
+                  :points="`0,${35 - eqLowGainDb * 4} 75,${35 - eqLowGainDb * 4} 150,${35 - eqMidGainDb * 4} 225,${35 - eqHighGainDb * 4} 300,${35 - eqHighGainDb * 4}`"
+                />
+              </svg>
+            </div>
+            <div class="mini-control">
+              <label for="eq-low">{{ t("eqLow") }} <small>100 Hz</small></label>
+              <output>{{ eqLowGainDb.toFixed(1) }} dB</output>
+              <input id="eq-low" v-model.number="eqLowGainDb" type="range" min="-6" max="6" step="0.5" @input="activeIntent = 'Custom'" />
+            </div>
+            <div class="mini-control">
+              <label for="eq-mid">{{ t("eqMid") }} <small>1 kHz</small></label>
+              <output>{{ eqMidGainDb.toFixed(1) }} dB</output>
+              <input id="eq-mid" v-model.number="eqMidGainDb" type="range" min="-6" max="6" step="0.5" @input="activeIntent = 'Custom'" />
+            </div>
+            <div class="mini-control">
+              <label for="eq-high">{{ t("eqHigh") }} <small>10 kHz</small></label>
+              <output>{{ eqHighGainDb.toFixed(1) }} dB</output>
+              <input id="eq-high" v-model.number="eqHighGainDb" type="range" min="-6" max="6" step="0.5" @input="activeIntent = 'Custom'" />
+            </div>
+          </fieldset>
+
+          <fieldset class="advanced-dsp">
+            <legend>{{ t("spectralDynamics") }} <InfoTip :text="t('spectralDynamicsTip')" /></legend>
+            <div class="mini-control switch-control">
+              <label for="high-pass-enabled">{{ t("highPass") }} <InfoTip :text="t('highPassTip')" /></label>
+              <input id="high-pass-enabled" v-model="highPassEnabled" type="checkbox" @change="activeIntent = 'Custom'" />
+            </div>
+            <div class="mini-control">
+              <label for="high-pass-cutoff">{{ t("highPassCutoff") }}</label>
+              <output>{{ highPassCutoffHz.toFixed(0) }} Hz</output>
+              <input id="high-pass-cutoff" v-model.number="highPassCutoffHz" type="range" min="15" max="80" step="1" :disabled="!highPassEnabled" @input="activeIntent = 'Custom'" />
+            </div>
+            <div class="mini-control">
+              <label for="dynamic-eq">{{ t("dynamicEq") }} <InfoTip :text="t('dynamicEqTip')" /></label>
+              <output>{{ dynamicEqReductionDb.toFixed(1) }} dB</output>
+              <input id="dynamic-eq" v-model.number="dynamicEqReductionDb" type="range" min="0" max="12" step="0.5" @input="activeIntent = 'Custom'" />
+            </div>
+            <div class="mini-control">
+              <label for="bass-control">{{ t("bassControl") }} <InfoTip :text="t('bassControlTip')" /></label>
+              <output>{{ bassControlReductionDb.toFixed(1) }} dB</output>
+              <input id="bass-control" v-model.number="bassControlReductionDb" type="range" min="0" max="12" step="0.5" @input="activeIntent = 'Custom'" />
+            </div>
+            <div class="mini-control">
+              <label for="de-esser">{{ t("deEsser") }} <InfoTip :text="t('deEsserTip')" /></label>
+              <output>{{ deEsserReductionDb.toFixed(1) }} dB</output>
+              <input id="de-esser" v-model.number="deEsserReductionDb" type="range" min="0" max="12" step="0.5" @input="activeIntent = 'Custom'" />
+            </div>
+            <div class="mini-control">
+              <label for="saturation">{{ t("saturation") }} <InfoTip :text="t('saturationTip')" /></label>
+              <output>{{ Math.round(saturationAmount * 100) }}%</output>
+              <input id="saturation" v-model.number="saturationAmount" type="range" min="0" max="1" step="0.05" @input="activeIntent = 'Custom'" />
+            </div>
+          </fieldset>
+
+          <fieldset class="advanced-dsp">
+            <legend>{{ t("transientControl") }} <InfoTip :text="t('transientControlTip')" /></legend>
+            <div class="mini-control">
+              <label for="clipper-drive">{{ t("clipperDrive") }} <InfoTip :text="t('clipperDriveTip')" /></label>
+              <output>{{ clipperDriveDb.toFixed(1) }} dB</output>
+              <input id="clipper-drive" v-model.number="clipperDriveDb" type="range" min="0" max="12" step="0.5" @input="activeIntent = 'Custom'" />
+            </div>
+            <div class="mini-control">
+              <label for="limiter-lookahead">{{ t("limiterLookahead") }} <InfoTip :text="t('limiterLookaheadTip')" /></label>
+              <output>{{ limiterLookaheadMs.toFixed(1) }} ms</output>
+              <input id="limiter-lookahead" v-model.number="limiterLookaheadMs" type="range" min="0" max="10" step="0.5" @input="activeIntent = 'Custom'" />
+            </div>
+            <div class="mini-control">
+              <label for="limiter-release">{{ t("limiterRelease") }} <InfoTip :text="t('limiterReleaseTip')" /></label>
+              <output>{{ limiterReleaseMs.toFixed(0) }} ms</output>
+              <input id="limiter-release" v-model.number="limiterReleaseMs" type="range" min="10" max="500" step="10" @input="activeIntent = 'Custom'" />
+            </div>
+          </fieldset>
+
           <fieldset>
             <legend>{{ t("safeguards") }} <InfoTip :text="t('safeguardsTip')" /></legend>
             <div class="safeguard-grid">
@@ -416,6 +527,10 @@ watch(
           :locale="locale"
           :before-waveform="job.source_waveform"
           :after-waveform="job.master_waveform"
+          :before-spectrum="job.source_spectrum"
+          :after-spectrum="job.master_spectrum"
+          :before-level-timeline="job.source_level_timeline"
+          :after-level-timeline="job.master_level_timeline"
         />
 
         <div v-if="findings.length" class="panel assistant-panel">

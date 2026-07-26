@@ -12,6 +12,10 @@ const props = defineProps<{
   afterUrl: string;
   beforeWaveform: number[];
   afterWaveform: number[];
+  beforeSpectrum?: number[];
+  afterSpectrum?: number[];
+  beforeLevelTimeline?: number[];
+  afterLevelTimeline?: number[];
 }>();
 const mode = ref<"before" | "after">("before");
 const before = ref<HTMLAudioElement | null>(null);
@@ -40,6 +44,24 @@ const comparisons = computed(() => [
     before: transientActivity(props.beforeWaveform),
     after: transientActivity(props.afterWaveform),
   },
+  ...(props.beforeSpectrum && props.afterSpectrum
+    ? [{
+        key: "spectrum",
+        title: t("spectralProfile"),
+        description: t("spectralProfileHelp"),
+        before: props.beforeSpectrum,
+        after: props.afterSpectrum,
+      }]
+    : []),
+  ...(props.beforeLevelTimeline && props.afterLevelTimeline
+    ? [{
+        key: "level-timeline",
+        title: t("levelTimeline"),
+        description: t("levelTimelineHelp"),
+        before: props.beforeLevelTimeline,
+        after: props.afterLevelTimeline,
+      }]
+    : []),
 ]);
 
 async function select(next: "before" | "after"): Promise<void> {

@@ -21,7 +21,7 @@ externalSecrets:
 image:
   registry: registry.example.com
   repository: openmaster
-  tag: "2.6.0"
+  tag: "2.7.0"
   pullPolicy: IfNotPresent
 
 podSecurityContext:

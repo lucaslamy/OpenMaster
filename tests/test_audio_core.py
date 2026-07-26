@@ -15,6 +15,8 @@ from packages.audio_core import (
     decode_audio,
     decode_wav,
     encode_wav,
+    level_timeline,
+    spectral_profile,
     waveform_envelope,
 )
 
@@ -79,6 +81,20 @@ def test_encode_wav_round_trips_24_bit_stereo_audio(tmp_path: Path) -> None:
     assert decoded.samples == pytest.approx(samples, abs=1.5e-7)
 
 
+def test_encode_wav_dither_is_deterministic_and_changes_quantization(tmp_path: Path) -> None:
+    samples = np.full((64, 1), 0.12500001, dtype=np.float64)
+    first = tmp_path / "first.wav"
+    second = tmp_path / "second.wav"
+    plain = tmp_path / "plain.wav"
+
+    encode_wav(first, samples, 48_000, bit_depth=16, dither=True)
+    encode_wav(second, samples, 48_000, bit_depth=16, dither=True)
+    encode_wav(plain, samples, 48_000, bit_depth=16)
+
+    assert first.read_bytes() == second.read_bytes()
+    assert first.read_bytes() != plain.read_bytes()
+
+
 def test_encode_wav_refuses_unrequested_overwrite_and_invalid_samples(tmp_path: Path) -> None:
     path = tmp_path / "master.wav"
     path.write_bytes(b"existing")
@@ -112,3 +128,30 @@ def test_waveform_envelope_handles_silence_and_rejects_unsafe_size() -> None:
     assert quiet == [0.25] * 16
     with pytest.raises(ValueError, match="between 16 and 2048"):
         waveform_envelope(np.zeros((10, 1), dtype=np.float64), points=8)
+
+
+def test_spectral_profile_uses_fixed_scale_and_tracks_frequency_energy() -> None:
+    sample_rate_hz = 48_000
+    time = np.arange(sample_rate_hz) / sample_rate_hz
+    tone = (0.5 * np.sin(2 * np.pi * 1_000 * time))[:, np.newaxis]
+
+    profile = spectral_profile(tone, sample_rate_hz, points=96)
+
+    assert len(profile) == 96
+    assert all(0.0 <= point <= 1.0 for point in profile)
+    assert max(profile) > 0.5
+    assert spectral_profile(np.zeros_like(tone), sample_rate_hz, points=16) == [0.0] * 16
+
+
+def test_level_timeline_preserves_real_level_changes() -> None:
+    samples = np.concatenate(
+        (
+            np.full((1_000, 1), 0.01),
+            np.full((1_000, 1), 0.5),
+        )
+    )
+
+    timeline = level_timeline(samples, points=20)
+
+    assert len(timeline) == 20
+    assert max(timeline[:10]) < min(timeline[10:])

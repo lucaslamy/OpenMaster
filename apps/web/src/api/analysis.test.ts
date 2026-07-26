@@ -39,6 +39,16 @@ describe("AnalysisApiClient", () => {
     expect((request.body as FormData).get("bit_depth")).toBe("24");
     expect((request.body as FormData).get("maximum_gain_adjustment_db")).toBe("12");
     expect((request.body as FormData).get("ceiling_dbfs")).toBe("-1");
+    expect((request.body as FormData).get("eq_low_gain_db")).toBe("0");
+    expect((request.body as FormData).get("clipper_drive_db")).toBe("0");
+    expect((request.body as FormData).get("limiter_lookahead_ms")).toBe("3");
+    expect((request.body as FormData).get("limiter_release_ms")).toBe("80");
+    expect((request.body as FormData).get("high_pass_enabled")).toBe("true");
+    expect((request.body as FormData).get("high_pass_cutoff_hz")).toBe("25");
+    expect((request.body as FormData).get("dynamic_eq_reduction_db")).toBe("0");
+    expect((request.body as FormData).get("bass_control_reduction_db")).toBe("0");
+    expect((request.body as FormData).get("de_esser_reduction_db")).toBe("0");
+    expect((request.body as FormData).get("saturation_amount")).toBe("0");
   });
 
   it("identifies terminal job states", () => {

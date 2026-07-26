@@ -13,7 +13,7 @@ from urllib.parse import urlsplit
 from urllib.request import urlopen
 
 from packages.analysis_engine import AnalysisService
-from packages.audio_core import decode_audio, waveform_envelope
+from packages.audio_core import decode_audio, level_timeline, spectral_profile, waveform_envelope
 from packages.dsp_engine import AutomaticMasteringService, MasteringPolicy
 from packages.remote_compute import RemoteMasteringRequest
 
@@ -108,6 +108,18 @@ def handler(event: dict[str, Any]) -> dict[str, object]:
                 target_lufs=request.target_lufs,
                 maximum_gain_adjustment_db=request.maximum_gain_adjustment_db,
                 ceiling_dbfs=request.ceiling_dbfs,
+                eq_low_gain_db=request.eq_low_gain_db,
+                eq_mid_gain_db=request.eq_mid_gain_db,
+                eq_high_gain_db=request.eq_high_gain_db,
+                clipper_drive_db=request.clipper_drive_db,
+                limiter_lookahead_ms=request.limiter_lookahead_ms,
+                limiter_release_ms=request.limiter_release_ms,
+                high_pass_enabled=request.high_pass_enabled,
+                high_pass_cutoff_hz=request.high_pass_cutoff_hz,
+                dynamic_eq_reduction_db=request.dynamic_eq_reduction_db,
+                bass_control_reduction_db=request.bass_control_reduction_db,
+                de_esser_reduction_db=request.de_esser_reduction_db,
+                saturation_amount=request.saturation_amount,
             )
         )
         result = service.master_to_wav(
@@ -123,8 +135,18 @@ def handler(event: dict[str, Any]) -> dict[str, object]:
             "analysis": analysis.to_dict(),
             "decision": asdict(result.mastering.decision),
             "processors": list(result.mastering.render.applied_processors),
+            "output_lufs": result.mastering.render.output_lufs,
+            "output_true_peak_dbfs": result.mastering.render.output_true_peak_dbfs,
+            "dither_applied": result.dither_applied,
             "source_waveform": waveform_envelope(decoded.samples),
             "master_waveform": waveform_envelope(result.mastering.render.samples),
+            "source_spectrum": spectral_profile(decoded.samples, decoded.metadata.sample_rate_hz),
+            "master_spectrum": spectral_profile(
+                result.mastering.render.samples,
+                decoded.metadata.sample_rate_hz,
+            ),
+            "source_level_timeline": level_timeline(decoded.samples),
+            "master_level_timeline": level_timeline(result.mastering.render.samples),
         }
 
 

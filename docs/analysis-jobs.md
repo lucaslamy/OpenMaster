@@ -15,6 +15,18 @@ curl -fsS -X POST \
   -F "target_lufs=-14" \
   -F "maximum_gain_adjustment_db=12" \
   -F "ceiling_dbfs=-1" \
+  -F "eq_low_gain_db=0" \
+  -F "eq_mid_gain_db=0" \
+  -F "eq_high_gain_db=0" \
+  -F "clipper_drive_db=1" \
+  -F "limiter_lookahead_ms=3" \
+  -F "limiter_release_ms=80" \
+  -F "high_pass_enabled=true" \
+  -F "high_pass_cutoff_hz=25" \
+  -F "dynamic_eq_reduction_db=2" \
+  -F "bass_control_reduction_db=2" \
+  -F "de_esser_reduction_db=2" \
+  -F "saturation_amount=0.15" \
   -F "bit_depth=24" \
   https://openmaster.example.com/api/v1/analysis-jobs
 ```
@@ -43,7 +55,8 @@ The normal state sequence is `queued -> running -> mastering -> succeeded`. Term
 states are `succeeded` and `failed`. A successful response contains the deterministic
 analysis in `result`, the explainable assistant output in `recommendation`, the render
 audit record in `mastering_result`, compact `source_waveform` and `master_waveform`
-envelopes, and relative `preview_url` and `download_url` values. Preview redirects
+envelopes, fixed-scale source/master spectral profiles and RMS level timelines, and
+relative `preview_url` and `download_url` values. Preview redirects
 inline for the A/B audio player; download adds a signed attachment filename while both
 keep the MinIO object private.
 
@@ -72,7 +85,7 @@ broker publication was interrupted.
 
 ## Operational requirements
 
-- Alembic revision `0005` must be applied.
+- Alembic revision `0008` must be applied.
 - API and analysis-worker images must contain FFmpeg and `python-multipart`.
 - `DATABASE_URL`, Celery URLs, and MinIO credentials must be present in the runtime
   Secret.
@@ -98,12 +111,31 @@ The upload contract exposes only settings implemented by the deterministic engin
 | --- | --- | --- | --- |
 | `target_lufs` | -24 to -8 | -14 | Requested integrated-loudness target |
 | `maximum_gain_adjustment_db` | 0 to 12 | 12 | Bounds positive and negative gain correction |
-| `ceiling_dbfs` | -6 to -0.1 | -1 | Linked sample-peak limiter ceiling |
+| `ceiling_dbfs` | -6 to -0.1 | -1 | Linked True Peak limiter ceiling |
+| `eq_low_gain_db` | -6 to 6 | 0 | 100 Hz tonal correction |
+| `eq_mid_gain_db` | -6 to 6 | 0 | 1 kHz tonal correction |
+| `eq_high_gain_db` | -6 to 6 | 0 | 10 kHz tonal correction |
+| `clipper_drive_db` | 0 to 12 | 0 | Drive into the 4x oversampled soft clipper |
+| `limiter_lookahead_ms` | 0 to 10 | 3 | Peak anticipation horizon |
+| `limiter_release_ms` | 10 to 500 | 80 | Gain-recovery time after limiting |
+| `high_pass_enabled` | boolean | true | Enables the subsonic high-pass |
+| `high_pass_cutoff_hz` | 15 to 80 | 25 | Subsonic high-pass cutoff |
+| `dynamic_eq_reduction_db` | 0 to 12 | 0 | Maximum attenuation near 2.5 kHz |
+| `bass_control_reduction_db` | 0 to 12 | 0 | Maximum linked attenuation below 140 Hz |
+| `de_esser_reduction_db` | 0 to 12 | 0 | Maximum attenuation near 7 kHz |
+| `saturation_amount` | 0 to 1 | 0 | Oversampled light-saturation blend |
 | `bit_depth` | 16, 24, or 32 | 24 | Final PCM WAV depth |
 
 These values are persisted with the job and sent unchanged to local or RunPod
 mastering. The assistant can still reduce effective gain when measured peak headroom
 requires it.
+
+The deterministic render order is subsonic high-pass, three-band tonal EQ, dynamic
+EQ, linked bass control, de-esser, gain staging, oversampled light saturation,
+four-times oversampled soft clipping, and a linked four-times oversampled True Peak
+limiter. OpenMaster then measures integrated LUFS and reconstructed True Peak on the
+rendered signal. Integer PCM export applies deterministic TPDF dither as its final
+stage. A zero reduction or zero saturation amount is an explicit bypass.
 
 The web safeguard switches are shortcuts over these same fields: extra headroom lowers
 the ceiling, gentle correction narrows the gain bound, and high resolution selects
@@ -128,8 +160,10 @@ mastering, six measurement views, contextual control documentation, WAV export,
 download, synchronized A/B playback, and a draggable source/master waveform comparison.
 Waveforms are compact peak envelopes relative to digital full scale for visual
 comparison, not loudness meters. The web sliders interpolate the stored original and
-master values point by point. The spectral view places the measured centroid on a logarithmic audible axis;
-it deliberately does not invent a full spectrum that the aggregate API does not return.
+master values point by point. Completed jobs also include an averaged log-frequency
+profile on a fixed −100..0 dBFS scale and a windowed RMS timeline on a fixed
+−60..0 dBFS scale. The latter is not labelled LUFS because it does not apply the
+complete integrated-loudness gating contract.
 Reference matching, aligned multi-stem sessions, and third-party plugin configuration
 have distinct multi-file or privileged execution contracts and are not yet exposed by
 this endpoint.

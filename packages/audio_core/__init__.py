@@ -6,6 +6,7 @@ from .ffmpeg_decoder import FFMPEG_SUFFIXES, decode_with_ffmpeg
 from .input_validation import MAX_SAMPLE_VALUES, validate_audio_path
 from .limits import DEFAULT_DECODE_LIMITS, DecodeLimits
 from .models import AudioMetadata, DecodedAudio, FloatSamples
+from .visualization import level_timeline, spectral_profile
 from .wav_decoder import WAV_SUFFIXES, decode_wav
 from .wav_encoder import encode_wav
 from .waveform import waveform_envelope
@@ -26,6 +27,8 @@ __all__ = [
     "decode_wav",
     "encode_wav",
     "waveform_envelope",
+    "level_timeline",
+    "spectral_profile",
     "decode_audio",
     "decode_with_ffmpeg",
     "validate_audio_path",

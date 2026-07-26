@@ -11,7 +11,13 @@ from pathlib import Path
 from typing import cast
 
 from packages.analysis_engine import AnalysisResult, AnalysisService
-from packages.audio_core import decode_audio, encode_wav, waveform_envelope
+from packages.audio_core import (
+    decode_audio,
+    encode_wav,
+    level_timeline,
+    spectral_profile,
+    waveform_envelope,
+)
 from packages.database import AnalysisJobRecord, AnalysisJobRepository
 from packages.dsp_engine import AutomaticMasteringService, MasteringPolicy
 from packages.mastering_assistant import MasteringAssistant
@@ -86,6 +92,18 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
                         job.maximum_gain_adjustment_db,
                         job.ceiling_dbfs,
                         job.bit_depth,
+                        job.eq_low_gain_db,
+                        job.eq_mid_gain_db,
+                        job.eq_high_gain_db,
+                        job.clipper_drive_db,
+                        job.limiter_lookahead_ms,
+                        job.limiter_release_ms,
+                        job.high_pass_enabled,
+                        job.high_pass_cutoff_hz,
+                        job.dynamic_eq_reduction_db,
+                        job.bass_control_reduction_db,
+                        job.de_esser_reduction_db,
+                        job.saturation_amount,
                     ),
                 )
                 mastering_result: dict[str, object] = {
@@ -98,12 +116,28 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
                     raise ValueError("RunPod result does not contain waveform output")
                 source_waveform = _waveform_list(output.get("source_waveform"))
                 master_waveform = _waveform_list(output.get("master_waveform"))
+                source_spectrum = _visualization_list(output.get("source_spectrum"))
+                master_spectrum = _visualization_list(output.get("master_spectrum"))
+                source_level_timeline = _visualization_list(output.get("source_level_timeline"))
+                master_level_timeline = _visualization_list(output.get("master_level_timeline"))
             else:
                 decoded = decode_audio(source)
                 policy = MasteringPolicy(
                     target_lufs=job.target_lufs,
                     maximum_gain_adjustment_db=job.maximum_gain_adjustment_db,
                     ceiling_dbfs=job.ceiling_dbfs,
+                    eq_low_gain_db=job.eq_low_gain_db,
+                    eq_mid_gain_db=job.eq_mid_gain_db,
+                    eq_high_gain_db=job.eq_high_gain_db,
+                    clipper_drive_db=job.clipper_drive_db,
+                    limiter_lookahead_ms=job.limiter_lookahead_ms,
+                    limiter_release_ms=job.limiter_release_ms,
+                    high_pass_enabled=job.high_pass_enabled,
+                    high_pass_cutoff_hz=job.high_pass_cutoff_hz,
+                    dynamic_eq_reduction_db=job.dynamic_eq_reduction_db,
+                    bass_control_reduction_db=job.bass_control_reduction_db,
+                    de_esser_reduction_db=job.de_esser_reduction_db,
+                    saturation_amount=job.saturation_amount,
                 )
                 mastered = AutomaticMasteringService(policy).master_to_wav(
                     decoded.samples,
@@ -124,9 +158,19 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
                     "decision": asdict(mastered.mastering.decision),
                     "processors": list(mastered.mastering.render.applied_processors),
                     "bit_depth": job.bit_depth,
+                    "output_lufs": mastered.mastering.render.output_lufs,
+                    "output_true_peak_dbfs": mastered.mastering.render.output_true_peak_dbfs,
+                    "dither_applied": mastered.dither_applied,
                 }
                 source_waveform = waveform_envelope(decoded.samples)
                 master_waveform = waveform_envelope(mastered.mastering.render.samples)
+                source_spectrum = spectral_profile(decoded.samples, decoded.metadata.sample_rate_hz)
+                master_spectrum = spectral_profile(
+                    mastered.mastering.render.samples,
+                    decoded.metadata.sample_rate_hz,
+                )
+                source_level_timeline = level_timeline(decoded.samples)
+                master_level_timeline = level_timeline(mastered.mastering.render.samples)
         repository.mark_mastered(
             job_id,
             recommendation=recommendation.to_dict(),
@@ -134,6 +178,10 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
             output_object_name=output_object,
             source_waveform=source_waveform,
             master_waveform=master_waveform,
+            source_spectrum=source_spectrum,
+            master_spectrum=master_spectrum,
+            source_level_timeline=source_level_timeline,
+            master_level_timeline=master_level_timeline,
         )
         return mastering_result
     except Exception as error:
@@ -174,6 +222,18 @@ def remote_master_audio(
     maximum_gain_adjustment_db: float = 12.0,
     ceiling_dbfs: float = -1.0,
     bit_depth: int = 24,
+    eq_low_gain_db: float = 0.0,
+    eq_mid_gain_db: float = 0.0,
+    eq_high_gain_db: float = 0.0,
+    clipper_drive_db: float = 0.0,
+    limiter_lookahead_ms: float = 3.0,
+    limiter_release_ms: float = 80.0,
+    high_pass_enabled: bool = True,
+    high_pass_cutoff_hz: float = 25.0,
+    dynamic_eq_reduction_db: float = 0.0,
+    bass_control_reduction_db: float = 0.0,
+    de_esser_reduction_db: float = 0.0,
+    saturation_amount: float = 0.0,
 ) -> dict[str, object]:
     """Delegate one heavy job to RunPod while the local worker only monitors it."""
     endpoint_id = os.environ.get("RUNPOD_ENDPOINT_ID", "")
@@ -187,6 +247,18 @@ def remote_master_audio(
             target_lufs=target_lufs,
             maximum_gain_adjustment_db=maximum_gain_adjustment_db,
             ceiling_dbfs=ceiling_dbfs,
+            eq_low_gain_db=eq_low_gain_db,
+            eq_mid_gain_db=eq_mid_gain_db,
+            eq_high_gain_db=eq_high_gain_db,
+            clipper_drive_db=clipper_drive_db,
+            limiter_lookahead_ms=limiter_lookahead_ms,
+            limiter_release_ms=limiter_release_ms,
+            high_pass_enabled=high_pass_enabled,
+            high_pass_cutoff_hz=high_pass_cutoff_hz,
+            dynamic_eq_reduction_db=dynamic_eq_reduction_db,
+            bass_control_reduction_db=bass_control_reduction_db,
+            de_esser_reduction_db=de_esser_reduction_db,
+            saturation_amount=saturation_amount,
             bit_depth=bit_depth,
         )
     )
@@ -207,6 +279,18 @@ def remote_master_minio_object(
     maximum_gain_adjustment_db: float = 12.0,
     ceiling_dbfs: float = -1.0,
     bit_depth: int = 24,
+    eq_low_gain_db: float = 0.0,
+    eq_mid_gain_db: float = 0.0,
+    eq_high_gain_db: float = 0.0,
+    clipper_drive_db: float = 0.0,
+    limiter_lookahead_ms: float = 3.0,
+    limiter_release_ms: float = 80.0,
+    high_pass_enabled: bool = True,
+    high_pass_cutoff_hz: float = 25.0,
+    dynamic_eq_reduction_db: float = 0.0,
+    bass_control_reduction_db: float = 0.0,
+    de_esser_reduction_db: float = 0.0,
+    saturation_amount: float = 0.0,
 ) -> dict[str, object]:
     """Sign internal MinIO objects, then delegate processing to RunPod."""
     storage = MinioSignedUrlService.from_environment()
@@ -222,6 +306,18 @@ def remote_master_minio_object(
             maximum_gain_adjustment_db,
             ceiling_dbfs,
             bit_depth,
+            eq_low_gain_db,
+            eq_mid_gain_db,
+            eq_high_gain_db,
+            clipper_drive_db,
+            limiter_lookahead_ms,
+            limiter_release_ms,
+            high_pass_enabled,
+            high_pass_cutoff_hz,
+            dynamic_eq_reduction_db,
+            bass_control_reduction_db,
+            de_esser_reduction_db,
+            saturation_amount,
         ),
     )
 
@@ -271,3 +367,8 @@ def _waveform_list(value: object) -> list[float]:
     if any(point < 0.0 or point > 1.0 for point in points):
         raise ValueError("RunPod waveform points are outside [0, 1]")
     return points
+
+
+def _visualization_list(value: object) -> list[float]:
+    """Validate a normalized compact visualization returned by RunPod."""
+    return _waveform_list(value)

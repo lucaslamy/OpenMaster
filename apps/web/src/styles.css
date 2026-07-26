@@ -96,6 +96,18 @@ legend { width: 100%; color: var(--muted); font: .65rem "DM Mono", monospace; te
 .control-heading output { color: var(--mint); font: .7rem "DM Mono", monospace; }
 .continuous-control input[type="range"] { width: 100%; height: 4px; appearance: none; border-radius: 4px; outline: none; background: linear-gradient(90deg, var(--mint), #4f5360); accent-color: var(--mint); }
 .continuous-control input[type="range"]::-webkit-slider-thumb { width: 15px; height: 15px; appearance: none; border: 3px solid #111319; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 1px var(--mint), 0 0 15px rgba(110,231,193,.3); cursor: grab; }
+.advanced-dsp { padding: .9rem; border: 1px solid var(--line); border-radius: 8px; background: rgba(11,13,18,.45); }
+.advanced-dsp legend { padding: 0 .35rem; }
+.mini-control { display: grid; grid-template-columns: 1fr auto; gap: .25rem .7rem; margin-top: .75rem; }
+.mini-control label { color: var(--text); font-size: .72rem; }
+.mini-control label small { color: var(--muted); font: .58rem "DM Mono", monospace; }
+.mini-control output { color: var(--mint); font: .65rem "DM Mono", monospace; }
+.mini-control > input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--mint); }
+.eq-curve { height: 72px; overflow: hidden; margin-top: .55rem; border: 1px solid var(--line); border-radius: 6px; background: linear-gradient(90deg, transparent 49.5%, rgba(255,255,255,.035) 50%, transparent 50.5%); }
+.eq-curve svg { width: 100%; height: 100%; }
+.eq-curve path, .eq-curve polyline { fill: none; vector-effect: non-scaling-stroke; }
+.eq-curve .eq-zero { stroke: #343944; stroke-dasharray: 3 4; }
+.eq-curve polyline { stroke: var(--mint); stroke-width: 2; stroke-linejoin: round; filter: drop-shadow(0 0 5px rgba(110,231,193,.3)); }
 .range-labels { display: flex; justify-content: space-between; margin-top: .55rem; color: #5f6572; font: .56rem "DM Mono", monospace; }
 .safety-note { display: flex; gap: .8rem; align-items: flex-start; border-top: 1px solid var(--line); padding: 1.2rem 0; color: var(--violet); }
 .safety-note p { margin: 0; color: var(--muted); font-size: .72rem; line-height: 1.55; }

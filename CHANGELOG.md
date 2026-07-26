@@ -4,6 +4,34 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-07-26
+
+### Added
+
+- Persisted three-band tonal EQ controls with an interactive web response preview,
+  translated explanations, safe ±6 dB bounds, and identical local/RunPod rendering.
+- Four-times oversampled soft clipper with profile-aware drive and an explicit
+  zero-drive bypass.
+- Linked four-times oversampled True Peak limiter with configurable lookahead and
+  release, reconstructed-peak validation, and deterministic processor audit records.
+- Reversible Alembic revision `0006` for the advanced mastering policy.
+- Persisted original/master spectral-balance profiles and windowed RMS histories with
+  fixed dBFS scales, interactive interpolation, bilingual explanations, and reversible
+  Alembic revision `0007`.
+- Complete deterministic mastering chain with a 24 dB/octave subsonic high-pass,
+  frequency-selective dynamic EQ, linked bass control, de-essing, and oversampled
+  light saturation before the existing clipper and True Peak limiter.
+- Post-render integrated LUFS and reconstructed True Peak measurements, plus
+  deterministic TPDF dither during integer PCM export.
+- Six persisted local/RunPod controls for the new stages, bilingual web explanations,
+  and reversible Alembic revision `0008`.
+
+### Changed
+
+- Rap, Club, Loud, Podcast, Streaming, Dynamic, and Transparent profiles now select
+  explicit tonal and transient-processing starting points in addition to delivery
+  loudness, ceiling, correction bounds, and bit depth.
+
 ## [2.6.0] - 2026-07-26
 
 ### Added

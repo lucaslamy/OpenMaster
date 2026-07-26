@@ -28,9 +28,25 @@ class AnalysisJobRecord:
     output_object_name: str | None = None
     source_waveform: list[float] | None = None
     master_waveform: list[float] | None = None
+    source_spectrum: list[float] | None = None
+    master_spectrum: list[float] | None = None
+    source_level_timeline: list[float] | None = None
+    master_level_timeline: list[float] | None = None
     target_lufs: float = -14.0
     maximum_gain_adjustment_db: float = 12.0
     ceiling_dbfs: float = -1.0
+    eq_low_gain_db: float = 0.0
+    eq_mid_gain_db: float = 0.0
+    eq_high_gain_db: float = 0.0
+    clipper_drive_db: float = 0.0
+    limiter_lookahead_ms: float = 3.0
+    limiter_release_ms: float = 80.0
+    high_pass_enabled: bool = True
+    high_pass_cutoff_hz: float = 25.0
+    dynamic_eq_reduction_db: float = 0.0
+    bass_control_reduction_db: float = 0.0
+    de_esser_reduction_db: float = 0.0
+    saturation_amount: float = 0.0
     bit_depth: int = 24
     error_code: str | None = None
     error_message: str | None = None
@@ -58,6 +74,18 @@ class AnalysisJobRepository:
         target_lufs: float = -14.0,
         maximum_gain_adjustment_db: float = 12.0,
         ceiling_dbfs: float = -1.0,
+        eq_low_gain_db: float = 0.0,
+        eq_mid_gain_db: float = 0.0,
+        eq_high_gain_db: float = 0.0,
+        clipper_drive_db: float = 0.0,
+        limiter_lookahead_ms: float = 3.0,
+        limiter_release_ms: float = 80.0,
+        high_pass_enabled: bool = True,
+        high_pass_cutoff_hz: float = 25.0,
+        dynamic_eq_reduction_db: float = 0.0,
+        bass_control_reduction_db: float = 0.0,
+        de_esser_reduction_db: float = 0.0,
+        saturation_amount: float = 0.0,
         bit_depth: int = 24,
     ) -> tuple[AnalysisJobRecord, bool]:
         """Insert one queued job, returning the existing row on a key race."""
@@ -77,6 +105,18 @@ class AnalysisJobRepository:
                         target_lufs=target_lufs,
                         maximum_gain_adjustment_db=maximum_gain_adjustment_db,
                         ceiling_dbfs=ceiling_dbfs,
+                        eq_low_gain_db=eq_low_gain_db,
+                        eq_mid_gain_db=eq_mid_gain_db,
+                        eq_high_gain_db=eq_high_gain_db,
+                        clipper_drive_db=clipper_drive_db,
+                        limiter_lookahead_ms=limiter_lookahead_ms,
+                        limiter_release_ms=limiter_release_ms,
+                        high_pass_enabled=high_pass_enabled,
+                        high_pass_cutoff_hz=high_pass_cutoff_hz,
+                        dynamic_eq_reduction_db=dynamic_eq_reduction_db,
+                        bass_control_reduction_db=bass_control_reduction_db,
+                        de_esser_reduction_db=de_esser_reduction_db,
+                        saturation_amount=saturation_amount,
                         bit_depth=bit_depth,
                         attempt_count=0,
                         updated_at=now,
@@ -141,6 +181,10 @@ class AnalysisJobRepository:
         output_object_name: str,
         source_waveform: list[float],
         master_waveform: list[float],
+        source_spectrum: list[float],
+        master_spectrum: list[float],
+        source_level_timeline: list[float],
+        master_level_timeline: list[float],
     ) -> None:
         """Persist the auditable decision and downloadable master."""
         self._update(
@@ -151,6 +195,10 @@ class AnalysisJobRepository:
             output_object_name=output_object_name,
             source_waveform=source_waveform,
             master_waveform=master_waveform,
+            source_spectrum=source_spectrum,
+            master_spectrum=master_spectrum,
+            source_level_timeline=source_level_timeline,
+            master_level_timeline=master_level_timeline,
         )
 
     def mark_failed(self, job_id: str, code: str, message: str) -> None:
@@ -189,9 +237,25 @@ def _record(row: Any) -> AnalysisJobRecord:
         output_object_name=row["output_object_name"],
         source_waveform=row["source_waveform"],
         master_waveform=row["master_waveform"],
+        source_spectrum=row["source_spectrum"],
+        master_spectrum=row["master_spectrum"],
+        source_level_timeline=row["source_level_timeline"],
+        master_level_timeline=row["master_level_timeline"],
         target_lufs=row["target_lufs"],
         maximum_gain_adjustment_db=row["maximum_gain_adjustment_db"],
         ceiling_dbfs=row["ceiling_dbfs"],
+        eq_low_gain_db=row["eq_low_gain_db"],
+        eq_mid_gain_db=row["eq_mid_gain_db"],
+        eq_high_gain_db=row["eq_high_gain_db"],
+        clipper_drive_db=row["clipper_drive_db"],
+        limiter_lookahead_ms=row["limiter_lookahead_ms"],
+        limiter_release_ms=row["limiter_release_ms"],
+        high_pass_enabled=row["high_pass_enabled"],
+        high_pass_cutoff_hz=row["high_pass_cutoff_hz"],
+        dynamic_eq_reduction_db=row["dynamic_eq_reduction_db"],
+        bass_control_reduction_db=row["bass_control_reduction_db"],
+        de_esser_reduction_db=row["de_esser_reduction_db"],
+        saturation_amount=row["saturation_amount"],
         bit_depth=row["bit_depth"],
         error_code=row["error_code"],
         error_message=row["error_message"],

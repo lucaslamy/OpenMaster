@@ -10,6 +10,10 @@ export interface AnalysisJob {
   preview_url?: string;
   source_waveform?: number[];
   master_waveform?: number[];
+  source_spectrum?: number[];
+  master_spectrum?: number[];
+  source_level_timeline?: number[];
+  master_level_timeline?: number[];
   error_code?: string;
   error_message?: string;
 }
@@ -29,6 +33,18 @@ export class AnalysisApiClient {
     maximumGainAdjustmentDb = 12,
     ceilingDbfs = -1,
     masteringPassword = "",
+    eqLowGainDb = 0,
+    eqMidGainDb = 0,
+    eqHighGainDb = 0,
+    clipperDriveDb = 0,
+    limiterLookaheadMs = 3,
+    limiterReleaseMs = 80,
+    highPassEnabled = true,
+    highPassCutoffHz = 25,
+    dynamicEqReductionDb = 0,
+    bassControlReductionDb = 0,
+    deEsserReductionDb = 0,
+    saturationAmount = 0,
   ): Promise<AnalysisJob> {
     const body = new FormData();
     body.append("file", file);
@@ -36,6 +52,18 @@ export class AnalysisApiClient {
     body.append("bit_depth", String(bitDepth));
     body.append("maximum_gain_adjustment_db", String(maximumGainAdjustmentDb));
     body.append("ceiling_dbfs", String(ceilingDbfs));
+    body.append("eq_low_gain_db", String(eqLowGainDb));
+    body.append("eq_mid_gain_db", String(eqMidGainDb));
+    body.append("eq_high_gain_db", String(eqHighGainDb));
+    body.append("clipper_drive_db", String(clipperDriveDb));
+    body.append("limiter_lookahead_ms", String(limiterLookaheadMs));
+    body.append("limiter_release_ms", String(limiterReleaseMs));
+    body.append("high_pass_enabled", String(highPassEnabled));
+    body.append("high_pass_cutoff_hz", String(highPassCutoffHz));
+    body.append("dynamic_eq_reduction_db", String(dynamicEqReductionDb));
+    body.append("bass_control_reduction_db", String(bassControlReductionDb));
+    body.append("de_esser_reduction_db", String(deEsserReductionDb));
+    body.append("saturation_amount", String(saturationAmount));
     return this.request("/analysis-jobs", {
       method: "POST",
       body,

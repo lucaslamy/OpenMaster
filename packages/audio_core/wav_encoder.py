@@ -20,6 +20,7 @@ def encode_wav(
     sample_rate_hz: int,
     *,
     bit_depth: int = 24,
+    dither: bool = False,
     overwrite: bool = False,
 ) -> Path:
     """Atomically write finite normalized samples as an integer PCM WAV file.
@@ -29,7 +30,7 @@ def encode_wav(
     """
     destination = Path(path)
     _validate_export(destination, samples, sample_rate_hz, bit_depth, overwrite)
-    encoded = _encode_pcm(samples, bit_depth)
+    encoded = _encode_pcm(samples, bit_depth, dither=dither)
     temporary_path: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(
@@ -77,10 +78,15 @@ def _validate_export(
         raise ValueError("WAV output samples must be finite and normalized to [-1, 1]")
 
 
-def _encode_pcm(samples: FloatSamples, bit_depth: int) -> bytes:
-    """Quantize normalized float64 samples to interleaved little-endian PCM."""
+def _encode_pcm(samples: FloatSamples, bit_depth: int, *, dither: bool = False) -> bytes:
+    """Quantize samples with optional deterministic TPDF dither."""
     scale = (1 << (bit_depth - 1)) - 1
-    quantized = np.rint(np.clip(samples, -1.0, 1.0) * scale).astype(np.int32)
+    prepared = np.asarray(samples, dtype=np.float64)
+    if dither:
+        generator = np.random.default_rng(0)
+        triangular = generator.random(prepared.shape) - generator.random(prepared.shape)
+        prepared = prepared + triangular / scale
+    quantized = np.rint(np.clip(prepared, -1.0, 1.0) * scale).astype(np.int32)
     if bit_depth == 16:
         return quantized.astype("<i2").tobytes()
     if bit_depth == 32:

@@ -23,6 +23,18 @@ class RemoteMasteringRequest:
     target_lufs: float = -14.0
     maximum_gain_adjustment_db: float = 12.0
     ceiling_dbfs: float = -1.0
+    eq_low_gain_db: float = 0.0
+    eq_mid_gain_db: float = 0.0
+    eq_high_gain_db: float = 0.0
+    clipper_drive_db: float = 0.0
+    limiter_lookahead_ms: float = 3.0
+    limiter_release_ms: float = 80.0
+    high_pass_enabled: bool = True
+    high_pass_cutoff_hz: float = 25.0
+    dynamic_eq_reduction_db: float = 0.0
+    bass_control_reduction_db: float = 0.0
+    de_esser_reduction_db: float = 0.0
+    saturation_amount: float = 0.0
     bit_depth: int = 24
 
     def __post_init__(self) -> None:
@@ -38,11 +50,46 @@ class RemoteMasteringRequest:
                 self.target_lufs,
                 self.maximum_gain_adjustment_db,
                 self.ceiling_dbfs,
+                self.eq_low_gain_db,
+                self.eq_mid_gain_db,
+                self.eq_high_gain_db,
+                self.clipper_drive_db,
+                self.limiter_lookahead_ms,
+                self.limiter_release_ms,
+                self.high_pass_cutoff_hz,
+                self.dynamic_eq_reduction_db,
+                self.bass_control_reduction_db,
+                self.de_esser_reduction_db,
+                self.saturation_amount,
             )
         ):
             raise ValueError("Mastering policy values must be finite")
         if self.maximum_gain_adjustment_db < 0 or self.ceiling_dbfs > 0:
             raise ValueError("Remote mastering policy is outside safe bounds")
+        if any(
+            not -6.0 <= gain <= 6.0
+            for gain in (self.eq_low_gain_db, self.eq_mid_gain_db, self.eq_high_gain_db)
+        ):
+            raise ValueError("Remote equalizer gains are outside safe bounds")
+        if not 0.0 <= self.clipper_drive_db <= 12.0:
+            raise ValueError("Remote clipper drive is outside safe bounds")
+        if not 0.0 <= self.limiter_lookahead_ms <= 10.0:
+            raise ValueError("Remote limiter lookahead is outside safe bounds")
+        if not 10.0 <= self.limiter_release_ms <= 500.0:
+            raise ValueError("Remote limiter release is outside safe bounds")
+        if not 15.0 <= self.high_pass_cutoff_hz <= 80.0:
+            raise ValueError("Remote high-pass cutoff is outside safe bounds")
+        if any(
+            not 0.0 <= reduction <= 12.0
+            for reduction in (
+                self.dynamic_eq_reduction_db,
+                self.bass_control_reduction_db,
+                self.de_esser_reduction_db,
+            )
+        ):
+            raise ValueError("Remote selective dynamics are outside safe bounds")
+        if not 0.0 <= self.saturation_amount <= 1.0:
+            raise ValueError("Remote saturation amount is outside safe bounds")
         if self.bit_depth not in (16, 24, 32):
             raise ValueError("bit_depth must be 16, 24, or 32")
 
