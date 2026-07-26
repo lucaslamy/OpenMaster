@@ -27,6 +27,7 @@ curl -fsS -X POST \
   -F "bass_control_reduction_db=2" \
   -F "de_esser_reduction_db=2" \
   -F "saturation_amount=0.15" \
+  -F "ai_assist_enabled=true" \
   -F "bit_depth=24" \
   https://openmaster.example.com/api/v1/analysis-jobs
 ```
@@ -85,7 +86,7 @@ broker publication was interrupted.
 
 ## Operational requirements
 
-- Alembic revision `0008` must be applied.
+- Alembic revision `0009` must be applied.
 - API and analysis-worker images must contain FFmpeg and `python-multipart`.
 - `DATABASE_URL`, Celery URLs, and MinIO credentials must be present in the runtime
   Secret.
@@ -124,6 +125,7 @@ The upload contract exposes only settings implemented by the deterministic engin
 | `bass_control_reduction_db` | 0 to 12 | 0 | Maximum linked attenuation below 140 Hz |
 | `de_esser_reduction_db` | 0 to 12 | 0 | Maximum attenuation near 7 kHz |
 | `saturation_amount` | 0 to 1 | 0 | Oversampled light-saturation blend |
+| `ai_assist_enabled` | boolean | false | Ask the private LamAI gateway for bounded settings |
 | `bit_depth` | 16, 24, or 32 | 24 | Final PCM WAV depth |
 
 These values are persisted with the job and sent unchanged to local or RunPod

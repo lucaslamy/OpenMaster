@@ -17,11 +17,13 @@ externalSecrets:
     - MINIO_ROOT_USER
     - MINIO_ROOT_PASSWORD
     - MASTERING_ACCESS_PASSWORD
+    # Required only when lamai.enabled=true; preflight enforces it conditionally.
+    - LAMAI_API_KEY
 
 image:
   registry: registry.example.com
   repository: openmaster
-  tag: "2.7.0"
+  tag: "2.8.0"
   pullPolicy: IfNotPresent
 
 podSecurityContext:
@@ -111,6 +113,16 @@ remoteCompute:
   endpointId: ""
   # Standard NetworkPolicy cannot select an FQDN. Add only reviewed destination
   # CIDRs. A deliberate 0.0.0.0/0 permits HTTPS only, not unrestricted ports.
+  egressCIDRs: []
+
+lamai:
+  enabled: false
+  baseUrl: ""
+  timeoutSeconds: 90
+  servicePort: 8000
+  networkPolicy:
+    namespaceSelector: {}
+    podSelector: {}
   egressCIDRs: []
 
 ingress:

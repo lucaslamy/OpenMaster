@@ -75,6 +75,7 @@ class AnalysisJobService:
         bass_control_reduction_db: float = 0.0,
         de_esser_reduction_db: float = 0.0,
         saturation_amount: float = 0.0,
+        ai_assist_enabled: bool = False,
         bit_depth: int = 24,
     ) -> AnalysisJobRecord:
         """Validate, store, persist, and enqueue one upload exactly once."""
@@ -154,6 +155,7 @@ class AnalysisJobService:
             bass_control_reduction_db=bass_control_reduction_db,
             de_esser_reduction_db=de_esser_reduction_db,
             saturation_amount=saturation_amount,
+            ai_assist_enabled=ai_assist_enabled,
             bit_depth=bit_depth,
         )
         if created or job.status == "queued":

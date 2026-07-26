@@ -49,6 +49,7 @@ describe("AnalysisApiClient", () => {
     expect((request.body as FormData).get("bass_control_reduction_db")).toBe("0");
     expect((request.body as FormData).get("de_esser_reduction_db")).toBe("0");
     expect((request.body as FormData).get("saturation_amount")).toBe("0");
+    expect((request.body as FormData).get("ai_assist_enabled")).toBe("false");
   });
 
   it("identifies terminal job states", () => {

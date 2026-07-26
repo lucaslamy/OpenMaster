@@ -4,6 +4,17 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [2.8.0] - 2026-07-26
+
+### Added
+
+- Optional LamAI mastering adviser that receives only structured analysis measurements,
+  returns a strictly validated bounded policy, and falls back to the original
+  deterministic settings when the private AI gateway is unavailable.
+- Persisted web opt-in, server-side Bearer authentication, local/RunPod policy
+  propagation, Helm and NetworkPolicy configuration, and reversible Alembic revision
+  `0009`.
+
 ## [2.7.0] - 2026-07-26
 
 ### Added

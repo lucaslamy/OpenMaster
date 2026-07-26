@@ -42,7 +42,7 @@ ci-dessous par votre registre et votre version :
 
 ```bash
 export REGISTRY=harbor.lucaslamy.fr/private/openmaster
-export VERSION=2.7.0
+export VERSION=2.8.0
 
 docker build -f Dockerfile.api -t "${REGISTRY}/api:${VERSION}" .
 docker build -f Dockerfile.web -t "${REGISTRY}/web:${VERSION}" .
@@ -162,13 +162,13 @@ externalSecrets:
   existingSecretName: openmaster-secrets
 
 api:
-  image: harbor.lucaslamy.fr/private/openmaster/api:2.7.0
+  image: harbor.lucaslamy.fr/private/openmaster/api:2.8.0
 
 web:
-  image: harbor.lucaslamy.fr/private/openmaster/web:2.7.0
+  image: harbor.lucaslamy.fr/private/openmaster/web:2.8.0
 
 workers:
-  image: harbor.lucaslamy.fr/private/openmaster/api:2.7.0
+  image: harbor.lucaslamy.fr/private/openmaster/api:2.8.0
 
 postgresql:
   persistence:

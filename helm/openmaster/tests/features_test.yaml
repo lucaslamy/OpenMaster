@@ -141,6 +141,20 @@ tests:
       - equal:
           path: data.MINIO_BUCKET
           value: openmaster
+  - it: exposes LamAI configuration without its API key
+    template: templates/configmap.yaml
+    set:
+      lamai.enabled: true
+      lamai.baseUrl: http://lamai-api.lamai.svc.cluster.local:8080
+    asserts:
+      - equal:
+          path: data.LAMAI_ENABLED
+          value: "true"
+      - equal:
+          path: data.LAMAI_BASE_URL
+          value: http://lamai-api.lamai.svc.cluster.local:8080
+      - notExists:
+          path: data.LAMAI_API_KEY
   - it: limits RunPod egress to HTTPS from mastering
     template: templates/networkpolicy.yaml
     set:
@@ -151,6 +165,18 @@ tests:
       - equal:
           path: spec.egress[3].ports[0].port
           value: 443
+        documentIndex: 6
+  - it: permits only the LamAI service from the mastering worker
+    template: templates/networkpolicy.yaml
+    set:
+      lamai.enabled: true
+      lamai.baseUrl: http://lamai-api.lamai.svc.cluster.local:8080
+      lamai.networkPolicy.namespaceSelector.kubernetes.io/metadata.name: lamai
+      lamai.networkPolicy.podSelector.app.kubernetes.io/name: lamai-api
+    asserts:
+      - equal:
+          path: spec.egress[3].ports[0].port
+          value: 8000
         documentIndex: 6
   - it: exposes only the MinIO S3 service through its dedicated ingress
     template: templates/minio-ingress.yaml

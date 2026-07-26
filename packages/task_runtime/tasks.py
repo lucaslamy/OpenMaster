@@ -10,6 +10,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import cast
 
+from packages.ai_mastering import LamAiMasteringClient, LamAiMasteringError
 from packages.analysis_engine import AnalysisResult, AnalysisService
 from packages.audio_core import (
     decode_audio,
@@ -74,11 +75,34 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
             destination = Path(directory) / "master.wav"
             storage.download(object_name, source)
             analysis = AnalysisResult(**job.result)
+            effective_policy = _job_policy(job)
+            ai_assistance: dict[str, object] = {
+                "requested": job.ai_assist_enabled,
+                "applied": False,
+            }
+            if job.ai_assist_enabled:
+                if os.environ.get("LAMAI_ENABLED", "false").lower() == "true":
+                    try:
+                        advice = LamAiMasteringClient.from_environment().recommend(
+                            analysis,
+                            effective_policy,
+                        )
+                        effective_policy = advice.policy
+                        ai_assistance = {
+                            "requested": True,
+                            "applied": True,
+                            "model": advice.model,
+                            "rationale": advice.rationale,
+                        }
+                    except (LamAiMasteringError, OSError, ValueError):
+                        ai_assistance["fallback_reason"] = "lamai_advice_unavailable"
+                else:
+                    ai_assistance["fallback_reason"] = "lamai_not_configured"
             recommendation = MasteringAssistant().recommend(
                 analysis,
-                target_lufs=job.target_lufs,
-                maximum_gain_adjustment_db=job.maximum_gain_adjustment_db,
-                ceiling_dbfs=job.ceiling_dbfs,
+                target_lufs=effective_policy.target_lufs,
+                maximum_gain_adjustment_db=effective_policy.maximum_gain_adjustment_db,
+                ceiling_dbfs=effective_policy.ceiling_dbfs,
             )
             if os.environ.get("OPENMASTER_REMOTE_COMPUTE_ENABLED", "false").lower() == "true":
                 source_sha256 = _sha256_file(source)
@@ -88,28 +112,29 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
                         object_name,
                         output_object,
                         source_sha256,
-                        job.target_lufs,
-                        job.maximum_gain_adjustment_db,
-                        job.ceiling_dbfs,
+                        effective_policy.target_lufs,
+                        effective_policy.maximum_gain_adjustment_db,
+                        effective_policy.ceiling_dbfs,
                         job.bit_depth,
-                        job.eq_low_gain_db,
-                        job.eq_mid_gain_db,
-                        job.eq_high_gain_db,
-                        job.clipper_drive_db,
-                        job.limiter_lookahead_ms,
-                        job.limiter_release_ms,
-                        job.high_pass_enabled,
-                        job.high_pass_cutoff_hz,
-                        job.dynamic_eq_reduction_db,
-                        job.bass_control_reduction_db,
-                        job.de_esser_reduction_db,
-                        job.saturation_amount,
+                        effective_policy.eq_low_gain_db,
+                        effective_policy.eq_mid_gain_db,
+                        effective_policy.eq_high_gain_db,
+                        effective_policy.clipper_drive_db,
+                        effective_policy.limiter_lookahead_ms,
+                        effective_policy.limiter_release_ms,
+                        effective_policy.high_pass_enabled,
+                        effective_policy.high_pass_cutoff_hz,
+                        effective_policy.dynamic_eq_reduction_db,
+                        effective_policy.bass_control_reduction_db,
+                        effective_policy.de_esser_reduction_db,
+                        effective_policy.saturation_amount,
                     ),
                 )
                 mastering_result: dict[str, object] = {
                     "execution": "runpod",
                     **remote_result,
                     "bit_depth": job.bit_depth,
+                    "ai_assistance": ai_assistance,
                 }
                 output = remote_result.get("output")
                 if not isinstance(output, dict):
@@ -122,24 +147,7 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
                 master_level_timeline = _visualization_list(output.get("master_level_timeline"))
             else:
                 decoded = decode_audio(source)
-                policy = MasteringPolicy(
-                    target_lufs=job.target_lufs,
-                    maximum_gain_adjustment_db=job.maximum_gain_adjustment_db,
-                    ceiling_dbfs=job.ceiling_dbfs,
-                    eq_low_gain_db=job.eq_low_gain_db,
-                    eq_mid_gain_db=job.eq_mid_gain_db,
-                    eq_high_gain_db=job.eq_high_gain_db,
-                    clipper_drive_db=job.clipper_drive_db,
-                    limiter_lookahead_ms=job.limiter_lookahead_ms,
-                    limiter_release_ms=job.limiter_release_ms,
-                    high_pass_enabled=job.high_pass_enabled,
-                    high_pass_cutoff_hz=job.high_pass_cutoff_hz,
-                    dynamic_eq_reduction_db=job.dynamic_eq_reduction_db,
-                    bass_control_reduction_db=job.bass_control_reduction_db,
-                    de_esser_reduction_db=job.de_esser_reduction_db,
-                    saturation_amount=job.saturation_amount,
-                )
-                mastered = AutomaticMasteringService(policy).master_to_wav(
+                mastered = AutomaticMasteringService(effective_policy).master_to_wav(
                     decoded.samples,
                     decoded.metadata.sample_rate_hz,
                     analysis,
@@ -161,6 +169,7 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
                     "output_lufs": mastered.mastering.render.output_lufs,
                     "output_true_peak_dbfs": mastered.mastering.render.output_true_peak_dbfs,
                     "dither_applied": mastered.dither_applied,
+                    "ai_assistance": ai_assistance,
                 }
                 source_waveform = waveform_envelope(decoded.samples)
                 master_waveform = waveform_envelope(mastered.mastering.render.samples)
@@ -173,7 +182,10 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
                 master_level_timeline = level_timeline(mastered.mastering.render.samples)
         repository.mark_mastered(
             job_id,
-            recommendation=recommendation.to_dict(),
+            recommendation={
+                **recommendation.to_dict(),
+                "ai_assistance": ai_assistance,
+            },
             mastering_result=mastering_result,
             output_object_name=output_object,
             source_waveform=source_waveform,
@@ -357,6 +369,27 @@ def _master_filename(job: AnalysisJobRecord) -> str:
         raise ValueError("Job creation timestamp is required for master naming")
     timestamp = created_at.strftime("%Y%m%dT%H%M%SZ")
     return f"{stem}-{job.bit_depth}bit-openmaster-{timestamp}.wav"
+
+
+def _job_policy(job: AnalysisJobRecord) -> MasteringPolicy:
+    """Build the explicit baseline policy persisted with one job."""
+    return MasteringPolicy(
+        target_lufs=job.target_lufs,
+        maximum_gain_adjustment_db=job.maximum_gain_adjustment_db,
+        ceiling_dbfs=job.ceiling_dbfs,
+        eq_low_gain_db=job.eq_low_gain_db,
+        eq_mid_gain_db=job.eq_mid_gain_db,
+        eq_high_gain_db=job.eq_high_gain_db,
+        clipper_drive_db=job.clipper_drive_db,
+        limiter_lookahead_ms=job.limiter_lookahead_ms,
+        limiter_release_ms=job.limiter_release_ms,
+        high_pass_enabled=job.high_pass_enabled,
+        high_pass_cutoff_hz=job.high_pass_cutoff_hz,
+        dynamic_eq_reduction_db=job.dynamic_eq_reduction_db,
+        bass_control_reduction_db=job.bass_control_reduction_db,
+        de_esser_reduction_db=job.de_esser_reduction_db,
+        saturation_amount=job.saturation_amount,
+    )
 
 
 def _waveform_list(value: object) -> list[float]:

@@ -47,6 +47,7 @@ class AnalysisJobRecord:
     bass_control_reduction_db: float = 0.0
     de_esser_reduction_db: float = 0.0
     saturation_amount: float = 0.0
+    ai_assist_enabled: bool = False
     bit_depth: int = 24
     error_code: str | None = None
     error_message: str | None = None
@@ -86,6 +87,7 @@ class AnalysisJobRepository:
         bass_control_reduction_db: float = 0.0,
         de_esser_reduction_db: float = 0.0,
         saturation_amount: float = 0.0,
+        ai_assist_enabled: bool = False,
         bit_depth: int = 24,
     ) -> tuple[AnalysisJobRecord, bool]:
         """Insert one queued job, returning the existing row on a key race."""
@@ -117,6 +119,7 @@ class AnalysisJobRepository:
                         bass_control_reduction_db=bass_control_reduction_db,
                         de_esser_reduction_db=de_esser_reduction_db,
                         saturation_amount=saturation_amount,
+                        ai_assist_enabled=ai_assist_enabled,
                         bit_depth=bit_depth,
                         attempt_count=0,
                         updated_at=now,
@@ -256,6 +259,7 @@ def _record(row: Any) -> AnalysisJobRecord:
         bass_control_reduction_db=row["bass_control_reduction_db"],
         de_esser_reduction_db=row["de_esser_reduction_db"],
         saturation_amount=row["saturation_amount"],
+        ai_assist_enabled=row["ai_assist_enabled"],
         bit_depth=row["bit_depth"],
         error_code=row["error_code"],
         error_message=row["error_message"],

@@ -86,6 +86,7 @@ async def create_analysis_job(
     bass_control_reduction_db: Annotated[float, Form()] = 0.0,
     de_esser_reduction_db: Annotated[float, Form()] = 0.0,
     saturation_amount: Annotated[float, Form()] = 0.0,
+    ai_assist_enabled: Annotated[bool, Form()] = False,
     bit_depth: Annotated[int, Form()] = 24,
 ) -> AnalysisJobResponse:
     """Store one supported audio upload and queue its deterministic analysis."""
@@ -116,6 +117,7 @@ async def create_analysis_job(
             bass_control_reduction_db=bass_control_reduction_db,
             de_esser_reduction_db=de_esser_reduction_db,
             saturation_amount=saturation_amount,
+            ai_assist_enabled=ai_assist_enabled,
             bit_depth=bit_depth,
         )
     except InvalidUploadError as error:

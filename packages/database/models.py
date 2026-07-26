@@ -49,6 +49,7 @@ analysis_jobs = Table(
     Column("bass_control_reduction_db", Float, nullable=False, server_default="0.0"),
     Column("de_esser_reduction_db", Float, nullable=False, server_default="0.0"),
     Column("saturation_amount", Float, nullable=False, server_default="0.0"),
+    Column("ai_assist_enabled", Boolean, nullable=False, server_default="false"),
     Column("bit_depth", Integer, nullable=False, server_default="24"),
     Column("error_code", String(64), nullable=True),
     Column("error_message", Text, nullable=True),

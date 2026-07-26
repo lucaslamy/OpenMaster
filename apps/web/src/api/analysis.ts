@@ -45,6 +45,7 @@ export class AnalysisApiClient {
     bassControlReductionDb = 0,
     deEsserReductionDb = 0,
     saturationAmount = 0,
+    aiAssistEnabled = false,
   ): Promise<AnalysisJob> {
     const body = new FormData();
     body.append("file", file);
@@ -64,6 +65,7 @@ export class AnalysisApiClient {
     body.append("bass_control_reduction_db", String(bassControlReductionDb));
     body.append("de_esser_reduction_db", String(deEsserReductionDb));
     body.append("saturation_amount", String(saturationAmount));
+    body.append("ai_assist_enabled", String(aiAssistEnabled));
     return this.request("/analysis-jobs", {
       method: "POST",
       body,

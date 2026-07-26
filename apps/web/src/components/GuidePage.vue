@@ -51,6 +51,7 @@ defineEmits<{ back: [] }>();
         <article><span>EQ</span><div><h3>Three-band equalizer</h3><p>Applies bounded corrections around 100 Hz, 1 kHz and 10 kHz before gain and dynamics.</p></div></article>
         <article><span>HPF</span><div><h3>High-pass and selective dynamics</h3><p>The high-pass removes subsonic energy; dynamic EQ, bass control and de-essing attenuate only their frequency regions when triggered.</p></div></article>
         <article><span>SAT</span><div><h3>Light saturation</h3><p>Adds bounded oversampled harmonic density before transient clipping.</p></div></article>
+        <article><span>AI</span><div><h3>LamAI adviser</h3><p>Optionally proposes bounded controls from the measured characteristics. The audio stays in OpenMaster and deterministic DSP remains authoritative.</p></div></article>
         <article><span>×4</span><div><h3>Soft clipper</h3><p>Rounds short peaks at four times the sample rate. More drive creates density but can reduce punch.</p></div></article>
         <article><span>ms</span><div><h3>Lookahead and release</h3><p>Lookahead anticipates peaks; release controls how quickly limiter gain returns afterward.</p></div></article>
         <article><span>PCM</span><div><h3>WAV depth</h3><p>16 bit is compact delivery, 24 bit is the normal production choice, and 32 bit preserves additional integer resolution.</p></div></article>
@@ -126,6 +127,7 @@ defineEmits<{ back: [] }>();
         <article><span>EQ</span><div><h3>Égaliseur trois bandes</h3><p>Applique des corrections bornées autour de 100 Hz, 1 kHz et 10 kHz avant le gain et la dynamique.</p></div></article>
         <article><span>HPF</span><div><h3>Coupe-bas et dynamique sélective</h3><p>Le coupe-bas retire l’infragrave ; l’EQ dynamique, le contrôle du grave et le de-esser n’atténuent leur zone que lorsqu’elle déclenche le détecteur.</p></div></article>
         <article><span>SAT</span><div><h3>Saturation légère</h3><p>Ajoute une densité harmonique bornée et suréchantillonnée avant le traitement des crêtes.</p></div></article>
+        <article><span>IA</span><div><h3>Conseiller LamAI</h3><p>Propose facultativement des réglages bornés à partir des caractéristiques mesurées. Le son reste dans OpenMaster et le DSP déterministe demeure l’autorité.</p></div></article>
         <article><span>×4</span><div><h3>Clipper doux</h3><p>Arrondit les crêtes courtes à quatre fois la fréquence d’échantillonnage. Un drive élevé densifie le son mais peut réduire l’impact.</p></div></article>
         <article><span>ms</span><div><h3>Anticipation et relâchement</h3><p>L’anticipation prépare les crêtes ; le relâchement règle la vitesse de retour du gain du limiteur.</p></div></article>
         <article><span>PCM</span><div><h3>Résolution WAV</h3><p>16 bits est compact pour la livraison, 24 bits est le choix normal de production et 32 bits conserve une résolution entière supplémentaire.</p></div></article>

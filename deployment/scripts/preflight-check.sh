@@ -40,4 +40,10 @@ if grep -q 'OPENMASTER_REMOTE_COMPUTE_ENABLED: "true"' "${RENDERED}"; then
     { printf 'Secret %s is missing required key RUNPOD_API_KEY\n' "${SECRET_NAME}" >&2; exit 1; }
 fi
 
+if grep -q 'LAMAI_ENABLED: "true"' "${RENDERED}"; then
+  kubectl get secret "${SECRET_NAME}" -n "${NAMESPACE}" \
+    -o 'jsonpath={.data.LAMAI_API_KEY}' | grep -q . ||
+    { printf 'Secret %s is missing required key LAMAI_API_KEY\n' "${SECRET_NAME}" >&2; exit 1; }
+fi
+
 printf 'Preflight checks passed for release %s in namespace %s.\n' "${RELEASE}" "${NAMESPACE}"

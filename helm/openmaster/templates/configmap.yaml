@@ -11,6 +11,11 @@ data:
   CORS_ORIGINS: {{ .Values.config.corsOrigins | quote }}
   PROCESSING_RETRIES: {{ .Values.config.processingRetries | quote }}
   OPENMASTER_REMOTE_COMPUTE_ENABLED: {{ .Values.remoteCompute.enabled | quote }}
+  LAMAI_ENABLED: {{ .Values.lamai.enabled | quote }}
+  {{- if .Values.lamai.enabled }}
+  LAMAI_BASE_URL: {{ required "lamai.baseUrl is required when LamAI is enabled" .Values.lamai.baseUrl | quote }}
+  LAMAI_TIMEOUT_SECONDS: {{ .Values.lamai.timeoutSeconds | quote }}
+  {{- end }}
   {{- if .Values.minio.enabled }}
   MINIO_INTERNAL_ENDPOINT: {{ printf "http://%s-minio:9000" (include "openmaster.fullname" .) | quote }}
   {{- if .Values.minio.publicIngress.enabled }}

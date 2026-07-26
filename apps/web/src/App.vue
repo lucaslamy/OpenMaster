@@ -77,6 +77,7 @@ const dynamicEqReductionDb = ref(0);
 const bassControlReductionDb = ref(0);
 const deEsserReductionDb = ref(0);
 const saturationAmount = ref(0);
+const aiAssistEnabled = ref(false);
 const showTechnical = ref(false);
 const passwordDialogOpen = ref(false);
 const masteringPassword = ref("");
@@ -198,6 +199,7 @@ async function submit(password: string): Promise<void> {
       bassControlReductionDb.value,
       deEsserReductionDb.value,
       saturationAmount.value,
+      aiAssistEnabled.value,
     );
     schedulePoll();
   } catch (reason) {
@@ -460,6 +462,21 @@ watch(
               <output>{{ limiterReleaseMs.toFixed(0) }} ms</output>
               <input id="limiter-release" v-model.number="limiterReleaseMs" type="range" min="10" max="500" step="10" @input="activeIntent = 'Custom'" />
             </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>{{ t("aiAssistance") }} <InfoTip :text="t('aiAssistanceTip')" /></legend>
+            <button
+              class="ai-assistance-toggle"
+              type="button"
+              :class="{ active: aiAssistEnabled }"
+              :aria-pressed="aiAssistEnabled"
+              @click="aiAssistEnabled = !aiAssistEnabled; activeIntent = 'Custom'"
+            >
+              <span>✦</span>
+              <strong>{{ aiAssistEnabled ? t("aiEnabled") : t("aiDisabled") }}</strong>
+              <small>{{ t("aiAssistanceSmall") }}</small>
+            </button>
           </fieldset>
 
           <fieldset>

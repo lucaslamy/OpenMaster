@@ -74,6 +74,7 @@ def test_submit_persists_upload_and_dispatches_one_job() -> None:
         bass_control_reduction_db=4.0,
         de_esser_reduction_db=5.0,
         saturation_amount=0.25,
+        ai_assist_enabled=True,
         bit_depth=24,
     )
 
@@ -94,6 +95,7 @@ def test_submit_persists_upload_and_dispatches_one_job() -> None:
     assert job.bass_control_reduction_db == 4.0
     assert job.de_esser_reduction_db == 5.0
     assert job.saturation_amount == 0.25
+    assert job.ai_assist_enabled is True
     assert storage.objects[job.object_name] == b"encoded-audio"
     assert dispatched == [(job.id, job.object_name)]
     assert service.get(job.id) == job
