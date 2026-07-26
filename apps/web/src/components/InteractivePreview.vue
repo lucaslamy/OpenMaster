@@ -63,8 +63,16 @@ function applySettings(): void {
   compressor.threshold.setTargetAtTime(-8 - reduction, now, .02);
   compressor.ratio.setTargetAtTime(reduction === 0 ? 1 : 1 + reduction / 3, now, .02);
   if (masteringWorklet) {
+<<<<<<< HEAD
     const set = (name: string, value: number) =>
       masteringWorklet?.parameters.get(name)?.setTargetAtTime(value, now, .02);
+=======
+    const workletParameters = masteringWorklet.parameters as unknown as {
+      get(name: string): AudioParam | undefined;
+    };
+    const set = (name: string, value: number) =>
+      workletParameters.get(name)?.setTargetAtTime(value, now, .02);
+>>>>>>> 1e45bc8 (feat: release interactive mastering preview)
     const maximumGain = Number(props.settings.maximumGainAdjustmentDb ?? 12);
     set("inputGainDb", previewInputGainDb(
       Number(props.settings.targetLufs ?? baselineTargetLufs),
