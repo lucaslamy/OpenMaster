@@ -4,6 +4,13 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-07-27
+
+### Fixed
+
+- Removed accidentally committed Git conflict markers from the interactive preview,
+  restoring the production web TypeScript build.
+
 ## [3.1.0] - 2026-07-27
 
 ### Added
