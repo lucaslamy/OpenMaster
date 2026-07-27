@@ -192,3 +192,8 @@ the download endpoint to a short-lived signed MinIO URL.
 After an initial master, the browser can apply explicitly approximate Web Audio DSP
 without dispatching work. A final-render child reuses the parent's source object and
 analysis and enters the mastering queue directly; see `docs/INTERACTIVE_PREVIEW.md`.
+
+Analysis now pauses in the durable `analyzed` state. The browser auditions the retained
+source and commits its decision before the API atomically dispatches mastering. The
+twenty newest root projects are exposed as durable history; see
+`docs/PROJECT_HISTORY.md`.

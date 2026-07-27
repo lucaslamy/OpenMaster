@@ -17,8 +17,9 @@ describe("mastering result presentation", () => {
   it("maps durable job states to pipeline progress", () => {
     expect(stageIndex("queued")).toBe(0);
     expect(stageIndex("running")).toBe(1);
-    expect(stageIndex("mastering")).toBe(2);
-    expect(stageIndex("succeeded")).toBe(3);
+    expect(stageIndex("analyzed")).toBe(2);
+    expect(stageIndex("mastering")).toBe(3);
+    expect(stageIndex("succeeded")).toBe(4);
     expect(stageIndex("failed")).toBe(-1);
   });
 

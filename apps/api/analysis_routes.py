@@ -24,7 +24,12 @@ class AnalysisJobResponse(BaseModel):
     """Public job state polled by the web application."""
 
     id: str
-    status: Literal["queued", "running", "mastering", "retry_wait", "succeeded", "failed"]
+    status: Literal[
+        "queued", "running", "analyzed", "mastering", "retry_wait", "succeeded", "failed"
+    ]
+    original_filename: str
+    created_at: str | None = None
+    updated_at: str | None = None
     result: dict[str, Any] | None = None
     recommendation: dict[str, Any] | None = None
     mastering_result: dict[str, Any] | None = None
@@ -41,6 +46,7 @@ class AnalysisJobResponse(BaseModel):
     error_message: str | None = None
     parent_job_id: str | None = None
     interactive_settings: dict[str, Any] | None = None
+    source_preview_url: str | None = None
 
 
 class MasteringSettingsRequest(BaseModel):
@@ -220,6 +226,34 @@ def save_mastering_settings(
 
 
 @router.post(
+    "/analysis-jobs/{job_id}/master",
+    response_model=AnalysisJobResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def start_initial_master(
+    job_id: str,
+    request: MasteringSettingsRequest,
+    service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+) -> AnalysisJobResponse:
+    """Commit pre-master settings and enter mastering without repeating analysis."""
+    try:
+        job = service.start_master(job_id, request.settings)
+    except InvalidUploadError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    if job is None:
+        raise HTTPException(status_code=404, detail="Analysis job not found")
+    return _response(job)
+
+
+@router.get("/analysis-jobs", response_model=list[AnalysisJobResponse])
+def list_analysis_jobs(
+    service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+) -> list[AnalysisJobResponse]:
+    """Return the twenty newest retained root projects."""
+    return [_response(job) for job in service.list_recent(20)]
+
+
+@router.post(
     "/analysis-jobs/{job_id}/final-renders",
     response_model=AnalysisJobResponse,
     status_code=status.HTTP_202_ACCEPTED,
@@ -286,6 +320,18 @@ def preview_initial_master(
     return RedirectResponse(url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
 
+@router.get("/analysis-jobs/{job_id}/source", response_class=RedirectResponse)
+def preview_source(
+    job_id: str,
+    service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+) -> RedirectResponse:
+    """Redirect to the retained project source for live pre-master audition."""
+    url = service.create_source_preview_url(job_id)
+    if url is None:
+        raise HTTPException(status_code=404, detail="Analysis job not found")
+    return RedirectResponse(url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
+
 @router.get("/analysis-jobs/{job_id}", response_model=AnalysisJobResponse)
 def get_analysis_job(
     job_id: str,
@@ -301,6 +347,9 @@ def get_analysis_job(
 def _response(job: AnalysisJobRecord) -> AnalysisJobResponse:
     return AnalysisJobResponse(
         id=job.id,
+        original_filename=job.original_filename,
+        created_at=job.created_at.isoformat() if job.created_at else None,
+        updated_at=job.updated_at.isoformat() if job.updated_at else None,
         status=job.status,  # type: ignore[arg-type]
         result=job.result,
         recommendation=job.recommendation,
@@ -329,5 +378,25 @@ def _response(job: AnalysisJobRecord) -> AnalysisJobResponse:
         error_code=job.error_code,
         error_message=job.error_message,
         parent_job_id=job.parent_job_id,
-        interactive_settings=job.interactive_settings,
+        interactive_settings=job.interactive_settings
+        or {
+            "target_lufs": job.target_lufs,
+            "maximum_gain_adjustment_db": job.maximum_gain_adjustment_db,
+            "ceiling_dbfs": job.ceiling_dbfs,
+            "eq_low_gain_db": job.eq_low_gain_db,
+            "eq_mid_gain_db": job.eq_mid_gain_db,
+            "eq_high_gain_db": job.eq_high_gain_db,
+            "clipper_drive_db": job.clipper_drive_db,
+            "limiter_lookahead_ms": job.limiter_lookahead_ms,
+            "limiter_release_ms": job.limiter_release_ms,
+            "high_pass_enabled": job.high_pass_enabled,
+            "high_pass_cutoff_hz": job.high_pass_cutoff_hz,
+            "dynamic_eq_reduction_db": job.dynamic_eq_reduction_db,
+            "bass_control_reduction_db": job.bass_control_reduction_db,
+            "de_esser_reduction_db": job.de_esser_reduction_db,
+            "saturation_amount": job.saturation_amount,
+            "ai_assist_enabled": job.ai_assist_enabled,
+            "bit_depth": job.bit_depth,
+        },
+        source_preview_url=f"/api/v1/analysis-jobs/{job.id}/source",
     )

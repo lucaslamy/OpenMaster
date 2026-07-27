@@ -45,6 +45,12 @@ h1 em { color: transparent; font-style: normal; -webkit-text-stroke: 1px rgba(23
 .hero-copy { max-width: 600px; color: var(--muted); font-size: clamp(1rem, 2vw, 1.2rem); line-height: 1.8; margin: 2rem 0 0; }
 
 .studio-grid { display: flex; flex-direction: column; width: min(820px, 100%); margin: 0 auto; gap: 1rem; }
+.project-history { width: min(820px, 100%); margin: 0 auto 1rem; padding: clamp(1.2rem, 3vw, 2rem); }
+.history-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: .5rem; }
+.history-list button { display: flex; flex-direction: column; gap: .3rem; min-width: 0; padding: .75rem; border: 1px solid var(--line); border-radius: 8px; color: #fff; background: rgba(255,255,255,.03); text-align: left; cursor: pointer; }
+.history-list button.active { border-color: var(--mint); background: rgba(110,231,193,.07); }
+.history-list strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history-list small { color: var(--muted); font: .62rem "DM Mono", monospace; }
 .panel { background: linear-gradient(145deg, rgba(25,27,34,.92), rgba(15,16,21,.88)); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 24px 80px rgba(0,0,0,.25); }
 .source-panel, .settings-panel, .pipeline, .assistant-panel, .delivery { padding: clamp(1.2rem, 3vw, 2rem); }
 .results { width: min(900px, 100%); margin: 1rem auto 0; }

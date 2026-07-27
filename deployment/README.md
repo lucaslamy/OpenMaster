@@ -22,3 +22,5 @@ Pour la mise à niveau `3.0.1`, utilisez le
 [runbook de release](../docs/deployment/release-3.0.1.fr.md).
 Le correctif d’autorisation instantanée `3.0.2` possède un
 [runbook dédié](../docs/deployment/release-3.0.2.fr.md).
+La conservation des projets et la décision pré-master `3.1.0` sont documentées dans
+[`docs/PROJECT_HISTORY.md`](../docs/PROJECT_HISTORY.md).

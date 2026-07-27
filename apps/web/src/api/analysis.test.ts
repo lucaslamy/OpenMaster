@@ -74,6 +74,7 @@ describe("AnalysisApiClient", () => {
   it("identifies terminal job states", () => {
     expect(isTerminalStatus("queued")).toBe(false);
     expect(isTerminalStatus("mastering")).toBe(false);
+    expect(isTerminalStatus("analyzed")).toBe(true);
     expect(isTerminalStatus("succeeded")).toBe(true);
     expect(isTerminalStatus("failed")).toBe(true);
   });

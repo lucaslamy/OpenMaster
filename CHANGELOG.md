@@ -4,6 +4,25 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-07-27
+
+### Added
+
+- Server-backed history for the twenty newest projects, including retained source,
+  analysis, settings, initial/final master metadata, status, and signed playback or
+  download routes.
+- Explicit `analyzed` lifecycle state and decision endpoint for committing live
+  pre-master settings before any mastering task is dispatched.
+
+### Changed
+
+- The studio workflow is now file selection, immediate password validation, upload,
+  Celery analysis, live source audition and pre-settings, explicit decision, mastering,
+  then download.
+- Analysis workers no longer chain mastering automatically. The decision endpoint
+  atomically prevents duplicate mastering dispatches and reuses the existing MinIO
+  source and persisted analysis.
+
 ## [3.0.2] - 2026-07-26
 
 ### Added

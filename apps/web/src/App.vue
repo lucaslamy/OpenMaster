@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import {
   AnalysisApiClient,
@@ -46,6 +46,7 @@ const intentDescription = (intent: (typeof intents)[number]) =>
 const pipelineStages = computed(() => [
   { key: "queued", label: t("upload") },
   { key: "running", label: t("analysis") },
+  { key: "analyzed", label: locale.value === "fr" ? "Pré-réglages" : "Pre-settings" },
   { key: "mastering", label: t("mastering") },
   { key: "succeeded", label: t("ready") },
 ]);
@@ -66,6 +67,7 @@ const highResolution = ref(true);
 const selectedFile = ref<File | null>(null);
 const sourceUrl = ref<string | null>(null);
 const job = ref<AnalysisJob | null>(null);
+const recentProjects = ref<AnalysisJob[]>([]);
 const error = ref<string | null>(null);
 const submitting = ref(false);
 const authorizing = ref(false);
@@ -185,6 +187,33 @@ function setFile(file: File | null): void {
   error.value = null;
 }
 
+async function loadHistory(): Promise<void> {
+  try {
+    recentProjects.value = await client.listRecent();
+  } catch {
+    recentProjects.value = [];
+  }
+}
+
+function openProject(project: AnalysisJob): void {
+  job.value = project;
+  selectedFile.value = null;
+  sourceUrl.value = project.source_preview_url ?? null;
+  const settings = project.interactive_settings;
+  if (settings) {
+    targetLufs.value = Number(settings.target_lufs ?? targetLufs.value);
+    maximumGainAdjustmentDb.value = Number(settings.maximum_gain_adjustment_db ?? maximumGainAdjustmentDb.value);
+    ceilingDbfs.value = Number(settings.ceiling_dbfs ?? ceilingDbfs.value);
+    eqLowGainDb.value = Number(settings.eq_low_gain_db ?? eqLowGainDb.value);
+    eqMidGainDb.value = Number(settings.eq_mid_gain_db ?? eqMidGainDb.value);
+    eqHighGainDb.value = Number(settings.eq_high_gain_db ?? eqHighGainDb.value);
+    clipperDriveDb.value = Number(settings.clipper_drive_db ?? clipperDriveDb.value);
+    saturationAmount.value = Number(settings.saturation_amount ?? saturationAmount.value);
+    bitDepth.value = Number(settings.bit_depth ?? bitDepth.value);
+  }
+  if (!isTerminalStatus(project.status)) schedulePoll();
+}
+
 function requestMaster(): void {
   if (!canSubmit.value) return;
   masteringPassword.value = "";
@@ -242,6 +271,26 @@ async function saveSettings(): Promise<void> {
     });
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : t("requestFailed");
+  }
+}
+
+async function startMasterDecision(): Promise<void> {
+  if (!job.value || job.value.status !== "analyzed" || submitting.value) return;
+  submitting.value = true;
+  error.value = null;
+  try {
+    job.value = await client.startMaster(job.value.id, {
+      ...backendSettings(currentSettings.value),
+      bit_depth: bitDepth.value,
+      ai_assist_enabled: aiAssistEnabled.value,
+      high_pass_enabled: highPassEnabled.value,
+    });
+    await loadHistory();
+    schedulePoll();
+  } catch (reason) {
+    error.value = reason instanceof Error ? reason.message : t("requestFailed");
+  } finally {
+    submitting.value = false;
   }
 }
 
@@ -304,6 +353,7 @@ async function submit(authorization: string): Promise<void> {
       saturationAmount.value,
       aiAssistEnabled.value,
     );
+    await loadHistory();
     schedulePoll();
   } catch (reason) {
     error.value =
@@ -321,6 +371,7 @@ function schedulePoll(): void {
     if (!job.value) return;
     try {
       job.value = await client.get(job.value.id);
+      if (isTerminalStatus(job.value.status)) await loadHistory();
       schedulePoll();
     } catch (reason) {
       error.value =
@@ -335,6 +386,7 @@ onBeforeUnmount(() => {
   if (pollTimer) clearTimeout(pollTimer);
   if (sourceUrl.value) URL.revokeObjectURL(sourceUrl.value);
 });
+onMounted(loadHistory);
 watch(
   locale,
   (value) => {
@@ -375,6 +427,24 @@ watch(
         <p class="hero-copy">{{ t("heroCopy") }}</p>
       </header>
 
+      <section v-if="recentProjects.length" class="project-history panel">
+        <div class="panel-heading">
+          <div><span class="step">↺</span><h2>{{ locale === "fr" ? "20 derniers projets" : "Latest 20 projects" }}</h2></div>
+        </div>
+        <div class="history-list">
+          <button
+            v-for="project in recentProjects"
+            :key="project.id"
+            type="button"
+            :class="{ active: job?.id === project.id }"
+            @click="openProject(project)"
+          >
+            <strong>{{ project.original_filename }}</strong>
+            <small>{{ project.status }} · {{ project.created_at ? new Date(project.created_at).toLocaleString(locale) : project.id.slice(0, 8) }}</small>
+          </button>
+        </div>
+      </section>
+
       <form class="studio-grid" @submit.prevent="requestMaster">
         <section class="panel source-panel">
           <div class="panel-heading">
@@ -399,9 +469,13 @@ watch(
           </label>
           <AudioWaveform :file="selectedFile" :locale="locale" />
           <audio v-if="sourceUrl" class="audio-player" :src="sourceUrl" controls />
+          <button v-if="selectedFile && !job" class="master-button" type="submit" :disabled="!canSubmit">
+            <span>{{ submitting ? t("uploadSource") : (locale === "fr" ? "Vérifier le mot de passe puis analyser" : "Verify password, then analyze") }}</span>
+            <b>→</b>
+          </button>
         </section>
 
-        <aside class="panel settings-panel">
+        <aside v-if="job?.status === 'analyzed'" class="panel settings-panel">
           <div class="panel-heading">
             <div><span class="step">02</span><h2>{{ t("direction") }}</h2></div>
           </div>
@@ -603,8 +677,8 @@ watch(
             <strong>{{ activeIntentLabel }}</strong>
             <small>{{ t("outputSummary", { lufs: targetLufs.toFixed(1), ceiling: ceilingDbfs.toFixed(1), depth: bitDepth }) }}</small>
           </div>
-          <button class="master-button" type="submit" :disabled="!canSubmit">
-            <span>{{ submitting ? t("uploadSource") : t("createMaster") }}</span>
+          <button class="master-button" type="button" :disabled="submitting" @click="startMasterDecision">
+            <span>{{ submitting ? t("mastering") : (locale === "fr" ? "Valider la décision et masteriser" : "Confirm decision and master") }}</span>
             <b>→</b>
           </button>
         </aside>
@@ -655,8 +729,8 @@ watch(
         />
 
         <InteractivePreview
-          v-if="job.preview_url || job.initial_preview_url"
-          :url="job.initial_preview_url || job.preview_url || ''"
+          v-if="job.status === 'analyzed' || job.preview_url || job.initial_preview_url"
+          :url="job.status === 'analyzed' ? (sourceUrl || job.source_preview_url || '') : (job.initial_preview_url || job.preview_url || '')"
           :settings="currentSettings"
           :locale="locale"
           @reset="resetInteractiveSettings"

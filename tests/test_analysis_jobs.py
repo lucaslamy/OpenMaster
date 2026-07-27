@@ -206,7 +206,9 @@ def test_repository_persists_worker_result_and_failure() -> None:
     repository.mark_analysis_complete(job.id, {"lufs": -14.0})
     analysing = repository.get(job.id)
     assert analysing is not None
-    assert analysing.status == "mastering"
+    assert analysing.status == "analyzed"
+    assert repository.start_mastering(job.id, {"target_lufs": -12.0}) is True
+    assert repository.start_mastering(job.id, {"target_lufs": -11.0}) is False
     repository.mark_mastered(
         job.id,
         recommendation={"confidence": 0.9},
@@ -238,6 +240,48 @@ def test_repository_persists_worker_result_and_failure() -> None:
     assert failed is not None
     assert failed.status == "failed"
     assert failed.error_code == "DecodeError"
+
+
+def test_recent_projects_are_limited_to_twenty_newest_roots() -> None:
+    repository = _repository()
+    for index in range(22):
+        repository.create_or_get(
+            job_id=f"job-{index:02}",
+            idempotency_key=f"request-{index:02}",
+            object_name=f"analysis/job-{index:02}/source.wav",
+            original_filename=f"source-{index:02}.wav",
+        )
+
+    recent = repository.list_recent()
+
+    assert len(recent) == 20
+    assert {job.id for job in recent}.issubset({f"job-{index:02}" for index in range(22)})
+
+
+def test_mastering_starts_only_after_analysis_and_only_once() -> None:
+    repository = _repository()
+    dispatched: list[tuple[str, str]] = []
+    service = AnalysisJobService(
+        repository,
+        cast(MinioObjectStore, FakeObjectStore()),
+        lambda _job_id, _object_name: None,
+        maximum_upload_bytes=1024,
+        enqueue_master=lambda job_id, object_name: dispatched.append((job_id, object_name)),
+    )
+    job, _ = repository.create_or_get(
+        job_id="decision-job",
+        idempotency_key="decision-request",
+        object_name="analysis/decision-job/source.wav",
+        original_filename="source.wav",
+    )
+    repository.mark_analysis_complete(job.id, {"lufs": -14.0})
+
+    started = service.start_master(job.id, {"target_lufs": -9.0})
+    repeated = service.start_master(job.id, {"target_lufs": -8.0})
+
+    assert started is not None and started.status == "mastering"
+    assert repeated is not None and repeated.target_lufs == -9.0
+    assert dispatched == [(job.id, job.object_name)]
 
 
 def test_final_render_reuses_source_and_analysis() -> None:

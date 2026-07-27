@@ -21,6 +21,8 @@ def test_api_registers_analysis_routes_under_ingress_prefix() -> None:
     assert "/api/v1/analysis-jobs/{job_id}" in paths
     assert "/api/v1/analysis-jobs/{job_id}/download" in paths
     assert "/api/v1/analysis-jobs/{job_id}/preview" in paths
+    assert "/api/v1/analysis-jobs/{job_id}/source" in paths
+    assert "/api/v1/analysis-jobs/{job_id}/master" in paths
 
 
 def test_mastering_password_is_required_and_compared_safely(

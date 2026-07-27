@@ -3,6 +3,7 @@ import type { AnalysisJob } from "./api/analysis";
 export const pipelineStages = [
   { key: "queued", label: "Upload" },
   { key: "running", label: "Analysis" },
+  { key: "analyzed", label: "Settings" },
   { key: "mastering", label: "Mastering" },
   { key: "succeeded", label: "Ready" },
 ] as const;

@@ -28,17 +28,19 @@ class AnalysisJobService:
         *,
         maximum_upload_bytes: int,
         signed_urls: MinioSignedUrlService | None = None,
+        enqueue_master: Callable[[str, str], None] | None = None,
     ) -> None:
         self._repository = repository
         self._storage = storage
         self._enqueue = enqueue
         self._maximum_upload_bytes = maximum_upload_bytes
         self._signed_urls = signed_urls
+        self._master_enqueue = enqueue_master
 
     @classmethod
     def from_environment(cls) -> AnalysisJobService:
         """Build production adapters lazily after the API process has started."""
-        from packages.task_runtime.tasks import analyze_minio_object
+        from packages.task_runtime.tasks import analyze_minio_object, master_minio_object
 
         public_endpoint = os.environ.get("MINIO_PUBLIC_ENDPOINT")
         return cls(
@@ -50,6 +52,10 @@ class AnalysisJobService:
             ),
             maximum_upload_bytes=int(os.environ.get("MAX_UPLOAD_BYTES", "2147483648")),
             signed_urls=MinioSignedUrlService.from_environment() if public_endpoint else None,
+            enqueue_master=lambda job_id, object_name: master_minio_object.apply_async(
+                args=(job_id, object_name),
+                queue="mastering",
+            ),
         )
 
     def submit(
@@ -166,6 +172,10 @@ class AnalysisJobService:
         """Return one job without leaking its internal object name."""
         return self._repository.get(job_id)
 
+    def list_recent(self, limit: int = 20) -> list[AnalysisJobRecord]:
+        """Return up to twenty durable projects for the studio history."""
+        return self._repository.list_recent(limit)
+
     def save_settings(self, job_id: str, settings: dict[str, object]) -> AnalysisJobRecord | None:
         """Validate and persist current browser settings without dispatching work."""
         job = self._repository.get(job_id)
@@ -173,6 +183,20 @@ class AnalysisJobService:
             return None
         validated = _validated_settings(settings, job)
         return self._repository.save_interactive_settings(job_id, validated)
+
+    def start_master(self, job_id: str, settings: dict[str, object]) -> AnalysisJobRecord | None:
+        """Persist the user's decision and dispatch mastering without re-analysis."""
+        job = self._repository.get(job_id)
+        if job is None:
+            return None
+        if job.status == "mastering" or job.status == "succeeded":
+            return job
+        if job.status != "analyzed" or job.result is None:
+            raise InvalidUploadError("Audio analysis is not ready")
+        validated = _validated_settings(settings, job)
+        if self._repository.start_mastering(job.id, validated):
+            self._enqueue_master(job.id, job.object_name)
+        return self._repository.get(job.id)
 
     def render_final(
         self,
@@ -234,11 +258,23 @@ class AnalysisJobService:
             raise RuntimeError("Public MinIO signing is not configured")
         return self._signed_urls.create_download_url(job.initial_output_object_name)
 
+    def create_source_preview_url(self, job_id: str) -> str | None:
+        """Return the retained source used by pre-master live audition."""
+        job = self._repository.get(job_id)
+        if job is None:
+            return None
+        if self._signed_urls is None:
+            raise RuntimeError("Public MinIO signing is not configured")
+        return self._signed_urls.create_download_url(job.object_name)
+
     def _enqueue_master(self, job_id: str, object_name: str) -> None:
         """Dispatch directly to mastering, preserving cached analysis."""
-        from packages.task_runtime.tasks import master_minio_object
+        if self._master_enqueue is None:
+            from packages.task_runtime.tasks import master_minio_object
 
-        master_minio_object.apply_async(args=(job_id, object_name), queue="mastering")
+            master_minio_object.apply_async(args=(job_id, object_name), queue="mastering")
+            return
+        self._master_enqueue(job_id, object_name)
 
 
 def _validated_settings(

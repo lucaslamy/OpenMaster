@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import Engine, create_engine, insert, select, update
+from sqlalchemy import Engine, create_engine, desc, insert, select, update
 from sqlalchemy.exc import IntegrityError
 
 from .models import analysis_jobs
@@ -55,6 +55,7 @@ class AnalysisJobRecord:
     error_code: str | None = None
     error_message: str | None = None
     created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 class AnalysisJobRepository:
@@ -160,6 +161,22 @@ class AnalysisJobRepository:
             )
         return _record(row) if row is not None else None
 
+    def list_recent(self, limit: int = 20) -> list[AnalysisJobRecord]:
+        """Return the newest root projects; their MinIO objects remain immutable."""
+        bounded_limit = max(1, min(limit, 20))
+        with self._engine.connect() as connection:
+            rows = (
+                connection.execute(
+                    select(analysis_jobs)
+                    .where(analysis_jobs.c.parent_job_id.is_(None))
+                    .order_by(desc(analysis_jobs.c.created_at))
+                    .limit(bounded_limit)
+                )
+                .mappings()
+                .all()
+            )
+        return [_record(row) for row in rows]
+
     def mark_running(self, job_id: str) -> None:
         """Record worker ownership without exposing leases through the HTTP API."""
         self._update(
@@ -175,8 +192,23 @@ class AnalysisJobRepository:
         self._update(job_id, status="succeeded", result=result)
 
     def mark_analysis_complete(self, job_id: str, result: dict[str, Any]) -> None:
-        """Persist analysis and expose that mastering is now running."""
-        self._update(job_id, status="mastering", result=result)
+        """Persist analysis and wait for the user's explicit mastering decision."""
+        self._update(job_id, status="analyzed", result=result)
+
+    def start_mastering(self, job_id: str, settings: dict[str, Any]) -> bool:
+        """Atomically persist the decision and claim an analysed job once."""
+        values = {"status": "mastering", "interactive_settings": settings, **settings}
+        values["updated_at"] = datetime.now(UTC)
+        with self._engine.begin() as connection:
+            result = connection.execute(
+                update(analysis_jobs)
+                .where(
+                    analysis_jobs.c.id == job_id,
+                    analysis_jobs.c.status == "analyzed",
+                )
+                .values(**values)
+            )
+        return result.rowcount == 1
 
     def mark_mastered(
         self,
@@ -319,4 +351,5 @@ def _record(row: Any) -> AnalysisJobRecord:
         error_code=row["error_code"],
         error_message=row["error_message"],
         created_at=row["created_at"],
+        updated_at=row["updated_at"],
     )

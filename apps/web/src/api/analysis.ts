@@ -2,7 +2,10 @@
 
 export interface AnalysisJob {
   id: string;
-  status: "queued" | "running" | "mastering" | "retry_wait" | "succeeded" | "failed";
+  status: "queued" | "running" | "analyzed" | "mastering" | "retry_wait" | "succeeded" | "failed";
+  original_filename: string;
+  created_at?: string;
+  updated_at?: string;
   result?: Record<string, unknown>;
   recommendation?: Record<string, unknown>;
   mastering_result?: Record<string, unknown>;
@@ -19,10 +22,11 @@ export interface AnalysisJob {
   error_message?: string;
   parent_job_id?: string;
   interactive_settings?: Record<string, number | boolean>;
+  source_preview_url?: string;
 }
 
 export function isTerminalStatus(status: AnalysisJob["status"]): boolean {
-  return status === "succeeded" || status === "failed";
+  return status === "analyzed" || status === "succeeded" || status === "failed";
 }
 
 export class AnalysisApiClient {
@@ -100,9 +104,29 @@ export class AnalysisApiClient {
     return this.request(`/analysis-jobs/${encodeURIComponent(jobId)}`);
   }
 
+  public async listRecent(): Promise<AnalysisJob[]> {
+    const response = await fetch(`${this.baseUrl}/analysis-jobs`);
+    const payload = (await response.json()) as AnalysisJob[] | { detail?: string };
+    if (!response.ok || !Array.isArray(payload)) {
+      throw new Error(!Array.isArray(payload) ? payload.detail ?? "Project history failed" : "Project history failed");
+    }
+    return payload;
+  }
+
   public async saveSettings(jobId: string, settings: Record<string, number | boolean>): Promise<AnalysisJob> {
     return this.request(`/analysis-jobs/${encodeURIComponent(jobId)}/settings`, {
       method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ settings }),
+    });
+  }
+
+  public async startMaster(
+    jobId: string,
+    settings: Record<string, number | boolean>,
+  ): Promise<AnalysisJob> {
+    return this.request(`/analysis-jobs/${encodeURIComponent(jobId)}/master`, {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ settings }),
     });

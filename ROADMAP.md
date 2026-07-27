@@ -154,6 +154,12 @@ gain staging plus the Rap starting point.
 Patch `3.0.2` moves password validation ahead of audio transfer through a short-lived
 signed authorization proof and keeps authentication failures inside the dialog.
 
+## v3.1 — Durable projects and pre-master decision
+
+Released: `3.1.0`. Analysis now pauses before mastering so the source can be auditioned
+with live DSP and settings can be committed explicitly. The web studio exposes the
+twenty newest durable root projects backed by PostgreSQL and retained MinIO objects.
+
 ## Planning rules
 
 - Do not start a version by adding its UI before its package-level contracts exist.

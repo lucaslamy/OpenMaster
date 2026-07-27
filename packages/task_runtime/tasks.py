@@ -48,7 +48,6 @@ def analyze_minio_object(job_id: str, object_name: str) -> dict[str, object]:
             MinioObjectStore.from_environment().download(object_name, source)
             result = AnalysisService().analyze(source).to_dict()
         repository.mark_analysis_complete(job_id, result)
-        master_minio_object.apply_async(args=(job_id, object_name), queue="mastering")
         return result
     except Exception as error:
         repository.mark_failed(

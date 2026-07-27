@@ -1,6 +1,6 @@
 # Déployer OpenMaster sur k3s
 
-Ce guide déploie OpenMaster v3.0.2 sur un cluster k3s avec Helm. Il utilise les services
+Ce guide déploie OpenMaster v3.1.0 sur un cluster k3s avec Helm. Il utilise les services
 PostgreSQL, Redis et MinIO internes au chart. Pour une production à haute disponibilité,
 utilisez plutôt des services managés externes et consultez la section dédiée plus bas.
 
@@ -42,7 +42,7 @@ ci-dessous par votre registre et votre version :
 
 ```bash
 export REGISTRY=harbor.lucaslamy.fr/private/openmaster
-export VERSION=3.0.2
+export VERSION=3.1.0
 
 docker build -f Dockerfile.api -t "${REGISTRY}/api:${VERSION}" .
 docker build -f Dockerfile.web -t "${REGISTRY}/web:${VERSION}" .
@@ -162,13 +162,13 @@ externalSecrets:
   existingSecretName: openmaster-secrets
 
 api:
-  image: harbor.lucaslamy.fr/private/openmaster/api:3.0.2
+  image: harbor.lucaslamy.fr/private/openmaster/api:3.1.0
 
 web:
-  image: harbor.lucaslamy.fr/private/openmaster/web:3.0.2
+  image: harbor.lucaslamy.fr/private/openmaster/web:3.1.0
 
 workers:
-  image: harbor.lucaslamy.fr/private/openmaster/api:3.0.2
+  image: harbor.lucaslamy.fr/private/openmaster/api:3.1.0
 
 postgresql:
   persistence:
