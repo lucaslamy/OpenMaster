@@ -45,7 +45,6 @@ class MasteringPreviewProcessor extends AudioWorkletProcessor {
     const inputGain = bypass ? 1 : 10 ** (value("inputGainDb") / 20);
     const saturation = bypass ? 0 : value("saturation");
     const drive = bypass ? 1 : 10 ** (value("clipperDriveDb") / 20);
-    const driveNorm = Math.tanh(drive);
     const ceiling = 10 ** ((bypass ? 0 : value("ceilingDbfs")) / 20);
     const release = Math.exp(-1 / (Math.max(10, value("releaseMs")) * sampleRate / 1000));
     const bits = bypass ? 32 : Math.round(value("bitDepth"));
@@ -62,7 +61,11 @@ class MasteringPreviewProcessor extends AudioWorkletProcessor {
           const shaped = Math.tanh(wet * saturationDrive) / Math.tanh(saturationDrive);
           wet = wet * (1 - saturation * .14) + shaped * saturation * .14;
         }
-        if (!bypass && drive > 1) wet = Math.tanh(wet * drive) / driveNorm;
+        if (!bypass && drive > 1) {
+          const shaped = Math.tanh(wet * drive) / drive;
+          const clipMix = Math.min(.7, value("clipperDriveDb") / 12);
+          wet = wet * (1 - clipMix) + shaped * clipMix;
+        }
         this.delay[channel][this.writeIndex] = wet;
         linkedPeak = Math.max(linkedPeak, Math.abs(wet));
       }

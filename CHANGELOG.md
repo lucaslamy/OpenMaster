@@ -4,6 +4,20 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Long-running interactive previews now refresh their MinIO authorization before
+  expiry and recover playback in place after transient media failures.
+- The clipper preserves quiet-signal gain instead of amplifying bass fundamentals
+  into the limiter.
+- Processing stages expose milestone percentages and active loaders, settings use
+  balanced columns, and the persistent preview is a side rail on wide screens.
+
+### Added
+
+- Live Web Audio spectrum bars, orbiting signal sprites, and animated project-rename
+  confirmation with reduced-motion support.
+
 ## [3.2.0] - 2026-07-27
 
 ### Added

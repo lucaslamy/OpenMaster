@@ -71,6 +71,7 @@ const recentProjects = ref<AnalysisJob[]>([]);
 const historyOpen = ref(false);
 const projectRootId = ref<string | null>(null);
 const renameValue = ref("");
+const renameSaved = ref(false);
 const error = ref<string | null>(null);
 const submitting = ref(false);
 const authorizing = ref(false);
@@ -119,6 +120,18 @@ const currentSettings = computed<InteractiveSettings>(() => ({
   ai_assist_enabled: aiAssistEnabled.value,
 }));
 const currentStage = computed(() => (job.value ? stageIndex(job.value.status) : -1));
+const progressPercent = computed(() => {
+  if (!job.value) return 0;
+  return {
+    queued: 12,
+    running: 42,
+    analyzed: 68,
+    mastering: 86,
+    retry_wait: 36,
+    succeeded: 100,
+    failed: Math.max(0, currentStage.value * 20),
+  }[job.value.status];
+});
 const aiAssistance = computed<Record<string, unknown> | null>(() => {
   const value = job.value?.mastering_result?.ai_assistance;
   return typeof value === "object" && value !== null
@@ -227,6 +240,8 @@ async function renameProject(): Promise<void> {
     const renamed = await client.rename(projectRootId.value ?? job.value.id, renameValue.value);
     job.value = { ...job.value, project_name: renamed.project_name };
     await loadHistory();
+    renameSaved.value = true;
+    window.setTimeout(() => { renameSaved.value = false; }, 1_400);
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : t("requestFailed");
   }
@@ -443,6 +458,9 @@ watch(
     <GuidePage v-if="page === 'guide'" :locale="locale" @back="page = 'studio'" />
     <main v-else>
       <header class="hero">
+        <div class="signal-sprites" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i>
+        </div>
         <p class="eyebrow">{{ t("workspace") }}</p>
         <h1>{{ t("heroTitle") }}<br /><em>{{ t("heroEmphasis") }}</em></h1>
         <p class="hero-copy">{{ t("heroCopy") }}</p>
@@ -488,7 +506,7 @@ watch(
       />
 
       <form class="studio-grid" @submit.prevent="requestMaster">
-        <section class="panel source-panel">
+        <section v-if="!job?.result" class="panel source-panel">
           <div class="panel-heading">
             <div><span class="step">01</span><h2>{{ t("source") }}</h2></div>
             <span v-if="selectedFile" class="format-pill">{{ selectedFile.name.split(".").pop()?.toUpperCase() }}</span>
@@ -526,7 +544,11 @@ watch(
 
           <div class="project-rename">
             <label for="project-name">{{ locale === "fr" ? "Nom du projet" : "Project name" }}</label>
-            <div><input id="project-name" v-model="renameValue" maxlength="120" /><button type="button" @click="renameProject">✓</button></div>
+            <div :class="{ saved: renameSaved }">
+              <input id="project-name" v-model="renameValue" maxlength="120" />
+              <button type="button" @click="renameProject">{{ renameSaved ? "✓" : "↵" }}</button>
+            </div>
+            <small v-if="renameSaved" class="rename-confirmation">{{ locale === "fr" ? "Nom enregistré" : "Name saved" }}</small>
           </div>
 
           <fieldset>
@@ -548,6 +570,8 @@ watch(
             <p class="preset-description">{{ activeIntentDescription }}</p>
           </fieldset>
 
+          <div class="settings-columns">
+          <div class="settings-column">
           <fieldset class="continuous-control">
             <div class="control-heading">
               <legend>{{ t("customTarget") }} <InfoTip :text="t('customTargetTip')" /></legend>
@@ -639,6 +663,8 @@ watch(
             </div>
           </fieldset>
 
+          </div>
+          <div class="settings-column">
           <fieldset class="advanced-dsp">
             <legend>{{ t("spectralDynamics") }} <InfoTip :text="t('spectralDynamicsTip')" /></legend>
             <div class="mini-control switch-control">
@@ -720,6 +746,8 @@ watch(
               </button>
             </div>
           </fieldset>
+          </div>
+          </div>
 
           <div class="master-summary">
             <span>{{ t("activeProfile") }}</span>
@@ -747,7 +775,11 @@ watch(
         <div class="pipeline panel">
           <div class="panel-heading">
             <div><span class="step">03</span><h2>{{ t("processing") }}</h2></div>
-            <span class="job-id">{{ job.id.slice(0, 8) }}</span>
+            <span class="job-id">{{ progressPercent }}%</span>
+          </div>
+          <div class="pipeline-progress" :aria-label="`${progressPercent}%`">
+            <i :style="{ width: `${progressPercent}%` }"></i>
+            <b>{{ progressPercent }}%</b>
           </div>
           <ol>
             <li
@@ -755,8 +787,12 @@ watch(
               :key="stage.key"
               :class="{ done: currentStage > index, active: currentStage === index, failed: job.status === 'failed' && index === Math.max(currentStage, 0) }"
             >
-              <span>{{ currentStage > index ? "✓" : index + 1 }}</span>
+              <span>
+                <i v-if="currentStage === index && !isTerminalStatus(job.status)" class="stage-loader"></i>
+                <template v-else>{{ currentStage > index ? "✓" : index + 1 }}</template>
+              </span>
               <strong>{{ stage.label }}</strong>
+              <small>{{ currentStage > index ? "100%" : (currentStage === index ? `${progressPercent}%` : "0%") }}</small>
             </li>
           </ol>
           <div v-if="!isTerminalStatus(job.status)" class="progress-line"><i></i></div>

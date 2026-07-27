@@ -9,18 +9,27 @@ import {
 const props = defineProps<{ url: string; settings: InteractiveSettings; locale: "en" | "fr" }>();
 const emit = defineEmits<{ reset: [] }>();
 const audio = ref<HTMLAudioElement | null>(null);
+const spectrum = ref<HTMLCanvasElement | null>(null);
 const current = ref(0);
 const duration = ref(0);
 const mode = ref<"original" | "live">("live");
 const loading = ref(true);
+const playing = ref(false);
+const refreshing = ref(false);
 const error = ref("");
+const mediaUrl = ref(props.url);
 let context: AudioContext | null = null;
 let source: MediaElementAudioSourceNode | null = null;
 let filters: BiquadFilterNode[] = [];
 let compressor: DynamicsCompressorNode | null = null;
 let output: GainNode | null = null;
+let analyser: AnalyserNode | null = null;
 let masteringWorklet: AudioWorkletNode | null = null;
 let graphPromise: Promise<void> | null = null;
+let animationFrame = 0;
+let refreshTimer: ReturnType<typeof setInterval> | undefined;
+let resumeAt = 0;
+let resumePlaying = false;
 const baselineTargetLufs = Number(props.settings.targetLufs ?? -14);
 
 const modified = computed(() => masteringParameters.filter((p) =>
@@ -38,17 +47,22 @@ async function buildGraph(): Promise<void> {
   const highPass = context.createBiquadFilter(); highPass.type = "highpass"; highPass.Q.value = .707;
   compressor = context.createDynamicsCompressor();
   output = context.createGain();
+  analyser = context.createAnalyser();
+  analyser.fftSize = 128;
+  analyser.smoothingTimeConstant = .82;
   filters = [low, mid, high, highPass];
   source.connect(low).connect(mid).connect(high).connect(highPass).connect(compressor);
   try {
     await context.audioWorklet.addModule("/mastering-preview-worklet.js");
     masteringWorklet = new AudioWorkletNode(context, "mastering-preview");
-    compressor.connect(masteringWorklet).connect(output).connect(context.destination);
+    compressor.connect(masteringWorklet).connect(output);
   } catch {
     // Standard nodes remain a usable approximation on browsers without AudioWorklet.
-    compressor.connect(output).connect(context.destination);
+    compressor.connect(output);
   }
+  output.connect(analyser).connect(context.destination);
   applySettings();
+  drawSpectrum();
 }
 
 function applySettings(): void {
@@ -93,25 +107,114 @@ async function togglePlayback(): Promise<void> {
   if (audio.value.paused) await audio.value.play(); else audio.value.pause();
 }
 
+function drawSpectrum(): void {
+  if (!analyser || !spectrum.value) return;
+  const canvas = spectrum.value;
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  const width = Math.max(1, canvas.clientWidth);
+  const height = Math.max(1, canvas.clientHeight);
+  if (canvas.width !== width * ratio || canvas.height !== height * ratio) {
+    canvas.width = width * ratio;
+    canvas.height = height * ratio;
+  }
+  const drawing = canvas.getContext("2d");
+  if (!drawing) return;
+  const values = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(values);
+  drawing.clearRect(0, 0, canvas.width, canvas.height);
+  const gap = 2 * ratio;
+  const barWidth = canvas.width / values.length;
+  values.forEach((value, index) => {
+    const normalized = value / 255;
+    const barHeight = Math.max(2 * ratio, normalized * canvas.height);
+    const gradient = drawing.createLinearGradient(0, canvas.height, 0, 0);
+    gradient.addColorStop(0, "rgba(110, 231, 193, .28)");
+    gradient.addColorStop(1, "rgba(155, 140, 255, .95)");
+    drawing.fillStyle = gradient;
+    drawing.fillRect(index * barWidth, canvas.height - barHeight, Math.max(1, barWidth - gap), barHeight);
+  });
+  animationFrame = requestAnimationFrame(drawSpectrum);
+}
+
+function refreshedUrl(): string {
+  const separator = props.url.includes("?") ? "&" : "?";
+  return `${props.url}${separator}refresh=${Date.now()}`;
+}
+
+function refreshMedia(): void {
+  if (!audio.value || refreshing.value) return;
+  resumeAt = audio.value.currentTime || current.value;
+  resumePlaying = !audio.value.paused;
+  refreshing.value = true;
+  error.value = "";
+  mediaUrl.value = refreshedUrl();
+}
+
+async function mediaReady(): Promise<void> {
+  if (!audio.value) return;
+  duration.value = audio.value.duration || 0;
+  if (refreshing.value) {
+    audio.value.currentTime = Math.min(resumeAt, Math.max(0, duration.value - .1));
+    if (resumePlaying) {
+      try { await audio.value.play(); } catch { /* Browser may require another user gesture. */ }
+    }
+  }
+  refreshing.value = false;
+  loading.value = false;
+  error.value = "";
+}
+
+function mediaFailed(): void {
+  if (!refreshing.value) {
+    refreshMedia();
+    return;
+  }
+  refreshing.value = false;
+  loading.value = false;
+  error.value = props.locale === "fr"
+    ? "La préécoute a été interrompue. Réessayez avec le bouton de reconnexion."
+    : "Preview was interrupted. Retry with the reconnect button.";
+}
+
 watch(() => props.settings, applySettings, { deep: true });
 watch(mode, applySettings);
-onMounted(() => { graphPromise = buildGraph(); });
-onBeforeUnmount(() => { source?.disconnect(); void context?.close(); });
+watch(() => props.url, (value) => { mediaUrl.value = value; });
+onMounted(() => {
+  graphPromise = buildGraph();
+  refreshTimer = setInterval(refreshMedia, 12 * 60 * 1000);
+});
+onBeforeUnmount(() => {
+  if (refreshTimer) clearInterval(refreshTimer);
+  cancelAnimationFrame(animationFrame);
+  source?.disconnect();
+  void context?.close();
+});
 </script>
 
 <template>
   <section class="panel interactive-preview">
     <div class="panel-heading">
-      <div><span class="step">04</span><h2>{{ locale === "fr" ? "Pré-écoute interactive" : "Interactive preview" }}</h2></div>
+      <div><span class="preview-live-dot"></span><h2>{{ locale === "fr" ? "Pré-écoute" : "Preview" }}</h2></div>
       <span v-if="modified.length" class="modified-badge">{{ modified.length }} {{ locale === "fr" ? "modifié(s)" : "changed" }}</span>
     </div>
     <p class="preview-note">{{ locale === "fr" ? "Les réglages marqués ≈ sont une approximation navigateur. Le rendu final utilise le moteur complet." : "Settings marked ≈ are a browser approximation. The final render uses the complete engine." }}</p>
-    <audio ref="audio" :src="url" crossorigin="anonymous" @loadedmetadata="duration = audio?.duration || 0; loading = false" @timeupdate="current = audio?.currentTime || 0" @error="error = locale === 'fr' ? 'Impossible de charger ou décoder la pré-écoute.' : 'The preview could not be loaded or decoded.'" />
+    <canvas ref="spectrum" class="live-spectrum" aria-hidden="true"></canvas>
+    <audio
+      ref="audio"
+      :src="mediaUrl"
+      crossorigin="anonymous"
+      @loadedmetadata="mediaReady"
+      @timeupdate="current = audio?.currentTime || 0"
+      @play="playing = true"
+      @pause="playing = false"
+      @error="mediaFailed"
+    />
     <div class="preview-transport">
-      <button type="button" :disabled="loading || !!error" @click="togglePlayback">{{ audio?.paused !== false ? "▶" : "Ⅱ" }}</button>
+      <button type="button" :disabled="loading || refreshing" @click="error ? refreshMedia() : togglePlayback()">{{ error ? "↻" : (playing ? "Ⅱ" : "▶") }}</button>
       <input aria-label="Preview position" type="range" min="0" :max="duration || 0" step=".01" :value="current" @input="audio && (audio.currentTime = Number(($event.target as HTMLInputElement).value))" />
       <time>{{ formatTime(current) }} / {{ formatTime(duration) }}</time>
     </div>
+    <small v-if="refreshing" class="reconnecting">{{ locale === "fr" ? "Reconnexion à la source…" : "Refreshing source…" }}</small>
     <div class="ab-switch" role="group" :aria-label="locale === 'fr' ? 'Mode de préécoute' : 'Preview mode'">
       <button type="button" :class="{ active: mode === 'original' }" @click="mode = 'original'">{{ locale === "fr" ? "Original" : "Original" }}</button>
       <button type="button" :class="{ active: mode === 'live' }" @click="mode = 'live'">{{ locale === "fr" ? "Préécoute avec effets" : "Live effects preview" }}</button>

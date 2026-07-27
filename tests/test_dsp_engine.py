@@ -114,7 +114,7 @@ def test_tonal_equalizer_boosts_selected_frequency_without_mutating_input() -> N
     assert np.max(np.abs(samples)) == pytest.approx(0.1)
 
 
-def test_oversampled_clipper_is_bypassed_at_zero_and_densifies_driven_peaks() -> None:
+def test_oversampled_clipper_is_bypassed_at_zero_and_controls_driven_peaks() -> None:
     samples = np.linspace(-1.0, 1.0, 4_800, dtype=np.float64)[:, np.newaxis]
 
     bypassed = OversampledClipperProcessor(0.0).process(samples, 48_000)
@@ -122,8 +122,18 @@ def test_oversampled_clipper_is_bypassed_at_zero_and_densifies_driven_peaks() ->
 
     assert np.array_equal(bypassed, samples)
     assert np.max(np.abs(clipped)) <= 1.01
-    assert np.sqrt(np.mean(clipped**2)) > np.sqrt(np.mean(samples**2))
+    assert np.sqrt(np.mean(clipped**2)) < np.sqrt(np.mean(samples**2))
     assert clipped.shape == samples.shape
+
+
+def test_oversampled_clipper_does_not_amplify_quiet_bass_fundamental() -> None:
+    sample_rate_hz = 48_000
+    time = np.arange(sample_rate_hz) / sample_rate_hz
+    bass = (0.03 * np.sin(2 * np.pi * 60 * time))[:, np.newaxis]
+
+    clipped = OversampledClipperProcessor(6.0).process(bass, sample_rate_hz)
+
+    assert np.sqrt(np.mean(clipped**2)) <= np.sqrt(np.mean(bass**2)) * 1.01
 
 
 def test_high_pass_rejects_subsonic_energy_and_preserves_audible_tone() -> None:
@@ -237,7 +247,7 @@ def test_driven_master_increases_loudness_while_enforcing_true_peak_ceiling() ->
 
     assert mastered.render.output_lufs is not None
     assert mastered.render.output_lufs > source_lufs
-    assert mastered.render.output_true_peak_dbfs <= -1.0
+    assert mastered.render.output_true_peak_dbfs <= -1.0 + 1e-9
 
 
 def test_automatic_mastering_is_repeatable_safe_and_reaches_target_when_unbounded() -> None:

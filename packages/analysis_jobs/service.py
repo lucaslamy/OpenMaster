@@ -262,7 +262,10 @@ class AnalysisJobService:
             return None
         if self._signed_urls is None:
             raise RuntimeError("Public MinIO signing is not configured")
-        return self._signed_urls.create_download_url(job.output_object_name)
+        return self._signed_urls.create_download_url(
+            job.output_object_name,
+            expires_in_seconds=7200,
+        )
 
     def create_initial_preview_url(self, job_id: str) -> str | None:
         """Return the immutable first master for a final-render child."""
@@ -271,7 +274,10 @@ class AnalysisJobService:
             return None
         if self._signed_urls is None:
             raise RuntimeError("Public MinIO signing is not configured")
-        return self._signed_urls.create_download_url(job.initial_output_object_name)
+        return self._signed_urls.create_download_url(
+            job.initial_output_object_name,
+            expires_in_seconds=7200,
+        )
 
     def create_source_preview_url(self, job_id: str) -> str | None:
         """Return the retained source used by pre-master live audition."""
@@ -280,7 +286,10 @@ class AnalysisJobService:
             return None
         if self._signed_urls is None:
             raise RuntimeError("Public MinIO signing is not configured")
-        return self._signed_urls.create_download_url(job.object_name)
+        return self._signed_urls.create_download_url(
+            job.object_name,
+            expires_in_seconds=7200,
+        )
 
     def _enqueue_master(self, job_id: str, object_name: str) -> None:
         """Dispatch directly to mastering, preserving cached analysis."""

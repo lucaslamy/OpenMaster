@@ -35,11 +35,11 @@ class OversampledClipperProcessor:
         factor = self.oversample_factor
         oversampled = resample_poly(samples, factor, 1, axis=0)
         drive = 10.0 ** (self.drive_db / 20.0)
-        # Normalize the curve at full scale instead of dividing by the drive.
-        # Dividing by ``drive`` flattened peaks but also attenuated the entire
-        # programme, making increasing drive sound quieter—the opposite of the
-        # intended mastering behaviour.
-        clipped = np.tanh(oversampled * drive) / math.tanh(drive)
+        # Output-trim by drive so the small-signal slope remains unity. Normalizing
+        # at full scale raises bass fundamentals before they even reach the limiter.
+        shaped = np.tanh(oversampled * drive) / drive
+        wet = min(0.7, self.drive_db / 12.0)
+        clipped = oversampled * (1.0 - wet) + shaped * wet
         output = resample_poly(clipped, 1, factor, axis=0)
         # The reconstruction filter can overshoot the normalized curve around
         # discontinuities. Keep the clipper's public full-scale contract bounded;

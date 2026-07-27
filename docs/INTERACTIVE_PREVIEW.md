@@ -20,6 +20,14 @@ renderer. AI assistance still requires a complete render. Canonical metadata liv
 Every completed master is an immutable download. Further settings and render requests
 continue from the retained source rather than processing a previous master.
 
+Inline source and master preview signatures last two hours. The persistent browser
+transport proactively requests a fresh source redirect every twelve minutes, restores
+the current position, and resumes playback when browser autoplay policy permits it.
+This prevents the former fifteen-minute signed-URL interruption during long sessions.
+
+The preview rail includes a real analyser-driven spectrum. Decorative signal sprites
+and all other motion respect the operating system's reduced-motion preference.
+
 Saving settings performs no audio work. An authorized idempotent final-render child job
 points to the existing source, copies completed analysis, and dispatches directly to
 mastering. The local preview is approximate; the downloadable WAV uses the full engine.
