@@ -24,3 +24,30 @@ Le correctif d’autorisation instantanée `3.0.2` possède un
 [runbook dédié](../docs/deployment/release-3.0.2.fr.md).
 La conservation des projets et la décision pré-master `3.1.0` sont documentées dans
 [`docs/PROJECT_HISTORY.md`](../docs/PROJECT_HISTORY.md).
+
+## Synchronisation, publication et déploiement versionné
+
+Synchroniser le dépôt vers `root@46.225.231.203`, puis construire et publier une
+sélection d'images :
+
+```bash
+deployment/scripts/sync-build-push.sh 3.2.0 api web
+deployment/scripts/sync-build-push.sh 3.2.0 runpod
+# ou les trois :
+deployment/scripts/sync-build-push.sh 3.2.0 all
+```
+
+Le script exclut `.git`, `.env`, `node_modules` et les caches Python. Les valeurs par
+défaut reproduisent la clé SSH, le serveur et le registre de production ; elles restent
+surchargeables par variables d'environnement. `SKIP_SYNC=1` permet de republier sans
+relancer rsync.
+
+Sur le serveur k3s, épingler la version dans le fichier RunPod puis lancer le
+préflight et le déploiement Helm atomique :
+
+```bash
+deployment/scripts/deploy-runpod-version.sh 3.2.0
+```
+
+Le fichier par défaut est `/tmp/openmaster-k3s-runpod.yaml`. Une sauvegarde horodatée
+est créée avant modification. Aucun parseur YAML externe n'est nécessaire.

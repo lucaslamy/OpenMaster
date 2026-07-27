@@ -34,8 +34,10 @@ class SaturationProcessor:
             return np.asarray(samples, dtype=np.float64).copy()
         factor = self.oversample_factor
         oversampled = resample_poly(samples, factor, 1, axis=0)
-        drive = 1.0 + 2.0 * self.amount
+        # Keep low-frequency fundamentals stable: mastering saturation should add
+        # density, not behave like a full-band distortion pedal.
+        drive = 1.0 + 0.75 * self.amount
         saturated = np.tanh(oversampled * drive) / math.tanh(drive)
-        mixed = oversampled * (1.0 - self.amount * 0.35) + saturated * (self.amount * 0.35)
+        mixed = oversampled * (1.0 - self.amount * 0.14) + saturated * (self.amount * 0.14)
         output = resample_poly(mixed, 1, factor, axis=0)
         return np.asarray(output[: samples.shape[0]], dtype=np.float64)

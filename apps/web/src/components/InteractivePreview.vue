@@ -11,7 +11,7 @@ const emit = defineEmits<{ reset: [] }>();
 const audio = ref<HTMLAudioElement | null>(null);
 const current = ref(0);
 const duration = ref(0);
-const mode = ref<"A" | "B">("B");
+const mode = ref<"original" | "live">("live");
 const loading = ref(true);
 const error = ref("");
 let context: AudioContext | null = null;
@@ -54,7 +54,7 @@ async function buildGraph(): Promise<void> {
 function applySettings(): void {
   if (!context || !output || filters.length !== 4 || !compressor) return;
   const now = context.currentTime;
-  const bypass = mode.value === "A";
+  const bypass = mode.value === "original";
   filters[0].gain.setTargetAtTime(bypass ? 0 : Number(props.settings.eqLowGainDb ?? 0), now, .02);
   filters[1].gain.setTargetAtTime(bypass ? 0 : Number(props.settings.eqMidGainDb ?? 0), now, .02);
   filters[2].gain.setTargetAtTime(bypass ? 0 : Number(props.settings.eqHighGainDb ?? 0), now, .02);
@@ -112,11 +112,10 @@ onBeforeUnmount(() => { source?.disconnect(); void context?.close(); });
       <input aria-label="Preview position" type="range" min="0" :max="duration || 0" step=".01" :value="current" @input="audio && (audio.currentTime = Number(($event.target as HTMLInputElement).value))" />
       <time>{{ formatTime(current) }} / {{ formatTime(duration) }}</time>
     </div>
-    <div class="ab-switch" role="group" aria-label="A/B">
-      <button type="button" :class="{ active: mode === 'A' }" @click="mode = 'A'">A · {{ locale === "fr" ? "Master initial" : "Initial master" }}</button>
-      <button type="button" :class="{ active: mode === 'B' }" @click="mode = 'B'">B · {{ locale === "fr" ? "Réglages actuels" : "Current settings" }}</button>
+    <div class="ab-switch" role="group" :aria-label="locale === 'fr' ? 'Mode de préécoute' : 'Preview mode'">
+      <button type="button" :class="{ active: mode === 'original' }" @click="mode = 'original'">{{ locale === "fr" ? "Original" : "Original" }}</button>
+      <button type="button" :class="{ active: mode === 'live' }" @click="mode = 'live'">{{ locale === "fr" ? "Préécoute avec effets" : "Live effects preview" }}</button>
     </div>
-    <button class="reset-preview" type="button" :disabled="!modified.length" @click="emit('reset')">{{ locale === "fr" ? "Réinitialiser les réglages" : "Reset settings" }}</button>
     <p v-if="error" class="alert error" role="alert">{{ error }}</p>
   </section>
 </template>

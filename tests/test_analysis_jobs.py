@@ -258,6 +258,31 @@ def test_recent_projects_are_limited_to_twenty_newest_roots() -> None:
     assert {job.id for job in recent}.issubset({f"job-{index:02}" for index in range(22)})
 
 
+def test_project_can_be_renamed_without_changing_immutable_source() -> None:
+    repository = _repository()
+    service = AnalysisJobService(
+        repository,
+        cast(MinioObjectStore, FakeObjectStore()),
+        lambda _job_id, _object_name: None,
+        maximum_upload_bytes=1024,
+    )
+    job, _ = repository.create_or_get(
+        job_id="rename-job",
+        idempotency_key="rename-request",
+        object_name="analysis/rename-job/source.wav",
+        original_filename="source.wav",
+    )
+
+    renamed = service.rename_project(job.id, "  Mon   morceau  ")
+
+    assert renamed is not None
+    assert renamed.project_name == "Mon morceau"
+    assert renamed.original_filename == "source.wav"
+    assert renamed.object_name == "analysis/rename-job/source.wav"
+    with pytest.raises(InvalidUploadError, match="Project name"):
+        service.rename_project(job.id, " ")
+
+
 def test_mastering_starts_only_after_analysis_and_only_once() -> None:
     repository = _repository()
     dispatched: list[tuple[str, str]] = []

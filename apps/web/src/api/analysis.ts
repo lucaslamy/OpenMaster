@@ -4,6 +4,7 @@ export interface AnalysisJob {
   id: string;
   status: "queued" | "running" | "analyzed" | "mastering" | "retry_wait" | "succeeded" | "failed";
   original_filename: string;
+  project_name?: string;
   created_at?: string;
   updated_at?: string;
   result?: Record<string, unknown>;
@@ -111,6 +112,14 @@ export class AnalysisApiClient {
       throw new Error(!Array.isArray(payload) ? payload.detail ?? "Project history failed" : "Project history failed");
     }
     return payload;
+  }
+
+  public async rename(jobId: string, name: string): Promise<AnalysisJob> {
+    return this.request(`/analysis-jobs/${encodeURIComponent(jobId)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
   }
 
   public async saveSettings(jobId: string, settings: Record<string, number | boolean>): Promise<AnalysisJob> {

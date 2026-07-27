@@ -28,6 +28,7 @@ class AnalysisJobResponse(BaseModel):
         "queued", "running", "analyzed", "mastering", "retry_wait", "succeeded", "failed"
     ]
     original_filename: str
+    project_name: str | None = None
     created_at: str | None = None
     updated_at: str | None = None
     result: dict[str, Any] | None = None
@@ -53,6 +54,12 @@ class MasteringSettingsRequest(BaseModel):
     """Bounded settings are validated by the service shared with job creation."""
 
     settings: dict[str, float | int | bool]
+
+
+class ProjectRenameRequest(BaseModel):
+    """Editable metadata for a retained project."""
+
+    name: str
 
 
 class MasteringAccessRequest(BaseModel):
@@ -253,6 +260,22 @@ def list_analysis_jobs(
     return [_response(job) for job in service.list_recent(20)]
 
 
+@router.patch("/analysis-jobs/{job_id}", response_model=AnalysisJobResponse)
+def rename_analysis_project(
+    job_id: str,
+    request: ProjectRenameRequest,
+    service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+) -> AnalysisJobResponse:
+    """Rename a project without touching its immutable source audio."""
+    try:
+        job = service.rename_project(job_id, request.name)
+    except InvalidUploadError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    if job is None:
+        raise HTTPException(status_code=404, detail="Analysis job not found")
+    return _response(job)
+
+
 @router.post(
     "/analysis-jobs/{job_id}/final-renders",
     response_model=AnalysisJobResponse,
@@ -348,6 +371,7 @@ def _response(job: AnalysisJobRecord) -> AnalysisJobResponse:
     return AnalysisJobResponse(
         id=job.id,
         original_filename=job.original_filename,
+        project_name=job.project_name,
         created_at=job.created_at.isoformat() if job.created_at else None,
         updated_at=job.updated_at.isoformat() if job.updated_at else None,
         status=job.status,  # type: ignore[arg-type]

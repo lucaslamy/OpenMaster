@@ -4,6 +4,26 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-07-27
+
+### Added
+
+- Full-width studio workspace with a reduced-motion-safe visual system and compact
+  project-history drawer.
+- Versioned scripts for SSH/rsync synchronization, selective API/web/RunPod image
+  publication, values pinning, and atomic Helm deployment.
+- Editable project names stored independently from immutable source filenames.
+- Persistent preview transport for pausing and switching between the original source
+  and current live effects anywhere in the settings workflow.
+
+### Changed
+
+- Completed masters remain immutable downloads while further settings and renders
+  continue from the retained original source.
+- Rap and Club presets now protect bass headroom, and full-band saturation uses a
+  substantially gentler mastering curve in both browser preview and final DSP.
+- Reset returns the studio to preset selection instead of implying a modified master.
+
 ## [3.1.1] - 2026-07-27
 
 ### Fixed

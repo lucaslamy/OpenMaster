@@ -189,11 +189,9 @@ measurements and chains the mastering task. The mastering worker stores the reco
 render audit record, and final object identifier. The web client polls the API and follows
 the download endpoint to a short-lived signed MinIO URL.
 
-After an initial master, the browser can apply explicitly approximate Web Audio DSP
-without dispatching work. A final-render child reuses the parent's source object and
-analysis and enters the mastering queue directly; see `docs/INTERACTIVE_PREVIEW.md`.
-
 Analysis now pauses in the durable `analyzed` state. The browser auditions the retained
-source and commits its decision before the API atomically dispatches mastering. The
-twenty newest root projects are exposed as durable history; see
-`docs/PROJECT_HISTORY.md`.
+source with explicitly approximate Web Audio DSP and commits its decision before the API
+atomically dispatches mastering. Each master or later render is immutable and reuses
+the root source and analysis rather than a previous master. The twenty newest root
+projects are exposed as durable history, with editable PostgreSQL display names that
+never rename MinIO objects; see `docs/PROJECT_HISTORY.md`.

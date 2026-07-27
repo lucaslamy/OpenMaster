@@ -57,9 +57,10 @@ class MasteringPreviewProcessor extends AudioWorkletProcessor {
         const dry = input[channel]?.[frame] ?? input[0]?.[frame] ?? 0;
         let wet = dry * inputGain;
         if (!bypass && saturation > 0) {
-          const saturationDrive = 1 + saturation * 2;
+          // Mastering saturation stays deliberately subtle to protect bass transients.
+          const saturationDrive = 1 + saturation * .75;
           const shaped = Math.tanh(wet * saturationDrive) / Math.tanh(saturationDrive);
-          wet = wet * (1 - saturation * .35) + shaped * saturation * .35;
+          wet = wet * (1 - saturation * .14) + shaped * saturation * .14;
         }
         if (!bypass && drive > 1) wet = Math.tanh(wet * drive) / driveNorm;
         this.delay[channel][this.writeIndex] = wet;

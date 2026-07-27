@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import BinaryIO
 from uuid import uuid4
@@ -176,7 +176,20 @@ class AnalysisJobService:
         """Return up to twenty durable projects for the studio history."""
         return self._repository.list_recent(limit)
 
-    def save_settings(self, job_id: str, settings: dict[str, object]) -> AnalysisJobRecord | None:
+    def rename_project(self, job_id: str, project_name: str) -> AnalysisJobRecord | None:
+        """Persist a bounded display name without changing the source object."""
+        job = self._repository.get(job_id)
+        if job is None:
+            return None
+        root_id = job.parent_job_id or job.id
+        name = " ".join(project_name.split())
+        if not name or len(name) > 120:
+            raise InvalidUploadError("Project name must contain between 1 and 120 characters")
+        return self._repository.rename_project(root_id, name)
+
+    def save_settings(
+        self, job_id: str, settings: Mapping[str, float | int | bool]
+    ) -> AnalysisJobRecord | None:
         """Validate and persist current browser settings without dispatching work."""
         job = self._repository.get(job_id)
         if job is None:
@@ -184,7 +197,9 @@ class AnalysisJobService:
         validated = _validated_settings(settings, job)
         return self._repository.save_interactive_settings(job_id, validated)
 
-    def start_master(self, job_id: str, settings: dict[str, object]) -> AnalysisJobRecord | None:
+    def start_master(
+        self, job_id: str, settings: Mapping[str, float | int | bool]
+    ) -> AnalysisJobRecord | None:
         """Persist the user's decision and dispatch mastering without re-analysis."""
         job = self._repository.get(job_id)
         if job is None:
@@ -201,7 +216,7 @@ class AnalysisJobService:
     def render_final(
         self,
         job_id: str,
-        settings: dict[str, object],
+        settings: Mapping[str, float | int | bool],
         idempotency_key: str,
     ) -> AnalysisJobRecord | None:
         """Create a child render that reuses the source object and persisted analysis."""
@@ -278,7 +293,7 @@ class AnalysisJobService:
 
 
 def _validated_settings(
-    values: dict[str, object], fallback: AnalysisJobRecord
+    values: Mapping[str, float | int | bool], fallback: AnalysisJobRecord
 ) -> dict[str, float | int | bool]:
     """Return the supported final-render policy after applying the normal bounds."""
     settings: dict[str, float | int | bool] = {

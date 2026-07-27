@@ -5,6 +5,10 @@ keys. PostgreSQL retains analysis, settings, status, render lineage, and visuali
 data. The studio lists the twenty newest root projects; final-render child jobs remain
 attached to their parent and do not consume history slots.
 
+Each root can have an editable `project_name`. Renaming changes PostgreSQL display
+metadata only; it never changes the original filename, MinIO object keys, analysis, or
+previous masters. The web studio keeps this history in a compact side drawer.
+
 No application cleanup removes these objects. Production MinIO lifecycle rules must
 not expire `analysis/` or `mastering/` objects belonging to the newest twenty database
 projects. Backups and capacity monitoring remain operational responsibilities.
@@ -19,7 +23,8 @@ The lifecycle is:
 6. stream the retained source through live browser DSP;
 7. persist settings and atomically enter `mastering`;
 8. render locally or through RunPod without repeating analysis;
-9. retain and expose the downloadable master.
+9. retain and expose the downloadable master;
+10. continue previewing and creating independent renders from the original source.
 
 Repeated decision requests cannot enqueue the same analysed project twice because the
 database transition from `analyzed` to `mastering` is conditional and atomic.

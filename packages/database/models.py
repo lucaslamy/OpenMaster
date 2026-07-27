@@ -23,6 +23,7 @@ analysis_jobs = Table(
     Column("status", String(32), nullable=False),
     Column("object_name", Text, nullable=True),
     Column("original_filename", Text, nullable=True),
+    Column("project_name", Text, nullable=True),
     Column("attempt_count", Integer, nullable=False, server_default="0"),
     Column("result", JSON, nullable=True),
     Column("recommendation", JSON, nullable=True),

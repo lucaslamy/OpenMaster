@@ -79,6 +79,26 @@ describe("AnalysisApiClient", () => {
     expect(isTerminalStatus("failed")).toBe(true);
   });
 
+  it("renames retained projects without uploading audio", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({
+        id: "job-1",
+        status: "analyzed",
+        original_filename: "mix.wav",
+        project_name: "Single final",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const renamed = await new AnalysisApiClient("/v1").rename("job-1", "Single final");
+
+    expect(renamed.project_name).toBe("Single final");
+    expect(fetchMock).toHaveBeenCalledWith("/v1/analysis-jobs/job-1", expect.objectContaining({
+      method: "PATCH",
+      body: JSON.stringify({ name: "Single final" }),
+    }));
+  });
+
   it("reports a routing error instead of parsing an HTML response as JSON", async () => {
     vi.stubGlobal(
       "fetch",

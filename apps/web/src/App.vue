@@ -26,8 +26,8 @@ const intents = [
   { key: "Transparent", copy: "Transparent", target: -16, ceiling: -1.5, gain: 6, depth: 24, eq: [0, 0, 0], clip: 0, spectral: [0, 0, 0, 0] },
   { key: "Streaming", copy: "Streaming", target: -14, ceiling: -1, gain: 9, depth: 24, eq: [0, 0, 0], clip: 1, spectral: [1.5, 1.5, 1.5, 0.1] },
   { key: "Podcast", copy: "Podcast", target: -16, ceiling: -1, gain: 6, depth: 16, eq: [-0.5, 1, 0.5], clip: 1, spectral: [2, 1, 4, 0.1] },
-  { key: "Rap", copy: "Rap", target: -9, ceiling: -1, gain: 12, depth: 24, eq: [1.5, 0.5, 0.75], clip: 2, spectral: [0.5, 1.5, 1.5, 0.15] },
-  { key: "Club", copy: "Club", target: -9, ceiling: -0.3, gain: 12, depth: 24, eq: [1.5, -0.5, 1], clip: 6, spectral: [2, 4, 2, 0.25] },
+  { key: "Rap", copy: "Rap", target: -10, ceiling: -1, gain: 10, depth: 24, eq: [0.5, 0.5, 0.75], clip: 1, spectral: [0.5, 2.5, 1.5, 0.04] },
+  { key: "Club", copy: "Club", target: -10, ceiling: -0.5, gain: 10, depth: 24, eq: [0.5, -0.5, 1], clip: 3, spectral: [2, 5, 2, 0.08] },
   { key: "Loud", copy: "Loud", target: -10, ceiling: -0.5, gain: 12, depth: 24, eq: [0.5, 0, 0.5], clip: 5, spectral: [3, 3, 3, 0.25] },
   { key: "Dynamic", copy: "Dynamic", target: -18, ceiling: -2, gain: 5, depth: 24, eq: [0, 0, 0], clip: 0, spectral: [0, 0, 0, 0] },
 ];
@@ -68,6 +68,9 @@ const selectedFile = ref<File | null>(null);
 const sourceUrl = ref<string | null>(null);
 const job = ref<AnalysisJob | null>(null);
 const recentProjects = ref<AnalysisJob[]>([]);
+const historyOpen = ref(false);
+const projectRootId = ref<string | null>(null);
+const renameValue = ref("");
 const error = ref<string | null>(null);
 const submitting = ref(false);
 const authorizing = ref(false);
@@ -184,6 +187,7 @@ function setFile(file: File | null): void {
   selectedFile.value = file;
   sourceUrl.value = file ? URL.createObjectURL(file) : null;
   job.value = null;
+  projectRootId.value = null;
   error.value = null;
 }
 
@@ -197,6 +201,9 @@ async function loadHistory(): Promise<void> {
 
 function openProject(project: AnalysisJob): void {
   job.value = project;
+  projectRootId.value = project.parent_job_id ?? project.id;
+  renameValue.value = project.project_name ?? project.original_filename.replace(/\.[^.]+$/, "");
+  historyOpen.value = false;
   selectedFile.value = null;
   sourceUrl.value = project.source_preview_url ?? null;
   const settings = project.interactive_settings;
@@ -212,6 +219,17 @@ function openProject(project: AnalysisJob): void {
     bitDepth.value = Number(settings.bit_depth ?? bitDepth.value);
   }
   if (!isTerminalStatus(project.status)) schedulePoll();
+}
+
+async function renameProject(): Promise<void> {
+  if (!job.value || !renameValue.value.trim()) return;
+  try {
+    const renamed = await client.rename(projectRootId.value ?? job.value.id, renameValue.value);
+    job.value = { ...job.value, project_name: renamed.project_name };
+    await loadHistory();
+  } catch (reason) {
+    error.value = reason instanceof Error ? reason.message : t("requestFailed");
+  }
 }
 
 function requestMaster(): void {
@@ -300,7 +318,7 @@ async function renderFinal(authorization: string): Promise<void> {
   try {
     await saveSettings();
     if (!job.value) return;
-    job.value = await client.renderFinal(job.value.id, {
+    job.value = await client.renderFinal(projectRootId.value ?? job.value.id, {
       ...backendSettings(currentSettings.value),
       bit_depth: bitDepth.value,
       ai_assist_enabled: aiAssistEnabled.value,
@@ -322,7 +340,8 @@ function resetInteractiveSettings(): void {
   targetLufs.value = -14; maximumGainAdjustmentDb.value = 12;
   clipperDriveDb.value = 0; limiterLookaheadMs.value = 3;
   limiterReleaseMs.value = 80; saturationAmount.value = 0; bitDepth.value = 24;
-  activeIntent.value = "Custom";
+  activeIntent.value = "";
+  document.querySelector(".preset-grid")?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 async function submit(authorization: string): Promise<void> {
@@ -353,6 +372,8 @@ async function submit(authorization: string): Promise<void> {
       saturationAmount.value,
       aiAssistEnabled.value,
     );
+    projectRootId.value = job.value.id;
+    renameValue.value = selectedFile.value.name.replace(/\.[^.]+$/, "");
     await loadHistory();
     schedulePoll();
   } catch (reason) {
@@ -427,9 +448,20 @@ watch(
         <p class="hero-copy">{{ t("heroCopy") }}</p>
       </header>
 
-      <section v-if="recentProjects.length" class="project-history panel">
+      <button
+        v-if="recentProjects.length"
+        class="history-trigger"
+        type="button"
+        :aria-expanded="historyOpen"
+        @click="historyOpen = true"
+      >
+        <span>⌁</span><b>{{ locale === "fr" ? "Projets" : "Projects" }}</b>
+      </button>
+      <div v-if="historyOpen" class="history-backdrop" @click.self="historyOpen = false">
+      <section class="project-history panel" role="dialog" aria-modal="true">
         <div class="panel-heading">
           <div><span class="step">↺</span><h2>{{ locale === "fr" ? "20 derniers projets" : "Latest 20 projects" }}</h2></div>
+          <button class="drawer-close" type="button" @click="historyOpen = false">×</button>
         </div>
         <div class="history-list">
           <button
@@ -439,11 +471,21 @@ watch(
             :class="{ active: job?.id === project.id }"
             @click="openProject(project)"
           >
-            <strong>{{ project.original_filename }}</strong>
+            <strong>{{ project.project_name || project.original_filename }}</strong>
             <small>{{ project.status }} · {{ project.created_at ? new Date(project.created_at).toLocaleString(locale) : project.id.slice(0, 8) }}</small>
           </button>
         </div>
       </section>
+      </div>
+
+      <InteractivePreview
+        v-if="job?.result && sourceUrl"
+        class="sticky-preview"
+        :url="sourceUrl"
+        :settings="currentSettings"
+        :locale="locale"
+        @reset="resetInteractiveSettings"
+      />
 
       <form class="studio-grid" @submit.prevent="requestMaster">
         <section class="panel source-panel">
@@ -468,16 +510,23 @@ watch(
             </template>
           </label>
           <AudioWaveform :file="selectedFile" :locale="locale" />
-          <audio v-if="sourceUrl" class="audio-player" :src="sourceUrl" controls />
           <button v-if="selectedFile && !job" class="master-button" type="submit" :disabled="!canSubmit">
             <span>{{ submitting ? t("uploadSource") : (locale === "fr" ? "Vérifier le mot de passe puis analyser" : "Verify password, then analyze") }}</span>
             <b>→</b>
           </button>
         </section>
 
-        <aside v-if="job?.status === 'analyzed'" class="panel settings-panel">
+        <aside
+          v-if="job?.result && !['queued', 'running', 'mastering', 'retry_wait'].includes(job.status)"
+          class="panel settings-panel"
+        >
           <div class="panel-heading">
             <div><span class="step">02</span><h2>{{ t("direction") }}</h2></div>
+          </div>
+
+          <div class="project-rename">
+            <label for="project-name">{{ locale === "fr" ? "Nom du projet" : "Project name" }}</label>
+            <div><input id="project-name" v-model="renameValue" maxlength="120" /><button type="button" @click="renameProject">✓</button></div>
           </div>
 
           <fieldset>
@@ -677,9 +726,17 @@ watch(
             <strong>{{ activeIntentLabel }}</strong>
             <small>{{ t("outputSummary", { lufs: targetLufs.toFixed(1), ceiling: ceilingDbfs.toFixed(1), depth: bitDepth }) }}</small>
           </div>
-          <button class="master-button" type="button" :disabled="submitting" @click="startMasterDecision">
-            <span>{{ submitting ? t("mastering") : (locale === "fr" ? "Valider la décision et masteriser" : "Confirm decision and master") }}</span>
+          <button
+            class="master-button"
+            type="button"
+            :disabled="submitting"
+            @click="job.status === 'analyzed' ? startMasterDecision() : requestFinalRender()"
+          >
+            <span>{{ submitting ? t("mastering") : (locale === "fr" ? "Créer un nouveau master" : "Create a new master") }}</span>
             <b>→</b>
+          </button>
+          <button class="return-presets" type="button" @click="resetInteractiveSettings">
+            ↺ {{ locale === "fr" ? "Réinitialiser et choisir un preset" : "Reset and choose a preset" }}
           </button>
         </aside>
       </form>
@@ -728,21 +785,11 @@ watch(
           :after-level-timeline="job.master_level_timeline"
         />
 
-        <InteractivePreview
-          v-if="job.status === 'analyzed' || job.preview_url || job.initial_preview_url"
-          :url="job.status === 'analyzed' ? (sourceUrl || job.source_preview_url || '') : (job.initial_preview_url || job.preview_url || '')"
-          :settings="currentSettings"
-          :locale="locale"
-          @reset="resetInteractiveSettings"
-        />
-
         <div v-if="job.preview_url || job.initial_preview_url" class="final-render-actions panel">
           <button type="button" :disabled="submitting" @click="saveSettings">
             {{ locale === "fr" ? "Enregistrer les réglages" : "Save settings" }}
           </button>
-          <button class="master-button" type="button" :disabled="submitting" @click="requestFinalRender">
-            {{ locale === "fr" ? "Générer le master final avec ces réglages" : "Generate final master with these settings" }}
-          </button>
+          <p>{{ locale === "fr" ? "Ce master est immuable. Téléchargez-le puis continuez à régler depuis l’original." : "This master is immutable. Download it, then keep working from the original." }}</p>
         </div>
 
         <div v-if="findings.length" class="panel assistant-panel">

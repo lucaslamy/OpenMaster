@@ -22,6 +22,7 @@ class AnalysisJobRecord:
     object_name: str
     original_filename: str
     attempt_count: int
+    project_name: str | None = None
     result: dict[str, Any] | None = None
     recommendation: dict[str, Any] | None = None
     mastering_result: dict[str, Any] | None = None
@@ -177,6 +178,14 @@ class AnalysisJobRepository:
             )
         return [_record(row) for row in rows]
 
+    def rename_project(self, job_id: str, project_name: str) -> AnalysisJobRecord:
+        """Update only a project's user-facing display name."""
+        self._update(job_id, project_name=project_name)
+        renamed = self.get(job_id)
+        if renamed is None:  # pragma: no cover - guarded by _update
+            raise KeyError(f"Unknown analysis job {job_id}")
+        return renamed
+
     def mark_running(self, job_id: str) -> None:
         """Record worker ownership without exposing leases through the HTTP API."""
         self._update(
@@ -318,6 +327,7 @@ def _record(row: Any) -> AnalysisJobRecord:
         object_name=object_name,
         original_filename=original_filename,
         attempt_count=row["attempt_count"],
+        project_name=row["project_name"],
         result=row["result"],
         recommendation=row["recommendation"],
         mastering_result=row["mastering_result"],
