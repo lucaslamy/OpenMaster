@@ -1,7 +1,13 @@
 # Référence technique du mastering OpenMaster
 
-> Référence du moteur v3.3, destinée à l’écoute critique et à l’audit par un
+> Référence du moteur v3.4, destinée à l’écoute critique et à l’audit par un
 > ingénieur du son. Le code reste l’autorité en cas d’écart avec ce document.
+
+Cette référence exhaustive est complétée dans l’interface par la page
+**Technique**, accessible depuis la navigation principale. Elle présente la chaîne,
+les détecteurs, le true peak, la frontière LamAI et l’export sous forme de schémas
+animés et responsives. Les animations sont décoratives, respectent
+`prefers-reduced-motion` et ne remplacent jamais les valeurs normatives de ce document.
 
 ## 1. Philosophie et périmètre
 

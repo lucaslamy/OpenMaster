@@ -2,7 +2,7 @@
 import type { Locale } from "../i18n";
 
 defineProps<{ locale: Locale }>();
-defineEmits<{ back: [] }>();
+defineEmits<{ back: []; technical: [] }>();
 </script>
 
 <template>
@@ -13,6 +13,7 @@ defineEmits<{ back: [] }>();
       <p>Everything shown by the studio, what each control changes, and how a track moves through the pipeline.</p>
       <div class="guide-actions">
         <button type="button" @click="$emit('back')">← Return to studio</button>
+        <button type="button" @click="$emit('technical')">Interactive technical reference →</button>
         <a
           href="https://github.com/lucaslamy/OpenMaster/blob/main/docs/MASTERING_TECHNICAL_REFERENCE.fr.md"
           target="_blank"
@@ -97,6 +98,7 @@ defineEmits<{ back: [] }>();
       <p>Comprendre toutes les informations du studio, l’effet de chaque réglage et le parcours complet d’un morceau.</p>
       <div class="guide-actions">
         <button type="button" @click="$emit('back')">← Retour au studio</button>
+        <button type="button" @click="$emit('technical')">Référence technique interactive →</button>
         <a
           href="https://github.com/lucaslamy/OpenMaster/blob/main/docs/MASTERING_TECHNICAL_REFERENCE.fr.md"
           target="_blank"

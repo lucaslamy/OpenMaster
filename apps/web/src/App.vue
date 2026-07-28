@@ -15,6 +15,7 @@ import BeforeAfterPlayer from "./components/BeforeAfterPlayer.vue";
 import GuidePage from "./components/GuidePage.vue";
 import InfoTip from "./components/InfoTip.vue";
 import InteractivePreview from "./components/InteractivePreview.vue";
+import TechnicalReferencePage from "./components/TechnicalReferencePage.vue";
 import { backendSettings, type InteractiveSettings } from "./masteringParameters";
 import {
   masteringIntents,
@@ -50,7 +51,28 @@ const pipelineStages = computed(() => [
   { key: "mastering", label: t("mastering") },
   { key: "ready", label: t("ready") },
 ]);
-const page = ref<"studio" | "guide">("studio");
+const page = ref<"studio" | "guide" | "technical">("studio");
+const pointerX = ref(50);
+const pointerY = ref(12);
+const ambientStyle = computed(() => ({
+  "--pointer-x": `${pointerX.value}%`,
+  "--pointer-y": `${pointerY.value}%`,
+}));
+let pointerFrame = 0;
+let pendingPointer: PointerEvent | null = null;
+
+function updateAmbientPointer(event: PointerEvent): void {
+  pendingPointer = event;
+  if (pointerFrame) return;
+  pointerFrame = requestAnimationFrame(() => {
+    if (pendingPointer) {
+      pointerX.value = pendingPointer.clientX / window.innerWidth * 100;
+      pointerY.value = pendingPointer.clientY / window.innerHeight * 100;
+    }
+    pendingPointer = null;
+    pointerFrame = 0;
+  });
+}
 const activeIntent = ref("Streaming");
 const activeIntentLabel = computed(() => {
   if (activeIntent.value === "Custom") return t("custom");
@@ -526,6 +548,7 @@ function schedulePoll(delayMs = 1_000): void {
 }
 
 onBeforeUnmount(() => {
+  cancelAnimationFrame(pointerFrame);
   uploadController?.abort();
   stopPolling();
   if (sourceUrl.value?.startsWith("blob:")) URL.revokeObjectURL(sourceUrl.value);
@@ -558,7 +581,17 @@ watch(
 </script>
 
 <template>
-  <div class="app-shell">
+  <div class="app-shell" :style="ambientStyle" @pointermove.passive="updateAmbientPointer">
+    <div class="ambient-field" aria-hidden="true">
+      <i class="ambient-orb orb-one"></i>
+      <i class="ambient-orb orb-two"></i>
+      <i class="ambient-orb orb-three"></i>
+      <svg class="ambient-wave" viewBox="0 0 1440 260" preserveAspectRatio="none">
+        <path d="M0 140 C120 20 220 240 350 120 S590 55 720 145 S960 245 1090 110 S1320 25 1440 150" />
+        <path d="M0 170 C130 80 250 220 390 155 S620 80 760 165 S1010 220 1150 140 S1340 90 1440 175" />
+      </svg>
+      <div class="ambient-grid"></div>
+    </div>
     <nav class="topbar">
       <button class="brand brand-button" type="button" :aria-label="`OpenMaster ${t('studio')}`" @click="page = 'studio'">
         <span class="brand-mark"><i></i><i></i><i></i><i></i></span>
@@ -568,6 +601,7 @@ watch(
       <div class="nav-links">
         <button type="button" :class="{ active: page === 'studio' }" @click="page = 'studio'">{{ t("studio") }}</button>
         <button type="button" :class="{ active: page === 'guide' }" @click="page = 'guide'">{{ t("guide") }}</button>
+        <button type="button" :class="{ active: page === 'technical' }" @click="page = 'technical'">{{ t("technical") }}</button>
         <label class="language-selector">
           <span class="sr-only">Language</span>
           <select v-model="locale" aria-label="Language / Langue">
@@ -584,7 +618,18 @@ watch(
       </div>
     </nav>
 
-    <GuidePage v-if="page === 'guide'" :locale="locale" @back="page = 'studio'" />
+    <GuidePage
+      v-if="page === 'guide'"
+      :locale="locale"
+      @back="page = 'studio'"
+      @technical="page = 'technical'"
+    />
+    <TechnicalReferencePage
+      v-else-if="page === 'technical'"
+      :locale="locale"
+      @back="page = 'guide'"
+      @studio="page = 'studio'"
+    />
     <main v-else>
       <header class="hero">
         <div class="signal-sprites" aria-hidden="true">
@@ -593,6 +638,9 @@ watch(
         <p class="eyebrow">{{ t("workspace") }}</p>
         <h1>{{ t("heroTitle") }}<br /><em>{{ t("heroEmphasis") }}</em></h1>
         <p class="hero-copy">{{ t("heroCopy") }}</p>
+        <div class="hero-spectrum" aria-hidden="true">
+          <i v-for="height in [24, 48, 31, 73, 91, 58, 42, 76, 64, 37, 53, 82, 45, 68, 29, 57]" :key="height" :style="{ height: `${height}%` }"></i>
+        </div>
       </header>
 
       <button

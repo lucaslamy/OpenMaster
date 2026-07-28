@@ -4,6 +4,22 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-07-28
+
+### Added
+
+- A dedicated bilingual sound-engineer page now presents the exact signal chain,
+  measurements, linked dynamics, peak processors, LamAI validation boundary, presets,
+  preview differences, and PCM delivery through responsive animated diagrams.
+- The main studio now includes a pointer-reactive light field, drifting spectral
+  background, animated meter branding, panel light sweeps, and a live hero spectrum,
+  with reduced-motion fallbacks.
+
+### Changed
+
+- The integrated field guide now links directly to the on-site technical reference
+  while retaining the exhaustive GitHub document in a separate tab.
+
 ## [3.4.1] - 2026-07-28
 
 ### Fixed

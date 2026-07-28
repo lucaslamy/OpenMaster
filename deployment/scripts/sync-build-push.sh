@@ -10,9 +10,9 @@ Usage: deployment/scripts/sync-build-push.sh VERSION COMPONENT [COMPONENT...]
 Components: api, web, runpod, all
 
 Examples:
-  deployment/scripts/sync-build-push.sh 3.4.1 api web
-  deployment/scripts/sync-build-push.sh 3.4.1 runpod
-  deployment/scripts/sync-build-push.sh 3.4.1 all
+  deployment/scripts/sync-build-push.sh 3.5.0 api web
+  deployment/scripts/sync-build-push.sh 3.5.0 runpod
+  deployment/scripts/sync-build-push.sh 3.5.0 all
 
 Optional environment:
   SOURCE_DIR, SSH_KEY, REMOTE, REMOTE_DIR, REGISTRY, RUNPOD_REGISTRY, SKIP_SYNC=1

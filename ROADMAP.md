@@ -185,6 +185,15 @@ its control box, and opens source-code documentation in isolated browser tabs.
 Patch `3.4.1` separates the RunPod image repository from the private API/web registry
 root in the synchronized build-and-push workflow.
 
+## v3.5 — Interactive engineering reference
+
+Released: `3.5.0`. The web client now provides a dedicated bilingual sound-engineer
+reference with responsive animated diagrams for the exact DSP order, measurements,
+linked spectral dynamics, peak processing, LamAI validation boundary, presets, preview
+differences, and PCM delivery. The studio gains pointer-reactive lighting, spectral
+motion, animated metering, and panel depth while preserving reduced-motion behavior.
+The exhaustive repository reference remains the normative companion document.
+
 ## Planning rules
 
 - Do not start a version by adding its UI before its package-level contracts exist.

@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 
 from .analysis_routes import router as analysis_router
 
-app = FastAPI(title="OpenMaster API", version="3.4.1")
+app = FastAPI(title="OpenMaster API", version="3.5.0")
 app.include_router(analysis_router)
 
 

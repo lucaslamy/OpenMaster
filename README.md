@@ -1,9 +1,9 @@
-# OpenMaster v3.4.1
+# OpenMaster v3.5.0
 
-OpenMaster is an open-source professional audio mastering platform. v3.4 adds
-independent measurement-driven LamAI policy optimisation, a complete sound-engineer
-technical reference, and clearer mastering-audit and spectral-dynamics presentation
-to the production Kubernetes-native platform.
+OpenMaster is an open-source professional audio mastering platform. v3.5 adds a
+dedicated interactive sound-engineer reference, code-native animated DSP diagrams,
+and a richer reduced-motion-safe visual system to the production Kubernetes-native
+platform.
 
 ## Current capability
 
@@ -22,7 +22,9 @@ mastering-profile and WAV-depth controls, durable pipeline progress, specialized
 level/dynamics/stereo/spectral/source views, accessible control explanations, an
 integrated field guide, readable assistant findings, synchronized A/B playback, a
 multi-view source/master comparison, bilingual English/French navigation, the original
-Rap profile plus Rap Reloaded, and original-name master delivery. It expects the
+Rap profile plus Rap Reloaded, original-name master delivery, and a dedicated animated
+sound-engineer reference page that exposes the exact DSP chain, measurements, formulas,
+presets, AI boundary, and export path. It expects the
 versioned analysis-job API contract documented in
 [docs/analysis-jobs.md](docs/analysis-jobs.md).
 
