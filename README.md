@@ -1,8 +1,9 @@
-# OpenMaster v3.3.0
+# OpenMaster v3.4.0
 
-OpenMaster is an open-source professional audio mastering platform. v3.3 adds measured
-source-upload progress, post-analysis live pre-master audition, and the independently
-validated Rap Reloaded profile to the production Kubernetes-native platform.
+OpenMaster is an open-source professional audio mastering platform. v3.4 adds
+independent measurement-driven LamAI policy optimisation, a complete sound-engineer
+technical reference, and clearer mastering-audit and spectral-dynamics presentation
+to the production Kubernetes-native platform.
 
 ## Current capability
 
@@ -29,8 +30,11 @@ versioned analysis-job API contract documented in
 
 `packages.dsp_engine` provides a typed processor contract, ordered deterministic
 pipelines, explicit tonal and spectral stages, fixed gain staging, and linked
-oversampled lookahead limiting. See `docs/DSP_ENGINE.md` for its exact behavior and
-current limiter limitations.
+oversampled lookahead limiting. The
+[French mastering technical reference](docs/MASTERING_TECHNICAL_REFERENCE.fr.md)
+documents the complete signal path, formulas, fixed constants, preset values,
+browser-preview differences, audit record, and known limits for sound engineers.
+`docs/DSP_ENGINE.md` remains the shorter developer overview.
 
 ```python
 from packages.analysis_engine import AnalysisService

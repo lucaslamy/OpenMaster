@@ -108,9 +108,15 @@ function position(parameter: string, value: boolean | number): number {
     </header>
 
     <template v-if="applied">
-      <p v-if="rationale" class="ai-rationale">{{ rationale }}</p>
-      <div class="ai-model">
-        <span>{{ t("aiModel") }}</span><strong>{{ model || "LamAI" }}</strong>
+      <div v-if="rationale" class="ai-rationale-card">
+        <span>{{ t("aiDecision") }}</span>
+        <p class="ai-rationale">{{ rationale }}</p>
+      </div>
+      <div class="ai-meta">
+        <div class="ai-model">
+          <span>{{ t("aiModel") }}</span><strong>{{ model || "LamAI" }}</strong>
+        </div>
+        <span class="ai-mode">{{ t("aiIndependentMode") }}</span>
       </div>
       <div v-if="changes.length" class="ai-change-grid">
         <article v-for="change in changes" :key="change.parameter">

@@ -73,6 +73,12 @@ def test_lamai_advice_is_parsed_and_bounded(monkeypatch: pytest.MonkeyPatch) -> 
     sent = captured[0].data.decode()
     assert "source_url" not in sent
     assert "MINIO" not in sent
+    payload = json.loads(sent)
+    prompt = payload["messages"][1]["content"]
+    assert "starting settings for comparison only" in prompt.lower()
+    assert "not preferences, targets, or constraints" in prompt
+    assert "do not answer with a bounds-compliance review" in prompt.lower()
+    assert "dynamic_eq_center_hz" in prompt
     assert captured[0].headers["Authorization"] == "Bearer secret"
 
 
@@ -85,6 +91,34 @@ def test_lamai_advice_rejects_out_of_bounds_model_output(
         {
             "model": "qwen",
             "message": {"content": json.dumps({"settings": settings, "rationale": "unsafe"})},
+        }
+    ).encode()
+    monkeypatch.setattr(
+        "packages.ai_mastering.client.urlopen",
+        lambda *_args, **_kwargs: FakeResponse(
+            __import__("io").BytesIO(body), Message(), "https://lamai/v1/chat"
+        ),
+    )
+
+    with pytest.raises(LamAiMasteringError, match="invalid"):
+        LamAiMasteringClient("https://lamai.example", "secret").recommend(
+            _analysis(), MasteringPolicy()
+        )
+
+
+def test_lamai_advice_cannot_change_fixed_dsp_topology(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = asdict(MasteringPolicy())
+    settings["bass_control_hz"] = 180.0
+    body = json.dumps(
+        {
+            "model": "qwen",
+            "message": {
+                "content": json.dumps(
+                    {"settings": settings, "rationale": "Move the crossover."}
+                )
+            },
         }
     ).encode()
     monkeypatch.setattr(

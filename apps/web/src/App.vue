@@ -575,7 +575,12 @@ watch(
             <option value="fr">FR</option>
           </select>
         </label>
-        <a class="github-link" href="https://github.com/lucaslamy/OpenMaster">{{ t("sourceLink") }}</a>
+        <a
+          class="github-link"
+          href="https://github.com/lucaslamy/OpenMaster"
+          target="_blank"
+          rel="noopener noreferrer"
+        >{{ t("sourceLink") }}</a>
       </div>
     </nav>
 
@@ -848,8 +853,12 @@ watch(
 
           </div>
           <div class="settings-column">
-          <fieldset class="advanced-dsp">
-            <legend>{{ t("spectralDynamics") }} <InfoTip :text="t('spectralDynamicsTip')" /></legend>
+          <fieldset class="advanced-dsp spectral-dynamics-fieldset" aria-labelledby="spectral-dynamics-heading">
+            <legend class="sr-only">{{ t("spectralDynamics") }}</legend>
+            <div id="spectral-dynamics-heading" class="fieldset-heading">
+              <strong>{{ t("spectralDynamics") }}</strong>
+              <InfoTip :text="t('spectralDynamicsTip')" />
+            </div>
             <div class="mini-control switch-control">
               <label for="high-pass-enabled">{{ t("highPass") }} <InfoTip :text="t('highPassTip')" /></label>
               <input id="high-pass-enabled" v-model="highPassEnabled" type="checkbox" @change="activeIntent = 'Custom'" />

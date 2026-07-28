@@ -11,7 +11,14 @@ defineEmits<{ back: [] }>();
       <p class="eyebrow">OpenMaster field guide</p>
       <h1>Read the sound.<br /><em>Shape the master.</em></h1>
       <p>Everything shown by the studio, what each control changes, and how a track moves through the pipeline.</p>
-      <button type="button" @click="$emit('back')">← Return to studio</button>
+      <div class="guide-actions">
+        <button type="button" @click="$emit('back')">← Return to studio</button>
+        <a
+          href="https://github.com/lucaslamy/OpenMaster/blob/main/docs/MASTERING_TECHNICAL_REFERENCE.fr.md"
+          target="_blank"
+          rel="noopener noreferrer"
+        >Sound engineer technical reference ↗</a>
+      </div>
     </header>
     <nav class="guide-index"><a href="#pipeline">Pipeline</a><a href="#measurements">Measurements</a><a href="#controls">Controls</a><a href="#comparisons">Comparisons</a><a href="#delivery">Delivery</a></nav>
     <section id="pipeline" class="guide-section">
@@ -19,7 +26,7 @@ defineEmits<{ back: [] }>();
       <div class="guide-steps">
         <article><b>1</b><h3>Upload</h3><p>The source is validated and stored privately in MinIO.</p></article>
         <article><b>2</b><h3>Analysis</h3><p>OpenMaster decodes the audio and measures levels, dynamics, stereo and spectral identity.</p></article>
-        <article><b>3</b><h3>Decision</h3><p>The assistant derives a bounded gain decision from your policy and measured headroom.</p></article>
+        <article><b>3</b><h3>Decision</h3><p>The engine derives a bounded gain decision from your policy and measured integrated loudness.</p></article>
         <article><b>4</b><h3>Render</h3><p>High-pass, selective dynamics, saturation, clipping, True Peak limiting, output measurement and dither run locally or on RunPod.</p></article>
         <article><b>5</b><h3>Delivery</h3><p>A private WAV is published through a short-lived signed download.</p></article>
       </div>
@@ -39,7 +46,7 @@ defineEmits<{ back: [] }>();
       </div>
       <aside class="lufs-explainer">
         <div><span>−18</span><small>Dynamic</small></div><i></i><div><span>−16</span><small>Natural</small></div><i></i><div><span>−14</span><small>Streaming start</small></div><i></i><div><span>−9</span><small>Loud</small></div>
-        <p><strong>LUFS is not a volume knob guarantee.</strong> OpenMaster measures integrated LUFS with perceptual weighting and silence gating, then requests the gain needed to approach your target. If that gain would cross the configured peak ceiling, safety wins and the target may not be reached. Streaming platforms can normalize playback, so louder masters do not necessarily play louder to listeners.</p>
+        <p><strong>LUFS is not a volume knob guarantee.</strong> OpenMaster measures integrated LUFS with perceptual weighting and silence gating, then requests a bounded gain toward your target. The clipper and limiter enforce peak safety; on a dense source the target can remain out of reach inside the deliberately limited calibration budget. Streaming platforms can normalize playback, so louder masters do not necessarily play louder to listeners.</p>
       </aside>
     </section>
     <section id="controls" class="guide-section">
@@ -74,8 +81,9 @@ defineEmits<{ back: [] }>();
       <div class="delivery-table">
         <div><strong>Transparent</strong><span>−16 LUFS</span><span>−1.5 dBFS</span><span>±6 dB</span></div>
         <div><strong>Streaming</strong><span>−14 LUFS</span><span>−1.0 dBFS</span><span>±9 dB</span></div>
-        <div><strong>Rap</strong><span>−9 LUFS</span><span>−1 dBFS</span><span>±12 dB</span></div>
-        <div><strong>Loud</strong><span>−9 LUFS</span><span>−0.5 dBFS</span><span>±12 dB</span></div>
+        <div><strong>Rap</strong><span>−10 LUFS</span><span>−1 dBFS</span><span>±10 dB</span></div>
+        <div><strong>Rap Reloaded</strong><span>−10.5 LUFS</span><span>−1 dBFS</span><span>±6 dB</span></div>
+        <div><strong>Loud</strong><span>−10 LUFS</span><span>−0.5 dBFS</span><span>±12 dB</span></div>
         <div><strong>Podcast</strong><span>−16 LUFS</span><span>−1.0 dBFS</span><span>±6 dB</span></div>
       </div>
       <p class="guide-footnote">These are starting policies, not platform compliance guarantees. Always listen to the output and compare it at matched loudness.</p>
@@ -87,7 +95,14 @@ defineEmits<{ back: [] }>();
       <p class="eyebrow">Guide pratique OpenMaster</p>
       <h1>Lire le son.<br /><em>Façonner le master.</em></h1>
       <p>Comprendre toutes les informations du studio, l’effet de chaque réglage et le parcours complet d’un morceau.</p>
-      <button type="button" @click="$emit('back')">← Retour au studio</button>
+      <div class="guide-actions">
+        <button type="button" @click="$emit('back')">← Retour au studio</button>
+        <a
+          href="https://github.com/lucaslamy/OpenMaster/blob/main/docs/MASTERING_TECHNICAL_REFERENCE.fr.md"
+          target="_blank"
+          rel="noopener noreferrer"
+        >Référence technique ingénieur son ↗</a>
+      </div>
     </header>
     <nav class="guide-index"><a href="#pipeline-fr">Chaîne</a><a href="#mesures-fr">Mesures</a><a href="#reglages-fr">Réglages</a><a href="#comparaisons-fr">Comparaisons</a><a href="#livraison-fr">Livraison</a></nav>
     <section id="pipeline-fr" class="guide-section">
@@ -95,7 +110,7 @@ defineEmits<{ back: [] }>();
       <div class="guide-steps">
         <article><b>1</b><h3>Envoi</h3><p>La source est validée puis stockée de manière privée dans MinIO.</p></article>
         <article><b>2</b><h3>Analyse</h3><p>OpenMaster décode le son et mesure les niveaux, la dynamique, la stéréo et l’identité spectrale.</p></article>
-        <article><b>3</b><h3>Décision</h3><p>L’assistant détermine une correction de gain bornée à partir de votre politique et de la marge mesurée.</p></article>
+        <article><b>3</b><h3>Décision</h3><p>Le moteur détermine une correction de gain bornée à partir de votre politique et des LUFS intégrés mesurés.</p></article>
         <article><b>4</b><h3>Rendu</h3><p>Coupe-bas, dynamique sélective, saturation, clipping, limitation True Peak, mesure de sortie et dither s’exécutent localement ou sur RunPod.</p></article>
         <article><b>5</b><h3>Livraison</h3><p>Un WAV privé est publié au moyen d’un téléchargement signé de courte durée.</p></article>
       </div>
@@ -115,7 +130,7 @@ defineEmits<{ back: [] }>();
       </div>
       <aside class="lufs-explainer">
         <div><span>−18</span><small>Dynamique</small></div><i></i><div><span>−16</span><small>Naturel</small></div><i></i><div><span>−14</span><small>Départ streaming</small></div><i></i><div><span>−9</span><small>Fort</small></div>
-        <p><strong>Les LUFS ne garantissent pas un volume de lecture.</strong> OpenMaster mesure les LUFS intégrés avec une pondération perceptuelle et un seuil excluant les silences, puis demande le gain nécessaire pour approcher la cible. Si ce gain dépasse le plafond de crête configuré, la sécurité est prioritaire et la cible peut ne pas être atteinte. Les plateformes peuvent normaliser la lecture : un master plus fort ne sera donc pas nécessairement entendu plus fort.</p>
+        <p><strong>Les LUFS ne garantissent pas un volume de lecture.</strong> OpenMaster mesure les LUFS intégrés avec une pondération perceptuelle et un seuil excluant les silences, puis demande un gain borné vers la cible. Le clipper et le limiteur protègent les crêtes ; sur une source dense, la cible peut rester inaccessible dans le budget de calibration volontairement limité. Les plateformes peuvent normaliser la lecture : un master plus fort ne sera donc pas nécessairement entendu plus fort.</p>
       </aside>
     </section>
     <section id="reglages-fr" class="guide-section">
@@ -150,8 +165,9 @@ defineEmits<{ back: [] }>();
       <div class="delivery-table">
         <div><strong>Transparent</strong><span>−16 LUFS</span><span>−1,5 dBFS</span><span>±6 dB</span></div>
         <div><strong>Streaming</strong><span>−14 LUFS</span><span>−1,0 dBFS</span><span>±9 dB</span></div>
-        <div><strong>Rap</strong><span>−9 LUFS</span><span>−1 dBFS</span><span>±12 dB</span></div>
-        <div><strong>Puissant</strong><span>−9 LUFS</span><span>−0,5 dBFS</span><span>±12 dB</span></div>
+        <div><strong>Rap</strong><span>−10 LUFS</span><span>−1 dBFS</span><span>±10 dB</span></div>
+        <div><strong>Rap Reloaded</strong><span>−10,5 LUFS</span><span>−1 dBFS</span><span>±6 dB</span></div>
+        <div><strong>Puissant</strong><span>−10 LUFS</span><span>−0,5 dBFS</span><span>±12 dB</span></div>
         <div><strong>Podcast</strong><span>−16 LUFS</span><span>−1,0 dBFS</span><span>±6 dB</span></div>
       </div>
       <p class="guide-footnote">Ces valeurs sont des politiques de départ, pas des garanties de conformité à une plateforme. Écoutez toujours le résultat et comparez-le à niveau sonore perçu égal.</p>

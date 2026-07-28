@@ -5,6 +5,11 @@ parcours d’un morceau étape par étape. L’upload, l’analyse asynchrone, l
 le mastering, l’export WAV et le téléchargement sont reliés dans le parcours web
 mono-fichier.
 
+Pour l’ordre du signal, les formules, toutes les constantes DSP et les valeurs exactes
+des presets, consulter la
+[référence technique du mastering](MASTERING_TECHNICAL_REFERENCE.fr.md). Elle est
+l’autorité documentaire destinée aux ingénieurs du son.
+
 ## Vue d’ensemble
 
 ```mermaid
@@ -62,26 +67,25 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    A[1. Envoi du morceau] --> B[2. Validation du fichier]
-    B -->|invalide| X[Rejet explicite]
-    B -->|valide| C[3. Stockage de la source dans MinIO]
-    C --> D[4. Création du job dans PostgreSQL]
-    D --> E[5. Publication de la tâche d’analyse dans Redis]
-    E --> F[6. Décodage Audio Core]
-    F --> G[7. Analyse audio]
-    G --> H[8. Recommandation de mastering]
-    H --> I[9. Chaîne DSP déterministe]
-    I --> J[10. Contrôle du résultat]
-    J --> K[11. Export WAV]
-    K --> L[12. Stockage privé du master dans MinIO]
-    L --> M[13. Job terminé dans PostgreSQL]
-    M --> N[14. Téléchargement par l’utilisateur]
+    A[1. Choix du fichier] --> B[2. Vérification immédiate du mot de passe]
+    B -->|refus| X[Rejet avant upload]
+    B -->|preuve signée| C[3. Upload, validation et MinIO]
+    C --> D[4. Job PostgreSQL et analyse Celery]
+    D --> E[5. État analyzed]
+    E --> F[6. Pré-écoute Original / Effets live]
+    F --> G[7. Décision et persistance des réglages]
+    G --> H[8. Chaîne DSP déterministe]
+    H --> I[9. Mesure, calibration bornée et export]
+    I --> J[10. Master privé MinIO]
+    J --> K[11. Comparaison et téléchargement signé]
 ```
 
 ### 1. Envoi du morceau
 
-L’utilisateur choisit un fichier depuis l’interface. Le navigateur l’envoie à
-`POST /api/v1/analysis-jobs` avec une clé d’idempotence, puis interroge
+L’utilisateur choisit un fichier, puis le navigateur fait vérifier le mot de passe par
+un petit POST sans audio. Une preuve signée autorise ensuite
+`POST /api/v1/analysis-jobs`. L’upload utilise une clé d’idempotence et expose la
+progression réelle en octets ; le client interroge ensuite
 `GET /api/v1/analysis-jobs/{id}`. Le fichier audio ne doit jamais être placé dans les
 logs.
 
@@ -110,10 +114,13 @@ PostgreSQL enregistre le job avec un UUID et un état initial. Les transitions s
 persistantes et auditables :
 
 ```text
-queued -> running -> mastering -> succeeded
-                \        \          \-> failed
-                 \---------> failed
+queued -> running -> analyzed -> mastering -> succeeded
+running -> retry_wait -> queued
+running | analyzed | mastering -> failed (selon l’étape en erreur)
 ```
+
+`retry_wait` peut intervenir après une erreur relançable. `analyzed` est un arrêt
+volontaire : aucun master n’est lancé avant la décision explicite de l’utilisateur.
 
 ### 5. Mise en file
 
@@ -150,11 +157,14 @@ Le moteur d’analyse calcule notamment :
 Le résultat est typé et sérialisable. Les mesures sont déterministes pour une même
 entrée et une même version du moteur.
 
-### 8. Décision de mastering
+### 8. Pré-écoute et décision de mastering
 
-L’assistant produit une recommandation explicable. Il peut proposer une cible de
-sonie et signaler un manque de headroom ou un risque de phase, mais il ne modifie pas
-secrètement le signal.
+Le navigateur lit la source immuable et permet de comparer **Original** à une
+approximation **Effets live**. Cette pré-écoute ne crée pas de master et les traitements
+sélectifs nécessitant le worker restent explicitement signalés.
+
+L’assistant facultatif produit une recommandation explicable à partir des mesures
+structurées, sans recevoir l’audio. Il ne modifie pas secrètement le signal.
 
 La décision contient les paramètres retenus, les limites de sécurité, la confiance et
 les raisons ayant conduit à la recommandation.
@@ -166,12 +176,12 @@ local ou RunPod.
 
 ### 9. Rendu DSP
 
-Le moteur DSP reste déterministe. Le socle actuellement implémenté applique :
-
-1. un gain statique borné à partir de la cible de sonie ;
-2. une réduction de ce gain si le headroom mesuré est insuffisant ;
-3. un limiteur sample-peak lié entre les canaux ;
-4. une trace ordonnée des processeurs et paramètres appliqués.
+Le moteur DSP reste déterministe et repart systématiquement de la source. Il applique,
+dans cet ordre : passe-haut, EQ tonale, EQ dynamique, contrôle du grave, de-esser, gain
+borné depuis les LUFS, saturation, clipper ×4 et limiteur lié ×4. Il mesure ensuite la
+sortie et peut effectuer au plus deux calibrations améliorant réellement l’erreur LUFS
+dans un budget total de 1 dB. Les détails mathématiques complets se trouvent dans la
+[référence technique](MASTERING_TECHNICAL_REFERENCE.fr.md).
 
 Pour les stems alignés, tous les stems reçoivent le même gain et la même enveloppe de
 limitation afin de préserver leur équilibre et leur somme.
@@ -179,8 +189,9 @@ limitation afin de préserver leur équilibre et leur somme.
 ### 10. Contrôle du résultat
 
 Le pipeline contrôle l’absence de valeurs non finies et le respect des bornes
-d’échantillons. Le limiteur actuel protège les sample peaks ; il ne constitue pas
-encore une garantie réglementaire de true peak ou de conformité à une plateforme.
+d’échantillons. Le limiteur vérifie la sortie reconstruite par suréchantillonnage ×4
+et applique une garde finale. Cette estimation ne constitue pas une certification
+réglementaire de true peak ou de conformité à une plateforme.
 
 ### 11. Export
 

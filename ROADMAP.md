@@ -174,6 +174,14 @@ Rap Reloaded preset is calibrated from measured original/master audio while the
 existing Rap preset remains available. Browser gain staging now uses analyzed source
 loudness and no longer substitutes a broadband compressor for selective dynamics.
 
+## v3.4 — Autonomous LamAI policy and mastering reference
+
+Released: `3.4.0`. LamAI now derives every adjustable policy value independently from
+measured evidence instead of treating the selected preset as a preference. Fixed DSP
+topology remains server-enforced. The release also adds the complete sound-engineer
+technical reference, repairs the audit layout, embeds the spectral-dynamics heading in
+its control box, and opens source-code documentation in isolated browser tabs.
+
 ## Planning rules
 
 - Do not start a version by adding its UI before its package-level contracts exist.

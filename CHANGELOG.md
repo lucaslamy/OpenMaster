@@ -4,6 +4,28 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-07-28
+
+### Added
+
+- A sound-engineer technical reference documenting the exact analysis, gain decision,
+  ordered DSP chain, formulas, fixed time constants, preset values, browser-preview
+  differences, PCM export, LamAI boundary, audit data, and known limits.
+
+### Changed
+
+- The source-code navigation link now opens GitHub in a separate, isolated browser tab.
+- LamAI now derives every adjustable mastering control independently from measured
+  evidence; the selected preset is retained only as the auditable before-state and
+  fixed DSP topology remains protected.
+
+### Fixed
+
+- LamAI audit fallback content now has responsive internal spacing, wrapping, and a
+  stacked mobile header instead of being clipped at the panel edges.
+- The spectral-dynamics heading now renders inside its settings box, and applied
+  LamAI decisions use a bounded rationale card with readable metadata.
+
 ## [3.3.0] - 2026-07-28
 
 ### Added

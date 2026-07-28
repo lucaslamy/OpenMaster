@@ -23,7 +23,7 @@ externalSecrets:
 image:
   registry: registry.example.com
   repository: openmaster
-  tag: "3.3.0"
+  tag: "3.4.0"
   pullPolicy: IfNotPresent
 
 podSecurityContext:

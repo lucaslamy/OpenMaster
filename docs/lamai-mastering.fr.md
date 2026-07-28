@@ -18,6 +18,15 @@ jamais inclus. La réponse du modèle doit contenir exactement tous les champs d
 `MasteringPolicy`. OpenMaster refuse les champs manquants, inconnus, mal typés ou
 hors limites.
 
+Le preset sélectionné est transmis uniquement comme état « avant » pour l’audit.
+LamAI reçoit explicitement la mission de reconstruire indépendamment tous les
+contrôles ajustables à partir des mesures, sans considérer la cible LUFS ou les autres
+valeurs demandées comme des préférences. Les fréquences et seuils internes non exposés
+restent verrouillés : l’IA ne peut pas modifier la topologie DSP ni forcer un réglage
+qui divergerait entre le worker local et RunPod. Lorsque les mesures ne suffisent pas
+à justifier une correction spectrale, le prompt exige une intervention subtile plutôt
+qu’une invention.
+
 En cas de timeout, erreur HTTP ou réponse invalide, le job continue avec la politique
 déterministe demandée. Le résultat `ai_assistance` indique `applied: false` et une
 raison de repli non sensible.

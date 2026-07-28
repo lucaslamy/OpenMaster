@@ -1,4 +1,4 @@
-# DSP engine (v3.3)
+# DSP engine (v3.4)
 
 ## Processor contract
 

@@ -12,6 +12,15 @@ from urllib.request import Request, urlopen
 from packages.analysis_engine import AnalysisResult
 from packages.dsp_engine import MasteringPolicy
 
+_FIXED_TOPOLOGY_FIELDS = (
+    "dynamic_eq_center_hz",
+    "dynamic_eq_threshold_dbfs",
+    "bass_control_hz",
+    "bass_control_threshold_dbfs",
+    "de_esser_frequency_hz",
+    "de_esser_threshold_dbfs",
+)
+
 
 class LamAiMasteringError(RuntimeError):
     """Raised when LamAI cannot provide safe, parseable mastering advice."""
@@ -59,8 +68,10 @@ class LamAiMasteringClient:
                 {
                     "role": "system",
                     "content": (
-                        "You are OpenMaster's mastering adviser. Return JSON only. "
-                        "Never invent measurements and never exceed the stated bounds."
+                        "You are OpenMaster's autonomous mastering engineer. Optimise "
+                        "the complete adjustable policy from measured evidence, independently "
+                        "of the user's starting preset. Return JSON only. Never invent "
+                        "measurements and never exceed the stated safety bounds."
                     ),
                 },
                 {"role": "user", "content": prompt},
@@ -91,14 +102,20 @@ class LamAiMasteringClient:
             rationale = str(document["rationale"]).strip()
             if not isinstance(settings, dict) or not rationale or len(rationale) > 2_000:
                 raise ValueError
-            policy = MasteringPolicy(**_policy_values(settings))
+            values = _policy_values(settings)
+            if any(
+                values[field] != getattr(current_policy, field)
+                for field in _FIXED_TOPOLOGY_FIELDS
+            ):
+                raise ValueError("Fixed DSP topology cannot be changed by LamAI")
+            policy = MasteringPolicy(**values)
         except (KeyError, TypeError, ValueError) as error:
             raise LamAiMasteringError("LamAI returned invalid mastering advice") from error
         return AiMasteringAdvice(policy=policy, rationale=rationale, model=model)
 
 
 def _prompt(analysis: AnalysisResult, policy: MasteringPolicy) -> str:
-    """Build a data-minimal prompt containing measurements and current controls."""
+    """Ask for an independent policy while retaining the current one only for audit."""
     bounds = {
         "target_lufs": [-24, -8],
         "maximum_gain_adjustment_db": [0, 12],
@@ -116,12 +133,24 @@ def _prompt(analysis: AnalysisResult, policy: MasteringPolicy) -> str:
         "saturation_amount": [0, 1],
     }
     return (
-        "Choose conservative deterministic mastering settings from these measured facts. "
-        "The audio itself is not available. Keep high_pass_enabled boolean. "
-        'Return exactly {"settings":{all current setting keys},"rationale":"..."}. '
+        "Act as the mastering decision maker, not as a settings validator. Derive the "
+        "best defensible complete policy from the measurements for a clean, balanced, "
+        "competitive master that preserves transient impact and avoids bass distortion, "
+        "pumping, harshness, and unnecessary loudness. The user's starting settings are "
+        "provided only as the BEFORE state for audit: they are not preferences, targets, "
+        "or constraints. Do not keep a value merely because it is already inside a bound, "
+        "and do not answer with a bounds-compliance review. Independently choose every "
+        "adjustable value when the measurements justify it. The audio itself is not "
+        "available, so do not invent spectral, genre, or distortion evidence absent from "
+        "the measurements; prefer subtle processing when evidence is weak. Preserve the "
+        "listed fixed-topology fields exactly because this engine version does not expose "
+        "them as adjustable controls. Keep high_pass_enabled boolean. Explain the sonic "
+        "trade-offs in a concise rationale, not the numeric bounds. Return exactly "
+        '{"settings":{all starting setting keys},"rationale":"..."}. '
         f"Measurements: {json.dumps(analysis.to_dict(), allow_nan=False)}. "
-        f"Current settings: {json.dumps(asdict(policy), allow_nan=False)}. "
-        f"Hard bounds: {json.dumps(bounds)}."
+        f"Starting settings for comparison only: {json.dumps(asdict(policy), allow_nan=False)}. "
+        f"Fixed-topology fields: {json.dumps(_FIXED_TOPOLOGY_FIELDS)}. "
+        f"Hard safety bounds for adjustable fields: {json.dumps(bounds)}."
     )
 
 
