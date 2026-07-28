@@ -137,6 +137,8 @@ def handler(event: dict[str, Any]) -> dict[str, object]:
             "processors": list(result.mastering.render.applied_processors),
             "output_lufs": result.mastering.render.output_lufs,
             "output_true_peak_dbfs": result.mastering.render.output_true_peak_dbfs,
+            "loudness_correction_passes": result.mastering.loudness_correction_passes,
+            "target_loudness_error_lu": result.mastering.target_loudness_error_lu,
             "dither_applied": result.dither_applied,
             "source_waveform": waveform_envelope(decoded.samples),
             "master_waveform": waveform_envelope(result.mastering.render.samples),

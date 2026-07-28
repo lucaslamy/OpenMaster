@@ -160,6 +160,20 @@ Released: `3.1.0`. Analysis now pauses before mastering so the source can be aud
 with live DSP and settings can be committed explicitly. The web studio exposes the
 twenty newest durable root projects backed by PostgreSQL and retained MinIO objects.
 
+## v3.2 — Persistent mastering studio
+
+Released: `3.2.0`. The workspace uses the full viewport, keeps the original/live
+preview transport reachable while settings scroll, moves retained projects into a
+compact drawer, refreshes expiring media URLs, and keeps completed masters immutable.
+
+## v3.3 — Measured upload and Rap Reloaded
+
+Released: `3.3.0`. This version adds real source-upload byte progress, separates server
+acceptance from transfer, and scrolls completed mastering jobs to the Before / after audit. The new
+Rap Reloaded preset is calibrated from measured original/master audio while the
+existing Rap preset remains available. Browser gain staging now uses analyzed source
+loudness and no longer substitutes a broadband compressor for selective dynamics.
+
 ## Planning rules
 
 - Do not start a version by adding its UI before its package-level contracts exist.

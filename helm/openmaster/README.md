@@ -30,3 +30,8 @@ shellcheck deployment/scripts/*.sh
 
 See `docs/deployment/` for k3s setup, Vault integration, production checks, and
 troubleshooting.
+
+For slow or multi-gigabyte source uploads,
+`config.masteringAccessTokenTtlSeconds` controls how long the password proof remains
+valid while the API receives the multipart body. The default is two hours; accepted
+values range from 60 seconds to 24 hours.

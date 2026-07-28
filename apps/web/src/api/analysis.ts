@@ -26,6 +26,14 @@ export interface AnalysisJob {
   source_preview_url?: string;
 }
 
+export interface UploadProgress {
+  loadedBytes: number;
+  totalBytes: number;
+  percent: number;
+}
+
+export type UploadProgressHandler = (progress: UploadProgress) => void;
+
 export function isTerminalStatus(status: AnalysisJob["status"]): boolean {
   return status === "analyzed" || status === "succeeded" || status === "failed";
 }
@@ -71,6 +79,8 @@ export class AnalysisApiClient {
     deEsserReductionDb = 0,
     saturationAmount = 0,
     aiAssistEnabled = false,
+    onUploadProgress?: UploadProgressHandler,
+    signal?: AbortSignal,
   ): Promise<AnalysisJob> {
     const body = new FormData();
     body.append("file", file);
@@ -91,6 +101,15 @@ export class AnalysisApiClient {
     body.append("de_esser_reduction_db", String(deEsserReductionDb));
     body.append("saturation_amount", String(saturationAmount));
     body.append("ai_assist_enabled", String(aiAssistEnabled));
+    if (onUploadProgress || signal) {
+      return this.upload(
+        body,
+        idempotencyKey,
+        masteringAuthorization,
+        onUploadProgress,
+        signal,
+      );
+    }
     return this.request("/analysis-jobs", {
       method: "POST",
       body,
@@ -171,6 +190,102 @@ export class AnalysisApiClient {
       throw new Error("detail" in payload ? payload.detail ?? "Analysis request failed" : "Analysis request failed");
     }
     return payload as AnalysisJob;
+  }
+
+  private upload(
+    body: FormData,
+    idempotencyKey: string,
+    masteringAuthorization: string,
+    onProgress?: UploadProgressHandler,
+    signal?: AbortSignal,
+  ): Promise<AnalysisJob> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      let lastPercent = 0;
+      let lastLoadedBytes = 0;
+      let lastTotalBytes = 0;
+      let settled = false;
+
+      const cleanup = (): void => {
+        signal?.removeEventListener("abort", abortUpload);
+      };
+      const finish = (action: () => void): void => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        action();
+      };
+      const abortUpload = (): void => xhr.abort();
+
+      xhr.open("POST", `${this.baseUrl}/analysis-jobs`);
+      xhr.setRequestHeader("Idempotency-Key", idempotencyKey);
+      xhr.setRequestHeader("X-Mastering-Authorization", masteringAuthorization);
+      xhr.upload.onprogress = (event: ProgressEvent<EventTarget>): void => {
+        if (settled || !event.lengthComputable || event.total <= 0) return;
+        const percent = Math.max(
+          lastPercent,
+          Math.min(100, Math.round((event.loaded / event.total) * 100)),
+        );
+        lastPercent = percent;
+        lastLoadedBytes = Math.max(lastLoadedBytes, event.loaded);
+        lastTotalBytes = Math.max(lastTotalBytes, event.total);
+        onProgress?.({
+          loadedBytes: lastLoadedBytes,
+          totalBytes: lastTotalBytes,
+          percent,
+        });
+      };
+      xhr.upload.onload = (): void => {
+        if (settled || lastPercent >= 100) return;
+        lastPercent = 100;
+        lastLoadedBytes = Math.max(lastLoadedBytes, lastTotalBytes);
+        onProgress?.({
+          loadedBytes: lastLoadedBytes,
+          totalBytes: lastTotalBytes,
+          percent: 100,
+        });
+      };
+      xhr.onerror = (): void => {
+        finish(() => reject(new Error("NetworkError when attempting to upload the source.")));
+      };
+      xhr.onabort = (): void => {
+        finish(() => reject(new DOMException("Source upload cancelled", "AbortError")));
+      };
+      xhr.onload = (): void => {
+        const contentType = xhr.getResponseHeader("content-type") ?? "";
+        if (!contentType.toLowerCase().includes("application/json")) {
+          finish(() => reject(new Error(
+            `Analysis API returned a non-JSON response (HTTP ${xhr.status}). Check the API route and ingress configuration.`,
+          )));
+          return;
+        }
+        let payload: AnalysisJob | { detail?: string };
+        try {
+          payload = JSON.parse(xhr.responseText) as AnalysisJob | { detail?: string };
+        } catch {
+          finish(() => reject(new Error(
+            `Analysis API returned a non-JSON response (HTTP ${xhr.status}). Check the API route and ingress configuration.`,
+          )));
+          return;
+        }
+        if (xhr.status < 200 || xhr.status >= 300) {
+          finish(() => reject(new Error(
+            "detail" in payload
+              ? payload.detail ?? "Analysis request failed"
+              : "Analysis request failed",
+          )));
+          return;
+        }
+        finish(() => resolve(payload as AnalysisJob));
+      };
+
+      if (signal?.aborted) {
+        finish(() => reject(new DOMException("Source upload cancelled", "AbortError")));
+        return;
+      }
+      signal?.addEventListener("abort", abortUpload, { once: true });
+      xhr.send(body);
+    });
   }
 }
 

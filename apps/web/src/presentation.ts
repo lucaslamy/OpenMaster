@@ -1,17 +1,29 @@
 import type { AnalysisJob } from "./api/analysis";
 
-export const pipelineStages = [
-  { key: "queued", label: "Upload" },
-  { key: "running", label: "Analysis" },
-  { key: "analyzed", label: "Settings" },
-  { key: "mastering", label: "Mastering" },
-  { key: "succeeded", label: "Ready" },
-] as const;
+export interface JobStatusSnapshot {
+  id: string;
+  status: AnalysisJob["status"];
+}
+
+export function shouldScrollToComparison(
+  previous: JobStatusSnapshot | null,
+  current: JobStatusSnapshot | null,
+): boolean {
+  return (
+    previous !== null
+    && current !== null
+    && previous.id === current.id
+    && previous.status === "mastering"
+    && current.status === "succeeded"
+  );
+}
 
 export function stageIndex(status: AnalysisJob["status"]): number {
   if (status === "failed") return -1;
-  if (status === "retry_wait") return 1;
-  return Math.max(0, pipelineStages.findIndex((stage) => stage.key === status));
+  if (status === "queued" || status === "running" || status === "retry_wait") return 1;
+  if (status === "analyzed") return 2;
+  if (status === "mastering") return 3;
+  return 4;
 }
 
 export function metric(

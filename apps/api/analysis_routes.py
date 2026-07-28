@@ -19,6 +19,11 @@ from packages.database import AnalysisJobRecord
 
 router = APIRouter(prefix="/api/v1", tags=["analysis"])
 
+MASTERING_TOKEN_TTL_ENV = "MASTERING_ACCESS_TOKEN_TTL_SECONDS"
+DEFAULT_MASTERING_TOKEN_TTL_SECONDS = 7_200
+MINIMUM_MASTERING_TOKEN_TTL_SECONDS = 60
+MAXIMUM_MASTERING_TOKEN_TTL_SECONDS = 86_400
+
 
 class AnalysisJobResponse(BaseModel):
     """Public job state polled by the web application."""
@@ -103,7 +108,7 @@ def create_mastering_token(password: str | None) -> MasteringAccessResponse:
     """Validate the shared password and issue a short-lived signed proof."""
     verify_mastering_access(password)
     configured = os.environ["MASTERING_ACCESS_PASSWORD"]
-    expires_in_seconds = 60
+    expires_in_seconds = _mastering_token_ttl_seconds()
     expires_at = int(time.time()) + expires_in_seconds
     nonce = secrets.token_urlsafe(18)
     payload = f"{expires_at}.{nonce}"
@@ -116,6 +121,28 @@ def create_mastering_token(password: str | None) -> MasteringAccessResponse:
         token=f"{payload}.{signature}",
         expires_in_seconds=expires_in_seconds,
     )
+
+
+def _mastering_token_ttl_seconds() -> int:
+    """Return a bounded token lifetime suitable for potentially large uploads."""
+    configured = os.environ.get(
+        MASTERING_TOKEN_TTL_ENV,
+        str(DEFAULT_MASTERING_TOKEN_TTL_SECONDS),
+    )
+    try:
+        expires_in_seconds = int(configured)
+    except ValueError:
+        expires_in_seconds = 0
+    if not (
+        MINIMUM_MASTERING_TOKEN_TTL_SECONDS
+        <= expires_in_seconds
+        <= MAXIMUM_MASTERING_TOKEN_TTL_SECONDS
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Mastering authorization token lifetime is misconfigured",
+        )
+    return expires_in_seconds
 
 
 def verify_mastering_token(token: str | None) -> None:

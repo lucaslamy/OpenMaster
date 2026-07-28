@@ -4,19 +4,40 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
-### Fixed
-
-- Long-running interactive previews now refresh their MinIO authorization before
-  expiry and recover playback in place after transient media failures.
-- The clipper preserves quiet-signal gain instead of amplifying bass fundamentals
-  into the limiter.
-- Processing stages expose milestone percentages and active loaders, settings use
-  balanced columns, and the persistent preview is a side rail on wide screens.
+## [3.3.0] - 2026-07-28
 
 ### Added
 
-- Live Web Audio spectrum bars, orbiting signal sprites, and animated project-rename
-  confirmation with reduced-motion support.
+- Real multipart source-upload progress with transferred bytes, percentages, and a
+  distinct server validation/MinIO storage phase.
+- A separate, measured `Rap Reloaded` preset targeting −10.5 LUFS with no clipper,
+  saturation, or bass-band compression, plus neutral low EQ and controlled limiting.
+- Automatic reduced-motion-safe navigation to `05 Before / after` when the same
+  mastering job becomes ready.
+
+### Changed
+
+- Live preview gain now uses the analyzed source loudness; its three peaking EQ bands
+  match the renderer and the misleading bass-triggered broadband compressor is
+  bypassed.
+- Presets now restore high-pass, lookahead, release, and AI state completely, and
+  retained projects restore every persisted spectral/transient setting.
+- Dense renders may use up to two monotonic post-limiter loudness corrections within a
+  one-decibel quality budget; the accepted pass count and remaining target error are
+  audited instead of hiding an unattainable target.
+- Mastering authorization proofs default to a configurable two-hour lifetime so slow
+  uploads cannot expire while FastAPI parses their multipart body.
+
+### Fixed
+
+- Upload completion now enters the server-validation state even when the browser omits
+  a final 100% progress event, and retries reuse the same idempotency key.
+- Polling captures the active job identifier, cancels stale timers, and retries
+  transient status errors without allowing an older project to overwrite the current
+  one.
+- Local Blob previews are no longer cache-busted into invalid URLs, project changes
+  reset transport state, and the sticky preview is no longer trapped by a scrolling
+  ancestor.
 
 ## [3.2.0] - 2026-07-27
 
@@ -29,6 +50,8 @@ All notable changes to OpenMaster are documented in this file.
 - Editable project names stored independently from immutable source filenames.
 - Persistent preview transport for pausing and switching between the original source
   and current live effects anywhere in the settings workflow.
+- Live Web Audio spectrum bars, orbiting signal sprites, and animated project-rename
+  confirmation with reduced-motion support.
 
 ### Changed
 
@@ -37,6 +60,15 @@ All notable changes to OpenMaster are documented in this file.
 - Rap and Club presets now protect bass headroom, and full-band saturation uses a
   substantially gentler mastering curve in both browser preview and final DSP.
 - Reset returns the studio to preset selection instead of implying a modified master.
+
+### Fixed
+
+- Long-running interactive previews now refresh their MinIO authorization before
+  expiry and recover playback in place after transient media failures.
+- The clipper preserves quiet-signal gain instead of amplifying bass fundamentals
+  into the limiter.
+- Processing stages expose milestone percentages and active loaders, settings use
+  balanced columns, and the persistent preview is a side rail on wide screens.
 
 ## [3.1.1] - 2026-07-27
 

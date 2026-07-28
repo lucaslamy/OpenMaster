@@ -250,6 +250,49 @@ def test_driven_master_increases_loudness_while_enforcing_true_peak_ceiling() ->
     assert mastered.render.output_true_peak_dbfs <= -1.0 + 1e-9
 
 
+def test_dense_master_improves_target_error_without_unbounded_limiter_drive() -> None:
+    sample_rate_hz = 48_000
+    time = np.arange(sample_rate_hz * 4) / sample_rate_hz
+    body = 0.45 * np.sin(2 * np.pi * 55 * time)
+    transients = np.zeros_like(body)
+    transients[::2_400] = 1.0
+    samples = np.clip(body + transients, -1.0, 1.0)[:, np.newaxis]
+    source_lufs = integrated_lufs(samples, sample_rate_hz)
+    assert source_lufs is not None
+    target_lufs = source_lufs + 1.5
+
+    policy = MasteringPolicy(
+        target_lufs=target_lufs,
+        maximum_gain_adjustment_db=6.0,
+        ceiling_dbfs=-1.0,
+        limiter_release_ms=160.0,
+    )
+    service = AutomaticMasteringService(policy)
+    analysis = _analysis_result(lufs=source_lufs, peak_dbfs=0.0)
+    initial_decision = service.decide(analysis)
+    initial_render = DeterministicMasteringService().master(
+        samples,
+        sample_rate_hz,
+        initial_decision.settings,
+    )
+    mastered = service.master(samples, sample_rate_hz, analysis)
+
+    assert initial_render.output_lufs is not None
+    assert mastered.render.output_lufs is not None
+    assert abs(mastered.render.output_lufs - target_lufs) < abs(
+        initial_render.output_lufs - target_lufs
+    )
+    assert mastered.render.output_true_peak_dbfs <= -1.0 + 1e-9
+    assert mastered.loudness_correction_passes == 1
+    assert mastered.target_loudness_error_lu == pytest.approx(
+        mastered.render.output_lufs - target_lufs,
+    )
+    assert mastered.target_loudness_error_lu < 0.0
+    assert mastered.decision.settings.input_gain_db == pytest.approx(
+        mastered.decision.requested_gain_db + 1.0
+    )
+
+
 def test_automatic_mastering_is_repeatable_safe_and_reaches_target_when_unbounded() -> None:
     sample_rate_hz = 48_000
     time = np.arange(sample_rate_hz * 5) / sample_rate_hz

@@ -6,6 +6,8 @@ import pytest
 from fastapi import HTTPException
 
 from apps.api.analysis_routes import (
+    DEFAULT_MASTERING_TOKEN_TTL_SECONDS,
+    MASTERING_TOKEN_TTL_ENV,
     create_mastering_token,
     verify_mastering_access,
     verify_mastering_token,
@@ -50,6 +52,7 @@ def test_short_lived_mastering_token_cannot_be_forged_or_used_after_expiry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("MASTERING_ACCESS_PASSWORD", "correct horse battery staple")
+    monkeypatch.setenv(MASTERING_TOKEN_TTL_ENV, "60")
     monkeypatch.setattr("apps.api.analysis_routes.time.time", lambda: 1_000)
     authorization = create_mastering_token("correct horse battery staple")
 
@@ -62,3 +65,46 @@ def test_short_lived_mastering_token_cannot_be_forged_or_used_after_expiry(
     with pytest.raises(HTTPException) as expired:
         verify_mastering_token(authorization.token)
     assert expired.value.status_code == 401
+
+
+def test_mastering_token_uses_upload_safe_default_lifetime(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MASTERING_ACCESS_PASSWORD", "correct horse battery staple")
+    monkeypatch.delenv(MASTERING_TOKEN_TTL_ENV, raising=False)
+    monkeypatch.setattr("apps.api.analysis_routes.time.time", lambda: 1_000)
+
+    authorization = create_mastering_token("correct horse battery staple")
+
+    assert authorization.expires_in_seconds == DEFAULT_MASTERING_TOKEN_TTL_SECONDS
+    assert int(authorization.token.split(".", 1)[0]) == (
+        1_000 + DEFAULT_MASTERING_TOKEN_TTL_SECONDS
+    )
+
+
+def test_mastering_token_accepts_a_bounded_custom_lifetime(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MASTERING_ACCESS_PASSWORD", "correct horse battery staple")
+    monkeypatch.setenv(MASTERING_TOKEN_TTL_ENV, "1800")
+    monkeypatch.setattr("apps.api.analysis_routes.time.time", lambda: 1_000)
+
+    authorization = create_mastering_token("correct horse battery staple")
+
+    assert authorization.expires_in_seconds == 1_800
+    assert int(authorization.token.split(".", 1)[0]) == 2_800
+
+
+@pytest.mark.parametrize("configured_lifetime", ["", "invalid", "59", "86401"])
+def test_mastering_token_rejects_an_unsafe_configured_lifetime(
+    monkeypatch: pytest.MonkeyPatch,
+    configured_lifetime: str,
+) -> None:
+    monkeypatch.setenv("MASTERING_ACCESS_PASSWORD", "correct horse battery staple")
+    monkeypatch.setenv(MASTERING_TOKEN_TTL_ENV, configured_lifetime)
+
+    with pytest.raises(HTTPException) as invalid:
+        create_mastering_token("correct horse battery staple")
+
+    assert invalid.value.status_code == 503
+    assert invalid.value.detail == "Mastering authorization token lifetime is misconfigured"

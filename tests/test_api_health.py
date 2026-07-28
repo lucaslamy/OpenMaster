@@ -1,12 +1,23 @@
 """Tests for production health endpoints used by Kubernetes probes."""
 
-from fastapi.testclient import TestClient
+import asyncio
+
+from httpx import ASGITransport, AsyncClient
 
 from apps.api.main import app
 
 
 def test_health_endpoints_are_available_without_external_dependencies() -> None:
-    client = TestClient(app)
+    async def request_probes() -> tuple[dict[str, str], dict[str, str]]:
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://openmaster.test",
+        ) as client:
+            live = await client.get("/health/live")
+            ready = await client.get("/health/ready")
+            return live.json(), ready.json()
 
-    assert client.get("/health/live").json() == {"status": "live"}
-    assert client.get("/health/ready").json() == {"status": "ready"}
+    live, ready = asyncio.run(request_probes())
+
+    assert live == {"status": "live"}
+    assert ready == {"status": "ready"}

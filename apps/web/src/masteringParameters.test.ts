@@ -29,6 +29,18 @@ describe("interactive mastering metadata", () => {
     expect(previewInputGainDb(-24, -14, 4)).toBe(-4);
   });
 
+  it("marks frequency-selective dynamics as final-render controls", () => {
+    for (const id of [
+      "dynamicEqReductionDb",
+      "bassControlReductionDb",
+      "deEsserReductionDb",
+    ]) {
+      expect(
+        masteringParameters.find((candidate) => candidate.id === id)?.category,
+      ).toBe("render");
+    }
+  });
+
   it("maps frontend values to the canonical backend fields", () => {
     expect(backendSettings({ clipperDriveDb: 2, bitDepth: 16 })).toMatchObject({
       clipper_drive_db: 2,

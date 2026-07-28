@@ -64,15 +64,21 @@ their commands and resource profiles are rendered from chart values.
 
 ## Automatic mastering baseline
 
-`AutomaticMasteringService` consumes an immutable `AnalysisResult`, derives a bounded
-gain decision from integrated loudness and measured sample-peak headroom, then delegates
-rendering to the deterministic DSP chain. Its result contains both the audio render
-trace and the serialized policy plus requested, peak-limited, and effective gain values. The current policy
-targets -14 LUFS, limits a correction to 12 dB, and protects the output with a -1 dBFS
-linked sample-peak ceiling.
+`AutomaticMasteringService` consumes an immutable `AnalysisResult`, derives a
+policy-bounded gain decision from integrated loudness, then delegates rendering to the
+deterministic DSP chain. Positive gain may enter the clipper and linked true-peak
+limiter even when the raw source peak has no headroom. After the first render, at most
+two deterministic correction attempts use measured post-limiter LUFS. Calibration is
+limited to one decibel around the initial decision, and a candidate is accepted only
+when it reduces the target error; processing stops within 0.2 LU or at that quality
+budget. The result contains the audio trace, serialized policy, effective gain,
+accepted correction-pass count, final target error, and peak-headroom evidence. The
+default policy targets -14 LUFS, limits correction to 12 dB, and protects the output
+with a -1 dBFS ceiling.
 
 This is deliberately a narrow, deterministic policy rather than an opaque AI model.
-The ceiling is a sample-peak guard, not a true-peak compliance guarantee.
+The oversampled limiter enforces the configured reconstructed peak ceiling; it does not
+claim platform certification for every downstream codec.
 
 ## Audio export
 

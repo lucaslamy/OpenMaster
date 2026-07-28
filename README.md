@@ -1,8 +1,8 @@
-# OpenMaster v2.9.0
+# OpenMaster v3.3.0
 
-OpenMaster is an open-source professional audio mastering platform. v2.1 adds a
-production-oriented Kubernetes and k3s deployment layer around the deterministic
-mastering platform.
+OpenMaster is an open-source professional audio mastering platform. v3.3 adds measured
+source-upload progress, post-analysis live pre-master audition, and the independently
+validated Rap Reloaded profile to the production Kubernetes-native platform.
 
 ## Current capability
 
@@ -15,20 +15,22 @@ dependency.
 
 ## Web client
 
-The Vue mastering studio in `apps/web` provides drag-and-drop upload, a browser-local
-waveform preview, mastering-profile and WAV-depth controls, durable pipeline progress,
-specialized level/dynamics/stereo/spectral/source views, accessible control explanations,
-an integrated field guide, readable assistant findings, synchronized A/B playback, a
-draggable multi-view source/master waveform comparison, bilingual English/French
-navigation, Rap and general-purpose mastering profiles, and original-name master delivery. It
-expects the versioned analysis-job API contract documented in
+The Vue mastering studio in `apps/web` provides drag-and-drop upload with real byte
+progress, a persistent original/live-effects preview, twenty retained projects,
+mastering-profile and WAV-depth controls, durable pipeline progress, specialized
+level/dynamics/stereo/spectral/source views, accessible control explanations, an
+integrated field guide, readable assistant findings, synchronized A/B playback, a
+multi-view source/master comparison, bilingual English/French navigation, the original
+Rap profile plus Rap Reloaded, and original-name master delivery. It expects the
+versioned analysis-job API contract documented in
 [docs/analysis-jobs.md](docs/analysis-jobs.md).
 
 ## DSP foundation
 
 `packages.dsp_engine` provides a typed processor contract, ordered deterministic
-pipelines, fixed gain staging, and linked sample-peak limiting. See
-`docs/DSP_ENGINE.md` for its exact behavior and current limiter limitations.
+pipelines, explicit tonal and spectral stages, fixed gain staging, and linked
+oversampled lookahead limiting. See `docs/DSP_ENGINE.md` for its exact behavior and
+current limiter limitations.
 
 ```python
 from packages.analysis_engine import AnalysisService

@@ -252,6 +252,11 @@ def test_mastering_command_line_interface_exports_auditable_wav(tmp_path: Path) 
     ]
     assert payload["output_lufs"] is not None
     assert payload["output_true_peak_dbfs"] <= -1.0
+    assert isinstance(payload["loudness_correction_passes"], int)
+    assert payload["loudness_correction_passes"] >= 0
+    assert payload["target_loudness_error_lu"] == pytest.approx(
+        payload["output_lufs"] - payload["decision"]["policy"]["target_lufs"],
+    )
     assert payload["dither_applied"] is True
     assert output_path.is_file()
 

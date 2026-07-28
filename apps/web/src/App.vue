@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import {
   AnalysisApiClient,
   type AnalysisJob,
   createIdempotencyKey,
   isTerminalStatus,
+  type UploadProgress,
 } from "./api/analysis";
 import AudioWaveform from "./components/AudioWaveform.vue";
 import AnalysisDashboard from "./components/AnalysisDashboard.vue";
@@ -15,22 +16,21 @@ import GuidePage from "./components/GuidePage.vue";
 import InfoTip from "./components/InfoTip.vue";
 import InteractivePreview from "./components/InteractivePreview.vue";
 import { backendSettings, type InteractiveSettings } from "./masteringParameters";
+import {
+  masteringIntents,
+  type MasteringIntent,
+} from "./masteringPresets";
 import type { Locale } from "./i18n";
 import { translate, translateApiError, translateFinding } from "./i18n";
 import {
   recommendationFindings,
+  shouldScrollToComparison,
   stageIndex,
 } from "./presentation";
 
-const intents = [
-  { key: "Transparent", copy: "Transparent", target: -16, ceiling: -1.5, gain: 6, depth: 24, eq: [0, 0, 0], clip: 0, spectral: [0, 0, 0, 0] },
-  { key: "Streaming", copy: "Streaming", target: -14, ceiling: -1, gain: 9, depth: 24, eq: [0, 0, 0], clip: 1, spectral: [1.5, 1.5, 1.5, 0.1] },
-  { key: "Podcast", copy: "Podcast", target: -16, ceiling: -1, gain: 6, depth: 16, eq: [-0.5, 1, 0.5], clip: 1, spectral: [2, 1, 4, 0.1] },
-  { key: "Rap", copy: "Rap", target: -10, ceiling: -1, gain: 10, depth: 24, eq: [0.5, 0.5, 0.75], clip: 1, spectral: [0.5, 2.5, 1.5, 0.04] },
-  { key: "Club", copy: "Club", target: -10, ceiling: -0.5, gain: 10, depth: 24, eq: [0.5, -0.5, 1], clip: 3, spectral: [2, 5, 2, 0.08] },
-  { key: "Loud", copy: "Loud", target: -10, ceiling: -0.5, gain: 12, depth: 24, eq: [0.5, 0, 0.5], clip: 5, spectral: [3, 3, 3, 0.25] },
-  { key: "Dynamic", copy: "Dynamic", target: -18, ceiling: -2, gain: 5, depth: 24, eq: [0, 0, 0], clip: 0, spectral: [0, 0, 0, 0] },
-];
+type TransferPhase = "idle" | "uploading" | "server_accepting" | "failed";
+
+const intents: readonly MasteringIntent[] = masteringIntents;
 const storedLocale = localStorage.getItem("openmaster-locale");
 const locale = ref<Locale>(
   storedLocale === "fr" || (storedLocale === null && navigator.language.startsWith("fr"))
@@ -39,16 +39,16 @@ const locale = ref<Locale>(
 );
 const t = (key: string, variables?: Record<string, string | number>) =>
   translate(locale.value, key, variables);
-const intentName = (intent: (typeof intents)[number]) => t(`intent${intent.copy}`);
-const intentNote = (intent: (typeof intents)[number]) => t(`intent${intent.copy}Note`);
-const intentDescription = (intent: (typeof intents)[number]) =>
+const intentName = (intent: MasteringIntent) => t(`intent${intent.copy}`);
+const intentNote = (intent: MasteringIntent) => t(`intent${intent.copy}Note`);
+const intentDescription = (intent: MasteringIntent) =>
   t(`intent${intent.copy}Description`);
 const pipelineStages = computed(() => [
-  { key: "queued", label: t("upload") },
-  { key: "running", label: t("analysis") },
-  { key: "analyzed", label: locale.value === "fr" ? "Pré-réglages" : "Pre-settings" },
+  { key: "source", label: t("sourceReceived") },
+  { key: "analysis", label: t("analysis") },
+  { key: "settings", label: locale.value === "fr" ? "Pré-réglages" : "Pre-settings" },
   { key: "mastering", label: t("mastering") },
-  { key: "succeeded", label: t("ready") },
+  { key: "ready", label: t("ready") },
 ]);
 const page = ref<"studio" | "guide">("studio");
 const activeIntent = ref("Streaming");
@@ -75,6 +75,11 @@ const renameSaved = ref(false);
 const error = ref<string | null>(null);
 const submitting = ref(false);
 const authorizing = ref(false);
+const transferPhase = ref<TransferPhase>("idle");
+const uploadPercent = ref(0);
+const uploadLoadedBytes = ref(0);
+const uploadTotalBytes = ref(0);
+const beforeAfterAnchor = ref<HTMLElement | null>(null);
 const targetLufs = ref(-14);
 const bitDepth = ref(24);
 const maximumGainAdjustmentDb = ref(12);
@@ -98,6 +103,8 @@ const masteringPassword = ref("");
 const passwordError = ref<string | null>(null);
 const passwordPurpose = ref<"initial" | "final">("initial");
 const client = new AnalysisApiClient();
+const defaultIntent = intents.find((intent) => intent.key === "Streaming");
+if (defaultIntent) applyIntent(defaultIntent);
 const canSubmit = computed(() => selectedFile.value !== null && !submitting.value);
 const currentSettings = computed<InteractiveSettings>(() => ({
   targetLufs: targetLufs.value,
@@ -119,15 +126,19 @@ const currentSettings = computed<InteractiveSettings>(() => ({
   bit_depth: bitDepth.value,
   ai_assist_enabled: aiAssistEnabled.value,
 }));
-const currentStage = computed(() => (job.value ? stageIndex(job.value.status) : -1));
+const currentStage = computed(() => {
+  if (!job.value) return -1;
+  if (job.value.status === "failed") return job.value.result ? 3 : 1;
+  return stageIndex(job.value.status);
+});
 const progressPercent = computed(() => {
   if (!job.value) return 0;
   return {
-    queued: 12,
-    running: 42,
-    analyzed: 68,
-    mastering: 86,
-    retry_wait: 36,
+    queued: 20,
+    running: 40,
+    analyzed: 60,
+    mastering: 80,
+    retry_wait: 40,
     succeeded: 100,
     failed: Math.max(0, currentStage.value * 20),
   }[job.value.status];
@@ -138,6 +149,10 @@ const aiAssistance = computed<Record<string, unknown> | null>(() => {
     ? value as Record<string, unknown>
     : null;
 });
+const analyzedSourceLufs = computed(() => {
+  const value = job.value?.result?.lufs;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+});
 const findings = computed(() =>
   recommendationFindings(job.value?.recommendation).map((finding) => ({
     ...finding,
@@ -147,9 +162,30 @@ const findings = computed(() =>
 const fileSize = computed(() =>
   selectedFile.value ? `${(selectedFile.value.size / 1024 / 1024).toFixed(1)} MB` : "",
 );
+const uploadByteProgress = computed(() => {
+  if (uploadTotalBytes.value <= 0) return "";
+  return `${formatBytes(uploadLoadedBytes.value)} / ${formatBytes(uploadTotalBytes.value)}`;
+});
 let pollTimer: ReturnType<typeof setTimeout> | undefined;
+let uploadController: AbortController | undefined;
+let uploadIdempotencyKey: string | undefined;
 
-function applyIntent(intent: (typeof intents)[number]): void {
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function formatDb(value: number): string {
+  return value.toFixed(2).replace(/0$/, "");
+}
+
+function stopPolling(): void {
+  if (pollTimer) clearTimeout(pollTimer);
+  pollTimer = undefined;
+}
+
+function applyIntent(intent: MasteringIntent): void {
   activeIntent.value = intent.key;
   targetLufs.value = intent.target;
   ceilingDbfs.value = intent.ceiling;
@@ -163,6 +199,11 @@ function applyIntent(intent: (typeof intents)[number]): void {
     saturationAmount.value,
   ] = intent.spectral;
   clipperDriveDb.value = intent.clip;
+  limiterLookaheadMs.value = intent.limiterLookaheadMs;
+  limiterReleaseMs.value = intent.limiterReleaseMs;
+  highPassEnabled.value = intent.highPassEnabled;
+  highPassCutoffHz.value = intent.highPassCutoffHz;
+  aiAssistEnabled.value = intent.aiAssistEnabled;
   extraHeadroom.value = intent.ceiling <= -1.5;
   gentleCorrection.value = intent.gain <= 6;
   highResolution.value = intent.depth >= 24;
@@ -192,16 +233,24 @@ function selectFile(event: Event): void {
 }
 
 function dropFile(event: DragEvent): void {
+  if (submitting.value) return;
   setFile(event.dataTransfer?.files[0] ?? null);
 }
 
 function setFile(file: File | null): void {
-  if (sourceUrl.value) URL.revokeObjectURL(sourceUrl.value);
+  if (submitting.value) return;
+  stopPolling();
+  if (sourceUrl.value?.startsWith("blob:")) URL.revokeObjectURL(sourceUrl.value);
   selectedFile.value = file;
   sourceUrl.value = file ? URL.createObjectURL(file) : null;
+  uploadIdempotencyKey = file ? createIdempotencyKey() : undefined;
   job.value = null;
   projectRootId.value = null;
   error.value = null;
+  transferPhase.value = "idle";
+  uploadPercent.value = 0;
+  uploadLoadedBytes.value = 0;
+  uploadTotalBytes.value = 0;
 }
 
 async function loadHistory(): Promise<void> {
@@ -213,12 +262,20 @@ async function loadHistory(): Promise<void> {
 }
 
 function openProject(project: AnalysisJob): void {
+  stopPolling();
+  if (sourceUrl.value?.startsWith("blob:")) URL.revokeObjectURL(sourceUrl.value);
   job.value = project;
   projectRootId.value = project.parent_job_id ?? project.id;
   renameValue.value = project.project_name ?? project.original_filename.replace(/\.[^.]+$/, "");
   historyOpen.value = false;
   selectedFile.value = null;
   sourceUrl.value = project.source_preview_url ?? null;
+  uploadIdempotencyKey = undefined;
+  transferPhase.value = "idle";
+  uploadPercent.value = 0;
+  uploadLoadedBytes.value = 0;
+  uploadTotalBytes.value = 0;
+  error.value = null;
   const settings = project.interactive_settings;
   if (settings) {
     targetLufs.value = Number(settings.target_lufs ?? targetLufs.value);
@@ -228,9 +285,18 @@ function openProject(project: AnalysisJob): void {
     eqMidGainDb.value = Number(settings.eq_mid_gain_db ?? eqMidGainDb.value);
     eqHighGainDb.value = Number(settings.eq_high_gain_db ?? eqHighGainDb.value);
     clipperDriveDb.value = Number(settings.clipper_drive_db ?? clipperDriveDb.value);
+    limiterLookaheadMs.value = Number(settings.limiter_lookahead_ms ?? limiterLookaheadMs.value);
+    limiterReleaseMs.value = Number(settings.limiter_release_ms ?? limiterReleaseMs.value);
+    highPassEnabled.value = Boolean(settings.high_pass_enabled ?? highPassEnabled.value);
+    highPassCutoffHz.value = Number(settings.high_pass_cutoff_hz ?? highPassCutoffHz.value);
+    dynamicEqReductionDb.value = Number(settings.dynamic_eq_reduction_db ?? dynamicEqReductionDb.value);
+    bassControlReductionDb.value = Number(settings.bass_control_reduction_db ?? bassControlReductionDb.value);
+    deEsserReductionDb.value = Number(settings.de_esser_reduction_db ?? deEsserReductionDb.value);
     saturationAmount.value = Number(settings.saturation_amount ?? saturationAmount.value);
     bitDepth.value = Number(settings.bit_depth ?? bitDepth.value);
+    aiAssistEnabled.value = Boolean(settings.ai_assist_enabled ?? aiAssistEnabled.value);
   }
+  activeIntent.value = "Custom";
   if (!isTerminalStatus(project.status)) schedulePoll();
 }
 
@@ -255,13 +321,19 @@ function requestMaster(): void {
   passwordDialogOpen.value = true;
 }
 
-function closePasswordDialog(): void {
+function resetPasswordDialog(): void {
   passwordDialogOpen.value = false;
   masteringPassword.value = "";
   passwordError.value = null;
 }
 
+function closePasswordDialog(): void {
+  if (authorizing.value) return;
+  resetPasswordDialog();
+}
+
 async function confirmMaster(): Promise<void> {
+  if (authorizing.value) return;
   if (!masteringPassword.value) {
     passwordError.value = t("passwordRequired");
     return;
@@ -271,8 +343,9 @@ async function confirmMaster(): Promise<void> {
   const purpose = passwordPurpose.value;
   try {
     const authorization = await client.authorize(masteringPassword.value);
+    authorizing.value = false;
     masteringPassword.value = "";
-    closePasswordDialog();
+    resetPasswordDialog();
     if (purpose === "initial") await submit(authorization);
     else await renderFinal(authorization);
   } catch (reason) {
@@ -355,19 +428,32 @@ function resetInteractiveSettings(): void {
   targetLufs.value = -14; maximumGainAdjustmentDb.value = 12;
   clipperDriveDb.value = 0; limiterLookaheadMs.value = 3;
   limiterReleaseMs.value = 80; saturationAmount.value = 0; bitDepth.value = 24;
+  aiAssistEnabled.value = false;
+  extraHeadroom.value = false;
+  gentleCorrection.value = false;
+  highResolution.value = true;
   activeIntent.value = "";
   document.querySelector(".preset-grid")?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 async function submit(authorization: string): Promise<void> {
   if (!selectedFile.value) return;
+  const sourceFile = selectedFile.value;
+  const controller = new AbortController();
+  uploadController = controller;
   submitting.value = true;
   error.value = null;
   job.value = null;
+  transferPhase.value = "uploading";
+  uploadPercent.value = 0;
+  uploadLoadedBytes.value = 0;
+  uploadTotalBytes.value = sourceFile.size;
+  const idempotencyKey = uploadIdempotencyKey ?? createIdempotencyKey();
+  uploadIdempotencyKey = idempotencyKey;
   try {
     job.value = await client.submit(
-      selectedFile.value,
-      createIdempotencyKey(),
+      sourceFile,
+      idempotencyKey,
       targetLufs.value,
       bitDepth.value,
       maximumGainAdjustmentDb.value,
@@ -386,41 +472,63 @@ async function submit(authorization: string): Promise<void> {
       deEsserReductionDb.value,
       saturationAmount.value,
       aiAssistEnabled.value,
+      (progress: UploadProgress) => {
+        uploadPercent.value = progress.percent;
+        uploadLoadedBytes.value = progress.loadedBytes;
+        uploadTotalBytes.value = progress.totalBytes;
+        transferPhase.value = progress.percent >= 100 ? "server_accepting" : "uploading";
+      },
+      controller.signal,
     );
+    transferPhase.value = "idle";
     projectRootId.value = job.value.id;
-    renameValue.value = selectedFile.value.name.replace(/\.[^.]+$/, "");
+    renameValue.value = sourceFile.name.replace(/\.[^.]+$/, "");
     await loadHistory();
     schedulePoll();
   } catch (reason) {
-    error.value =
-      reason instanceof Error
-        ? translateApiError(locale.value, reason.message)
-        : t("requestFailed");
+    if (!(reason instanceof DOMException && reason.name === "AbortError")) {
+      transferPhase.value = "failed";
+      error.value =
+        reason instanceof Error
+          ? translateApiError(locale.value, reason.message)
+          : t("requestFailed");
+    }
   } finally {
+    if (uploadController === controller) uploadController = undefined;
     submitting.value = false;
   }
 }
 
-function schedulePoll(): void {
+function schedulePoll(delayMs = 1_000): void {
+  stopPolling();
   if (!job.value || isTerminalStatus(job.value.status)) return;
+  const jobId = job.value.id;
+  let nextDelayMs = 1_000;
   pollTimer = setTimeout(async () => {
-    if (!job.value) return;
+    pollTimer = undefined;
     try {
-      job.value = await client.get(job.value.id);
-      if (isTerminalStatus(job.value.status)) await loadHistory();
-      schedulePoll();
+      const updated = await client.get(jobId);
+      if (job.value?.id !== jobId) return;
+      job.value = updated;
+      error.value = null;
+      if (isTerminalStatus(updated.status)) await loadHistory();
     } catch (reason) {
-      error.value =
-        reason instanceof Error
-          ? translateApiError(locale.value, reason.message)
-          : t("statusFailed");
+      if (job.value?.id === jobId) {
+        nextDelayMs = 2_500;
+        error.value =
+          reason instanceof Error
+            ? translateApiError(locale.value, reason.message)
+            : t("statusFailed");
+      }
     }
-  }, 1_000);
+    if (job.value?.id === jobId) schedulePoll(nextDelayMs);
+  }, delayMs);
 }
 
 onBeforeUnmount(() => {
-  if (pollTimer) clearTimeout(pollTimer);
-  if (sourceUrl.value) URL.revokeObjectURL(sourceUrl.value);
+  uploadController?.abort();
+  stopPolling();
+  if (sourceUrl.value?.startsWith("blob:")) URL.revokeObjectURL(sourceUrl.value);
 });
 onMounted(loadHistory);
 watch(
@@ -430,6 +538,22 @@ watch(
     document.documentElement.lang = value;
   },
   { immediate: true },
+);
+watch(
+  () => job.value
+    ? { id: job.value.id, status: job.value.status }
+    : null,
+  async (current, previous) => {
+    if (!shouldScrollToComparison(previous, current)) return;
+    await nextTick();
+    beforeAfterAnchor.value?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+      block: "start",
+    });
+  },
+  { flush: "post" },
 );
 </script>
 
@@ -471,15 +595,16 @@ watch(
         class="history-trigger"
         type="button"
         :aria-expanded="historyOpen"
+        aria-controls="project-history-drawer"
         @click="historyOpen = true"
       >
         <span>⌁</span><b>{{ locale === "fr" ? "Projets" : "Projects" }}</b>
       </button>
-      <div v-if="historyOpen" class="history-backdrop" @click.self="historyOpen = false">
-      <section class="project-history panel" role="dialog" aria-modal="true">
+      <div v-if="historyOpen" class="history-backdrop" @click.self="historyOpen = false" @keydown.esc="historyOpen = false">
+      <section id="project-history-drawer" class="project-history panel" role="dialog" aria-modal="true" aria-labelledby="project-history-title">
         <div class="panel-heading">
-          <div><span class="step">↺</span><h2>{{ locale === "fr" ? "20 derniers projets" : "Latest 20 projects" }}</h2></div>
-          <button class="drawer-close" type="button" @click="historyOpen = false">×</button>
+          <div><span class="step">↺</span><h2 id="project-history-title">{{ locale === "fr" ? "20 derniers projets" : "Latest 20 projects" }}</h2></div>
+          <button class="drawer-close" type="button" :aria-label="locale === 'fr' ? 'Fermer les projets' : 'Close projects'" @click="historyOpen = false">×</button>
         </div>
         <div class="history-list">
           <button
@@ -502,6 +627,7 @@ watch(
         :url="sourceUrl"
         :settings="currentSettings"
         :locale="locale"
+        :source-lufs="analyzedSourceLufs"
         @reset="resetInteractiveSettings"
       />
 
@@ -512,8 +638,21 @@ watch(
             <span v-if="selectedFile" class="format-pill">{{ selectedFile.name.split(".").pop()?.toUpperCase() }}</span>
           </div>
 
-          <label class="dropzone" for="audio-file" @dragover.prevent @drop.prevent="dropFile">
-            <input id="audio-file" type="file" accept="audio/*,.wav,.flac,.mp3,.m4a,.ogg,.opus,.aiff" @change="selectFile" />
+          <label
+            class="dropzone"
+            :class="{ transferring: submitting }"
+            for="audio-file"
+            :aria-disabled="submitting"
+            @dragover.prevent
+            @drop.prevent="dropFile"
+          >
+            <input
+              id="audio-file"
+              type="file"
+              accept="audio/*,.wav,.flac,.mp3,.m4a,.ogg,.opus,.aiff"
+              :disabled="submitting"
+              @change="selectFile"
+            />
             <template v-if="selectedFile">
               <span class="file-icon">♫</span>
               <strong>{{ selectedFile.name }}</strong>
@@ -528,6 +667,50 @@ watch(
             </template>
           </label>
           <AudioWaveform :file="selectedFile" :locale="locale" />
+          <div
+            v-if="transferPhase !== 'idle'"
+            class="upload-progress-card"
+            :class="{ failed: transferPhase === 'failed' }"
+          >
+            <div class="upload-progress-heading">
+              <span class="upload-loader" aria-hidden="true">
+                <i></i><i></i><i></i>
+              </span>
+              <div>
+                <strong aria-live="polite">
+                  {{
+                    transferPhase === "server_accepting"
+                      ? t("sourceSent")
+                      : transferPhase === "failed"
+                        ? t("uploadInterrupted")
+                        : t("uploadingSource")
+                  }}
+                </strong>
+                <small>
+                  {{
+                    transferPhase === "server_accepting"
+                      ? t("validatingSource")
+                      : transferPhase === "failed"
+                        ? t("uploadRetry")
+                        : uploadByteProgress
+                  }}
+                </small>
+              </div>
+              <output v-if="transferPhase !== 'failed'">{{ uploadPercent }}%</output>
+            </div>
+            <div
+              v-if="transferPhase !== 'failed'"
+              class="upload-progress-track"
+              :class="{ accepting: transferPhase === 'server_accepting' }"
+              role="progressbar"
+              :aria-valuenow="uploadPercent"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              :aria-label="t('uploadingSource')"
+            >
+              <i :style="{ width: `${uploadPercent}%` }"></i>
+            </div>
+          </div>
           <button v-if="selectedFile && !job" class="master-button" type="submit" :disabled="!canSubmit">
             <span>{{ submitting ? t("uploadSource") : (locale === "fr" ? "Vérifier le mot de passe puis analyser" : "Verify password, then analyze") }}</span>
             <b>→</b>
@@ -558,7 +741,7 @@ watch(
                 v-for="intent in intents"
                 :key="intent.key"
                 class="preset"
-                :class="{ active: activeIntent === intent.key }"
+                :class="{ active: activeIntent === intent.key, featured: intent.featured }"
                 :title="intentDescription(intent)"
                 type="button"
                 @click="applyIntent(intent)"
@@ -648,18 +831,18 @@ watch(
             </div>
             <div class="mini-control">
               <label for="eq-low">{{ t("eqLow") }} <small>100 Hz</small></label>
-              <output>{{ eqLowGainDb.toFixed(1) }} dB</output>
-              <input id="eq-low" v-model.number="eqLowGainDb" type="range" min="-6" max="6" step="0.5" @input="activeIntent = 'Custom'" />
+              <output>{{ formatDb(eqLowGainDb) }} dB</output>
+              <input id="eq-low" v-model.number="eqLowGainDb" type="range" min="-6" max="6" step="0.25" @input="activeIntent = 'Custom'" />
             </div>
             <div class="mini-control">
               <label for="eq-mid">{{ t("eqMid") }} <small>1 kHz</small></label>
-              <output>{{ eqMidGainDb.toFixed(1) }} dB</output>
-              <input id="eq-mid" v-model.number="eqMidGainDb" type="range" min="-6" max="6" step="0.5" @input="activeIntent = 'Custom'" />
+              <output>{{ formatDb(eqMidGainDb) }} dB</output>
+              <input id="eq-mid" v-model.number="eqMidGainDb" type="range" min="-6" max="6" step="0.25" @input="activeIntent = 'Custom'" />
             </div>
             <div class="mini-control">
               <label for="eq-high">{{ t("eqHigh") }} <small>10 kHz</small></label>
-              <output>{{ eqHighGainDb.toFixed(1) }} dB</output>
-              <input id="eq-high" v-model.number="eqHighGainDb" type="range" min="-6" max="6" step="0.5" @input="activeIntent = 'Custom'" />
+              <output>{{ formatDb(eqHighGainDb) }} dB</output>
+              <input id="eq-high" v-model.number="eqHighGainDb" type="range" min="-6" max="6" step="0.25" @input="activeIntent = 'Custom'" />
             </div>
           </fieldset>
 
@@ -677,17 +860,17 @@ watch(
               <input id="high-pass-cutoff" v-model.number="highPassCutoffHz" type="range" min="15" max="80" step="1" :disabled="!highPassEnabled" @input="activeIntent = 'Custom'" />
             </div>
             <div class="mini-control">
-              <label for="dynamic-eq">{{ t("dynamicEq") }} <InfoTip :text="t('dynamicEqTip')" /></label>
+              <label for="dynamic-eq">{{ t("dynamicEq") }} <small>· {{ locale === "fr" ? "rendu final" : "final render" }}</small> <InfoTip :text="t('dynamicEqTip')" /></label>
               <output>{{ dynamicEqReductionDb.toFixed(1) }} dB</output>
               <input id="dynamic-eq" v-model.number="dynamicEqReductionDb" type="range" min="0" max="12" step="0.5" @input="activeIntent = 'Custom'" />
             </div>
             <div class="mini-control">
-              <label for="bass-control">{{ t("bassControl") }} <InfoTip :text="t('bassControlTip')" /></label>
+              <label for="bass-control">{{ t("bassControl") }} <small>· {{ locale === "fr" ? "rendu final" : "final render" }}</small> <InfoTip :text="t('bassControlTip')" /></label>
               <output>{{ bassControlReductionDb.toFixed(1) }} dB</output>
               <input id="bass-control" v-model.number="bassControlReductionDb" type="range" min="0" max="12" step="0.5" @input="activeIntent = 'Custom'" />
             </div>
             <div class="mini-control">
-              <label for="de-esser">{{ t("deEsser") }} <InfoTip :text="t('deEsserTip')" /></label>
+              <label for="de-esser">{{ t("deEsser") }} <small>· {{ locale === "fr" ? "rendu final" : "final render" }}</small> <InfoTip :text="t('deEsserTip')" /></label>
               <output>{{ deEsserReductionDb.toFixed(1) }} dB</output>
               <input id="de-esser" v-model.number="deEsserReductionDb" type="range" min="0" max="12" step="0.5" @input="activeIntent = 'Custom'" />
             </div>
@@ -785,7 +968,7 @@ watch(
             <li
               v-for="(stage, index) in pipelineStages"
               :key="stage.key"
-              :class="{ done: currentStage > index, active: currentStage === index, failed: job.status === 'failed' && index === Math.max(currentStage, 0) }"
+              :class="{ done: currentStage > index, active: currentStage === index, failed: job.status === 'failed' && index === currentStage }"
             >
               <span>
                 <i v-if="currentStage === index && !isTerminalStatus(job.status)" class="stage-loader"></i>
@@ -808,18 +991,23 @@ watch(
           :locale="locale"
         />
 
-        <BeforeAfterPlayer
+        <div
           v-if="sourceUrl && job.preview_url && job.source_waveform && job.master_waveform"
-          :before-url="sourceUrl"
-          :after-url="job.preview_url"
-          :locale="locale"
-          :before-waveform="job.source_waveform"
-          :after-waveform="job.master_waveform"
-          :before-spectrum="job.source_spectrum"
-          :after-spectrum="job.master_spectrum"
-          :before-level-timeline="job.source_level_timeline"
-          :after-level-timeline="job.master_level_timeline"
-        />
+          ref="beforeAfterAnchor"
+          class="comparison-anchor"
+        >
+          <BeforeAfterPlayer
+            :before-url="sourceUrl"
+            :after-url="job.preview_url"
+            :locale="locale"
+            :before-waveform="job.source_waveform"
+            :after-waveform="job.master_waveform"
+            :before-spectrum="job.source_spectrum"
+            :after-spectrum="job.master_spectrum"
+            :before-level-timeline="job.source_level_timeline"
+            :after-level-timeline="job.master_level_timeline"
+          />
+        </div>
 
         <div v-if="job.preview_url || job.initial_preview_url" class="final-render-actions panel">
           <button type="button" :disabled="submitting" @click="saveSettings">
@@ -876,7 +1064,7 @@ watch(
       @keydown.esc="closePasswordDialog"
     >
       <form class="password-dialog" role="dialog" aria-modal="true" :aria-labelledby="'password-title'" @submit.prevent="confirmMaster">
-        <button class="modal-close" type="button" :aria-label="t('cancel')" @click="closePasswordDialog">×</button>
+        <button class="modal-close" type="button" :aria-label="t('cancel')" :disabled="authorizing" @click="closePasswordDialog">×</button>
         <span class="lock-orb">⌁</span>
         <p class="eyebrow">{{ t("safeguards") }}</p>
         <h2 id="password-title">{{ t("unlockTitle") }}</h2>
@@ -888,12 +1076,13 @@ watch(
             type="password"
             autocomplete="current-password"
             :placeholder="t('passwordPlaceholder')"
+            :disabled="authorizing"
             autofocus
           />
         </label>
         <p v-if="passwordError" class="modal-error" role="alert">{{ passwordError }}</p>
         <div class="modal-actions">
-          <button type="button" @click="closePasswordDialog">{{ t("cancel") }}</button>
+          <button type="button" :disabled="authorizing" @click="closePasswordDialog">{{ t("cancel") }}</button>
           <button type="submit" :disabled="authorizing">
             {{ authorizing ? (locale === "fr" ? "Vérification…" : "Checking…") : t("authorize") }}
             <span>→</span>

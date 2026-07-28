@@ -13,16 +13,15 @@ from packages.analysis_engine import AnalysisResult
 from packages.mastering_assistant import RECOMMENDATION_SCHEMA_VERSION, MasteringAssistant
 
 
-def test_assistant_returns_serialized_policy_and_peak_limited_reasoning() -> None:
+def test_assistant_returns_serialized_policy_bounded_limiter_reasoning() -> None:
     recommendation = MasteringAssistant().recommend(_analysis(lufs=-30.0, peak_dbfs=-3.0))
 
     assert recommendation.decision.policy.target_lufs == -14.0
-    assert recommendation.decision.settings.input_gain_db == pytest.approx(2.0)
-    assert recommendation.confidence == 0.8
+    assert recommendation.decision.settings.input_gain_db == pytest.approx(12.0)
+    assert recommendation.confidence == 0.95
     assert [finding.code for finding in recommendation.findings] == [
         "loudness_target",
         "gain_bounded",
-        "peak_headroom_limited",
     ]
     serialized = recommendation.to_dict()
     assert serialized["schema_version"] == RECOMMENDATION_SCHEMA_VERSION

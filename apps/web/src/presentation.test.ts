@@ -8,6 +8,7 @@ import {
   movingPeakDensity,
   peakHeadroom,
   recommendationFindings,
+  shouldScrollToComparison,
   stageIndex,
   textMetric,
   transientActivity,
@@ -15,12 +16,36 @@ import {
 
 describe("mastering result presentation", () => {
   it("maps durable job states to pipeline progress", () => {
-    expect(stageIndex("queued")).toBe(0);
+    expect(stageIndex("queued")).toBe(1);
     expect(stageIndex("running")).toBe(1);
     expect(stageIndex("analyzed")).toBe(2);
     expect(stageIndex("mastering")).toBe(3);
     expect(stageIndex("succeeded")).toBe(4);
     expect(stageIndex("failed")).toBe(-1);
+  });
+
+  it("scrolls to comparison when the same polled job becomes ready", () => {
+    expect(shouldScrollToComparison(
+      { id: "job-1", status: "mastering" },
+      { id: "job-1", status: "succeeded" },
+    )).toBe(true);
+    expect(shouldScrollToComparison(
+      { id: "job-1", status: "mastering" },
+      { id: "job-2", status: "succeeded" },
+    )).toBe(false);
+    expect(shouldScrollToComparison(null, { id: "job-1", status: "succeeded" })).toBe(false);
+    expect(shouldScrollToComparison(
+      { id: "job-1", status: "retry_wait" },
+      { id: "job-1", status: "succeeded" },
+    )).toBe(false);
+    expect(shouldScrollToComparison(
+      { id: "job-1", status: "running" },
+      { id: "job-1", status: "succeeded" },
+    )).toBe(false);
+    expect(shouldScrollToComparison(
+      { id: "job-1", status: "succeeded" },
+      { id: "job-1", status: "succeeded" },
+    )).toBe(false);
   });
 
   it("formats safe numeric and text measurements", () => {

@@ -57,6 +57,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "processors": exported.mastering.render.applied_processors,
                 "output_lufs": exported.mastering.render.output_lufs,
                 "output_true_peak_dbfs": exported.mastering.render.output_true_peak_dbfs,
+                "loudness_correction_passes": (exported.mastering.loudness_correction_passes),
+                "target_loudness_error_lu": exported.mastering.target_loudness_error_lu,
                 "dither_applied": exported.dither_applied,
             },
             allow_nan=False,

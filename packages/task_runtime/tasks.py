@@ -174,6 +174,8 @@ def master_minio_object(job_id: str, object_name: str) -> dict[str, object]:
                     "bit_depth": job.bit_depth,
                     "output_lufs": mastered.mastering.render.output_lufs,
                     "output_true_peak_dbfs": mastered.mastering.render.output_true_peak_dbfs,
+                    "loudness_correction_passes": (mastered.mastering.loudness_correction_passes),
+                    "target_loudness_error_lu": (mastered.mastering.target_loudness_error_lu),
                     "dither_applied": mastered.dither_applied,
                     "ai_assistance": ai_assistance,
                 }

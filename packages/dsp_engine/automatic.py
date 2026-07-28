@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from packages.analysis_engine.models import AnalysisResult
@@ -101,6 +101,8 @@ class AutomaticMasteringResult:
 
     render: MasteringResult
     decision: MasteringDecision
+    loudness_correction_passes: int
+    target_loudness_error_lu: float | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,6 +116,12 @@ class ExportedMasteringResult:
 
 class AutomaticMasteringService:
     """Derive bounded gain settings from analysis, then render deterministically."""
+
+    _LOUDNESS_TOLERANCE_LU = 0.2
+    _MAXIMUM_CORRECTION_PASSES = 2
+    _MAXIMUM_CORRECTION_STEP_DB = 3.0
+    _MAXIMUM_CONVERGENCE_GAIN_DB = 1.0
+    _MINIMUM_RESPONSE_LU_PER_DB = 0.1
 
     def __init__(self, policy: MasteringPolicy | None = None) -> None:
         self._policy = policy or MasteringPolicy()
@@ -189,10 +197,100 @@ class AutomaticMasteringService:
     ) -> AutomaticMasteringResult:
         """Decide settings from analysis and render using the deterministic chain."""
         decision = self.decide(analysis)
-        return AutomaticMasteringResult(
-            render=self._renderer.master(samples, sample_rate_hz, decision.settings),
-            decision=decision,
+        render = self._renderer.master(samples, sample_rate_hz, decision.settings)
+        decision, render, correction_passes = self._converge_loudness(
+            samples,
+            sample_rate_hz,
+            decision,
+            render,
         )
+        target_error = (
+            render.output_lufs - self._policy.target_lufs
+            if render.output_lufs is not None and math.isfinite(render.output_lufs)
+            else None
+        )
+        return AutomaticMasteringResult(
+            render=render,
+            decision=decision,
+            loudness_correction_passes=correction_passes,
+            target_loudness_error_lu=target_error,
+        )
+
+    def _converge_loudness(
+        self,
+        samples: FloatSamples,
+        sample_rate_hz: int,
+        decision: MasteringDecision,
+        render: MasteringResult,
+    ) -> tuple[MasteringDecision, MasteringResult, int]:
+        """Accept only bounded re-renders that improve post-limiter target error."""
+        if decision.requested_gain_db is None:
+            return decision, render, 0
+        policy_gain_limit_db = self._policy.maximum_gain_adjustment_db
+        initial_gain_db = decision.settings.input_gain_db
+        convergence_minimum_db = max(
+            -policy_gain_limit_db,
+            initial_gain_db - self._MAXIMUM_CONVERGENCE_GAIN_DB,
+        )
+        convergence_maximum_db = min(
+            policy_gain_limit_db,
+            initial_gain_db + self._MAXIMUM_CONVERGENCE_GAIN_DB,
+        )
+        previous_gain_db: float | None = None
+        previous_output_lufs: float | None = None
+        correction_passes = 0
+        for _ in range(self._MAXIMUM_CORRECTION_PASSES):
+            output_lufs = render.output_lufs
+            if output_lufs is None or not math.isfinite(output_lufs):
+                break
+            error_lu = self._policy.target_lufs - output_lufs
+            if abs(error_lu) <= self._LOUDNESS_TOLERANCE_LU:
+                break
+            current_gain_db = decision.settings.input_gain_db
+            correction_db = error_lu
+            if previous_gain_db is not None and previous_output_lufs is not None:
+                gain_delta_db = current_gain_db - previous_gain_db
+                loudness_delta_lu = output_lufs - previous_output_lufs
+                if abs(gain_delta_db) > 1e-9:
+                    response = loudness_delta_lu / gain_delta_db
+                    if math.isfinite(response) and response >= self._MINIMUM_RESPONSE_LU_PER_DB:
+                        correction_db = error_lu / response
+            correction_db = max(
+                -self._MAXIMUM_CORRECTION_STEP_DB,
+                min(self._MAXIMUM_CORRECTION_STEP_DB, correction_db),
+            )
+            next_gain_db = max(
+                convergence_minimum_db,
+                min(convergence_maximum_db, current_gain_db + correction_db),
+            )
+            if abs(next_gain_db - current_gain_db) <= 1e-9:
+                break
+            candidate_decision = replace(
+                decision,
+                settings=replace(decision.settings, input_gain_db=next_gain_db),
+                reason=(
+                    "gain derived from integrated loudness and calibrated against "
+                    "post-limiter loudness; final stages enforce peak safety"
+                ),
+            )
+            candidate_render = self._renderer.master(
+                samples,
+                sample_rate_hz,
+                candidate_decision.settings,
+            )
+            candidate_lufs = candidate_render.output_lufs
+            if (
+                candidate_lufs is None
+                or not math.isfinite(candidate_lufs)
+                or abs(self._policy.target_lufs - candidate_lufs) >= abs(error_lu)
+            ):
+                break
+            previous_gain_db = current_gain_db
+            previous_output_lufs = output_lufs
+            decision = candidate_decision
+            render = candidate_render
+            correction_passes += 1
+        return decision, render, correction_passes
 
     def master_to_wav(
         self,

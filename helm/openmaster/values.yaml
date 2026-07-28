@@ -23,7 +23,7 @@ externalSecrets:
 image:
   registry: registry.example.com
   repository: openmaster
-  tag: "2.9.0"
+  tag: "3.3.0"
   pullPolicy: IfNotPresent
 
 podSecurityContext:
@@ -104,6 +104,8 @@ workers:
 config:
   logLevel: INFO
   maxUploadBytes: "2147483648"
+  # The proof is verified after multipart parsing, so it must cover slow uploads.
+  masteringAccessTokenTtlSeconds: "7200"
   corsOrigins: ""
   processingRetries: "3"
 
