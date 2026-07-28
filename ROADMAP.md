@@ -182,6 +182,9 @@ topology remains server-enforced. The release also adds the complete sound-engin
 technical reference, repairs the audit layout, embeds the spectral-dynamics heading in
 its control box, and opens source-code documentation in isolated browser tabs.
 
+Patch `3.4.1` separates the RunPod image repository from the private API/web registry
+root in the synchronized build-and-push workflow.
+
 ## Planning rules
 
 - Do not start a version by adding its UI before its package-level contracts exist.

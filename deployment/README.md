@@ -31,22 +31,33 @@ Synchroniser le dépôt vers `root@46.225.231.203`, puis construire et publier u
 sélection d'images :
 
 ```bash
-deployment/scripts/sync-build-push.sh 3.2.0 api web
-deployment/scripts/sync-build-push.sh 3.2.0 runpod
+deployment/scripts/sync-build-push.sh 3.4.1 api web
+deployment/scripts/sync-build-push.sh 3.4.1 runpod
 # ou les trois :
-deployment/scripts/sync-build-push.sh 3.2.0 all
+deployment/scripts/sync-build-push.sh 3.4.1 all
 ```
 
 Le script exclut `.git`, `.env`, `node_modules` et les caches Python. Les valeurs par
-défaut reproduisent la clé SSH, le serveur et le registre de production ; elles restent
-surchargeables par variables d'environnement. `SKIP_SYNC=1` permet de republier sans
-relancer rsync.
+défaut reproduisent la clé SSH et le serveur de production. API et Web sont publiés
+sous `harbor.lucaslamy.fr/private/openmaster/{api,web}:VERSION`, tandis que le worker
+RunPod utilise son dépôt distinct
+`harbor.lucaslamy.fr/library/openmaster-runpod:VERSION`. Les racines restent
+surchargeables avec `REGISTRY` et `RUNPOD_REGISTRY`. `SKIP_SYNC=1` permet de
+republier sans relancer rsync.
+
+Exemple explicite :
+
+```bash
+REGISTRY=harbor.lucaslamy.fr/private/openmaster \
+RUNPOD_REGISTRY=harbor.lucaslamy.fr/library/openmaster-runpod \
+  deployment/scripts/sync-build-push.sh 3.4.1 all
+```
 
 Sur le serveur k3s, épingler la version dans le fichier RunPod puis lancer le
 préflight et le déploiement Helm atomique :
 
 ```bash
-deployment/scripts/deploy-runpod-version.sh 3.2.0
+deployment/scripts/deploy-runpod-version.sh 3.4.1
 ```
 
 Le fichier par défaut est `/tmp/openmaster-k3s-runpod.yaml`. Une sauvegarde horodatée

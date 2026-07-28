@@ -10,12 +10,16 @@ Usage: deployment/scripts/sync-build-push.sh VERSION COMPONENT [COMPONENT...]
 Components: api, web, runpod, all
 
 Examples:
-  deployment/scripts/sync-build-push.sh 3.2.0 api web
-  deployment/scripts/sync-build-push.sh 3.2.0 runpod
-  deployment/scripts/sync-build-push.sh 3.2.0 all
+  deployment/scripts/sync-build-push.sh 3.4.1 api web
+  deployment/scripts/sync-build-push.sh 3.4.1 runpod
+  deployment/scripts/sync-build-push.sh 3.4.1 all
 
 Optional environment:
-  SOURCE_DIR, SSH_KEY, REMOTE, REMOTE_DIR, REGISTRY, SKIP_SYNC=1
+  SOURCE_DIR, SSH_KEY, REMOTE, REMOTE_DIR, REGISTRY, RUNPOD_REGISTRY, SKIP_SYNC=1
+
+Image repositories:
+  api/web: ${REGISTRY}/COMPONENT:VERSION
+  runpod:  ${RUNPOD_REGISTRY}:VERSION
 EOF
 }
 
@@ -31,6 +35,9 @@ SSH_KEY="${SSH_KEY:-/home/eliott/.ssh/id_rsa}"
 REMOTE="${REMOTE:-root@46.225.231.203}"
 REMOTE_DIR="${REMOTE_DIR:-/root/openmaster/}"
 REGISTRY="${REGISTRY:-harbor.lucaslamy.fr/private/openmaster}"
+RUNPOD_REGISTRY="${RUNPOD_REGISTRY:-harbor.lucaslamy.fr/library/openmaster-runpod}"
+REGISTRY="${REGISTRY%/}"
+RUNPOD_REGISTRY="${RUNPOD_REGISTRY%/}"
 
 declare -a COMPONENTS=()
 for requested in "$@"; do
@@ -62,7 +69,11 @@ fi
 
 for component in "${COMPONENTS[@]}"; do
   dockerfile="Dockerfile.${component}"
-  image="${REGISTRY}/${component}:${VERSION}"
+  if [[ "${component}" == "runpod" ]]; then
+    image="${RUNPOD_REGISTRY}:${VERSION}"
+  else
+    image="${REGISTRY}/${component}:${VERSION}"
+  fi
   printf 'Building and pushing %s\n' "${image}"
   docker buildx build --push -f "${ROOT_DIR}/${dockerfile}" -t "${image}" "${ROOT_DIR}"
 done

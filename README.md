@@ -1,4 +1,4 @@
-# OpenMaster v3.4.0
+# OpenMaster v3.4.1
 
 OpenMaster is an open-source professional audio mastering platform. v3.4 adds
 independent measurement-driven LamAI policy optimisation, a complete sound-engineer

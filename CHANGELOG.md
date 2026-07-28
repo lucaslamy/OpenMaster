@@ -4,6 +4,14 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [3.4.1] - 2026-07-28
+
+### Fixed
+
+- The versioned publication script now pushes the RunPod worker to its dedicated
+  `harbor.lucaslamy.fr/library/openmaster-runpod` repository instead of deriving it
+  from the private API/Web repository root.
+
 ## [3.4.0] - 2026-07-28
 
 ### Added

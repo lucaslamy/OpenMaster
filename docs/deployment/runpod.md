@@ -46,11 +46,11 @@ les traitements GPU sans augmenter la RAM réservée sur k3s.
 ## Construire le worker
 
 ```bash
-export REGISTRY=registry.example.com/openmaster
-export VERSION=2.8.0
+export RUNPOD_REGISTRY=harbor.lucaslamy.fr/library/openmaster-runpod
+export VERSION=3.4.1
 
-docker build -f Dockerfile.runpod -t "${REGISTRY}/runpod:${VERSION}" .
-docker push "${REGISTRY}/runpod:${VERSION}"
+docker build -f Dockerfile.runpod -t "${RUNPOD_REGISTRY}:${VERSION}" .
+docker push "${RUNPOD_REGISTRY}:${VERSION}"
 ```
 
 Dans RunPod, créez un endpoint Serverless queue-based depuis cette image :

@@ -39,3 +39,17 @@ def test_update_values_pins_all_cluster_images_and_preserves_runpod_settings(
     assert 'image: "harbor.lucaslamy.fr/private/openmaster/web:3.2.0"' in rendered
     assert "endpointId: keep-me" in rendered
     assert "replicaCount: 2" in rendered
+
+
+def test_sync_build_uses_the_dedicated_runpod_repository() -> None:
+    script = (
+        Path(__file__).parents[1] / "deployment" / "scripts" / "sync-build-push.sh"
+    ).read_text(encoding="utf-8")
+
+    assert 'REGISTRY="${REGISTRY:-harbor.lucaslamy.fr/private/openmaster}"' in script
+    assert (
+        'RUNPOD_REGISTRY="${RUNPOD_REGISTRY:-'
+        'harbor.lucaslamy.fr/library/openmaster-runpod}"' in script
+    )
+    assert 'image="${RUNPOD_REGISTRY}:${VERSION}"' in script
+    assert 'image="${REGISTRY}/${component}:${VERSION}"' in script

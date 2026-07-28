@@ -43,9 +43,10 @@ docker push "${REGISTRY}/web:${VERSION}"
 Si RunPod est activé :
 
 ```bash
+export RUNPOD_REGISTRY=harbor.lucaslamy.fr/library/openmaster-runpod
 docker build --platform linux/amd64 -f Dockerfile.runpod \
-  -t "${REGISTRY}/runpod:${VERSION}" .
-docker push "${REGISTRY}/runpod:${VERSION}"
+  -t "${RUNPOD_REGISTRY}:${VERSION}" .
+docker push "${RUNPOD_REGISTRY}:${VERSION}"
 ```
 
 ## 3. Mettre à jour les valeurs privées
