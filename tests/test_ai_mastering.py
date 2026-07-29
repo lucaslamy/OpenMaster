@@ -115,9 +115,7 @@ def test_lamai_advice_cannot_change_fixed_dsp_topology(
         {
             "model": "qwen",
             "message": {
-                "content": json.dumps(
-                    {"settings": settings, "rationale": "Move the crossover."}
-                )
+                "content": json.dumps({"settings": settings, "rationale": "Move the crossover."})
             },
         }
     ).encode()

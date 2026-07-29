@@ -203,6 +203,13 @@ ownership protects retained projects and every source, preview, settings, render
 download operation. Settings section headings now render consistently across browsers
 without changing their DSP controls.
 
+Patch `3.6.1` normalizes every mastering-settings title as a `control-heading` legend
+and reserves full-width separators for boxes containing several related controls.
+
+Next release UI follow-up: remove the source-code link from the primary navigation and
+move it to a quieter, still discoverable location such as the global footer or the
+technical-reference page. It must continue to open GitHub in a separate isolated tab.
+
 ## Planning rules
 
 - Do not start a version by adding its UI before its package-level contracts exist.

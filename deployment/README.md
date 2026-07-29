@@ -26,6 +26,8 @@ La conservation des projets et la décision pré-master `3.1.0` sont documentée
 [`docs/PROJECT_HISTORY.md`](../docs/PROJECT_HISTORY.md).
 Les comptes privés et l’approbation administrateur `3.6.0` disposent d’un
 [runbook de déploiement dédié](../docs/deployment/release-3.6.0.fr.md).
+Le correctif visuel des titres de réglages `3.6.1` dispose également d’un
+[runbook de déploiement dédié](../docs/deployment/release-3.6.1.fr.md).
 
 ## Synchronisation, publication et déploiement versionné
 
@@ -33,10 +35,10 @@ Synchroniser le dépôt vers `root@46.225.231.203`, puis construire et publier u
 sélection d'images :
 
 ```bash
-deployment/scripts/sync-build-push.sh 3.6.0 api web
-deployment/scripts/sync-build-push.sh 3.6.0 runpod
+deployment/scripts/sync-build-push.sh 3.6.1 api web
+deployment/scripts/sync-build-push.sh 3.6.1 runpod
 # ou les trois :
-deployment/scripts/sync-build-push.sh 3.6.0 all
+deployment/scripts/sync-build-push.sh 3.6.1 all
 ```
 
 Le script exclut `.git`, `.env`, `node_modules` et les caches Python. Les valeurs par
@@ -52,14 +54,14 @@ Exemple explicite :
 ```bash
 REGISTRY=harbor.lucaslamy.fr/private/openmaster \
 RUNPOD_REGISTRY=harbor.lucaslamy.fr/library/openmaster-runpod \
-  deployment/scripts/sync-build-push.sh 3.6.0 all
+  deployment/scripts/sync-build-push.sh 3.6.1 all
 ```
 
 Sur le serveur k3s, épingler la version dans le fichier RunPod puis lancer le
 préflight et le déploiement Helm atomique :
 
 ```bash
-deployment/scripts/deploy-runpod-version.sh 3.6.0
+deployment/scripts/deploy-runpod-version.sh 3.6.1
 ```
 
 Le fichier par défaut est `/tmp/openmaster-k3s-runpod.yaml`. Une sauvegarde horodatée

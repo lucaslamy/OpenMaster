@@ -161,15 +161,13 @@ legend { width: 100%; color: var(--muted); font: .65rem "DM Mono", monospace; te
 .segments { display: grid; grid-template-columns: repeat(3, 1fr); padding: 3px; border-radius: 8px; background: #0d0f14; }
 .segments button { color: var(--muted); background: transparent; border: 0; border-radius: 6px; padding: .6rem; font: .68rem "DM Mono", monospace; cursor: pointer; }
 .segments button.active { color: #fff; background: #282b34; box-shadow: 0 2px 8px #000; }
-.control-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: .55rem; }
-.control-heading legend { width: auto; margin: 0; }
+.control-heading { display: flex; align-items: center; justify-content: space-between; gap: .8rem; width: 100%; margin: 0 0 .7rem; padding: 0; }
+.control-heading > span { min-width: 0; display: inline-flex; align-items: center; }
+.grouped-control-heading { margin-bottom: .9rem; padding-bottom: .7rem; border-bottom: 1px solid var(--line); }
 .control-heading output { color: var(--mint); font: .7rem "DM Mono", monospace; }
 .continuous-control input[type="range"] { width: 100%; height: 4px; appearance: none; border-radius: 4px; outline: none; background: linear-gradient(90deg, var(--mint), #4f5360); accent-color: var(--mint); }
 .continuous-control input[type="range"]::-webkit-slider-thumb { width: 15px; height: 15px; appearance: none; border: 3px solid #111319; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 1px var(--mint), 0 0 15px rgba(110,231,193,.3); cursor: grab; }
 .advanced-dsp { padding: .9rem; border: 1px solid var(--line); border-radius: 8px; background: rgba(11,13,18,.45); }
-.advanced-dsp legend { padding: 0 .35rem; }
-.fieldset-heading { display: flex; align-items: center; gap: .35rem; margin: 0 0 .9rem; padding-bottom: .7rem; border-bottom: 1px solid var(--line); }
-.fieldset-heading strong { font-size: .75rem; font-weight: 600; }
 .spectral-dynamics-fieldset .mini-control:first-of-type { margin-top: 0; }
 .mini-control { display: grid; grid-template-columns: 1fr auto; gap: .25rem .7rem; margin-top: .75rem; }
 .mini-control label { color: var(--text); font-size: .72rem; }
@@ -344,7 +342,7 @@ main:has(.sticky-preview) { padding-right: 350px; }
 .settings-column { min-width: 0; }
 .settings-column > fieldset { position: relative; min-width: 0; padding: 1rem; border: 0; border-radius: 10px; background: rgba(7,10,17,.34); }
 .settings-column > fieldset::before { content: ""; position: absolute; z-index: 0; inset: 0; pointer-events: none; border: 1px solid var(--line); border-radius: inherit; }
-.settings-column > fieldset > legend:not(.sr-only) { position: relative; z-index: 1; float: left; width: 100%; margin: 0 0 .9rem; padding: 0 0 .7rem; border-bottom: 1px solid var(--line); color: #dfe2e9; font-weight: 600; }
+.settings-column > fieldset > legend:not(.sr-only) { position: relative; z-index: 1; float: left; width: 100%; color: #dfe2e9; font-weight: 600; }
 .settings-column > fieldset > legend:not(.sr-only) + * { clear: both; }
 .settings-column > fieldset > :not(legend) { position: relative; z-index: 1; }
 .settings-column > fieldset + fieldset { margin-top: 1rem; }

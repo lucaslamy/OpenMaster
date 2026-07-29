@@ -806,7 +806,9 @@ watch(
           </div>
 
           <fieldset>
-            <legend>{{ t("masteringIntent") }} <InfoTip :text="t('intentTip')" /></legend>
+            <legend class="control-heading grouped-control-heading">
+              <span>{{ t("masteringIntent") }} <InfoTip :text="t('intentTip')" /></span>
+            </legend>
             <div class="preset-grid">
               <button
                 v-for="intent in intents"
@@ -827,10 +829,10 @@ watch(
           <div class="settings-columns">
           <div class="settings-column">
           <fieldset class="continuous-control">
-            <div class="control-heading">
-              <legend>{{ t("customTarget") }} <InfoTip :text="t('customTargetTip')" /></legend>
+            <legend class="control-heading">
+              <span>{{ t("customTarget") }} <InfoTip :text="t('customTargetTip')" /></span>
               <output>{{ targetLufs.toFixed(1) }} LUFS</output>
-            </div>
+            </legend>
             <input
               v-model.number="targetLufs"
               type="range"
@@ -844,7 +846,9 @@ watch(
           </fieldset>
 
           <fieldset>
-            <legend>{{ t("wavDepth") }} <InfoTip :text="t('wavDepthTip')" /></legend>
+            <legend class="control-heading">
+              <span>{{ t("wavDepth") }} <InfoTip :text="t('wavDepthTip')" /></span>
+            </legend>
             <div class="segments">
               <button
                 v-for="depth in [16, 24, 32]"
@@ -857,10 +861,10 @@ watch(
           </fieldset>
 
           <fieldset class="continuous-control">
-            <div class="control-heading">
-              <legend>{{ t("limiterCeiling") }} <InfoTip :text="t('limiterTip')" /></legend>
+            <legend class="control-heading">
+              <span>{{ t("limiterCeiling") }} <InfoTip :text="t('limiterTip')" /></span>
               <output>{{ ceilingDbfs.toFixed(1) }} dBFS</output>
-            </div>
+            </legend>
             <input
               v-model.number="ceilingDbfs"
               type="range"
@@ -874,10 +878,10 @@ watch(
           </fieldset>
 
           <fieldset class="continuous-control">
-            <div class="control-heading">
-              <legend>{{ t("maxCorrection") }} <InfoTip :text="t('correctionTip')" /></legend>
+            <legend class="control-heading">
+              <span>{{ t("maxCorrection") }} <InfoTip :text="t('correctionTip')" /></span>
               <output>±{{ maximumGainAdjustmentDb.toFixed(0) }} dB</output>
-            </div>
+            </legend>
             <input
               v-model.number="maximumGainAdjustmentDb"
               type="range"
@@ -891,7 +895,9 @@ watch(
           </fieldset>
 
           <fieldset class="advanced-dsp">
-            <legend>{{ t("tonalEqualizer") }} <InfoTip :text="t('tonalEqualizerTip')" /></legend>
+            <legend class="control-heading grouped-control-heading">
+              <span>{{ t("tonalEqualizer") }} <InfoTip :text="t('tonalEqualizerTip')" /></span>
+            </legend>
             <div class="eq-curve" aria-hidden="true">
               <svg viewBox="0 0 300 70" preserveAspectRatio="none">
                 <path class="eq-zero" d="M0 35 H300" />
@@ -920,11 +926,9 @@ watch(
           </div>
           <div class="settings-column">
           <fieldset class="advanced-dsp spectral-dynamics-fieldset" aria-labelledby="spectral-dynamics-heading">
-            <legend class="sr-only">{{ t("spectralDynamics") }}</legend>
-            <div id="spectral-dynamics-heading" class="fieldset-heading">
-              <strong>{{ t("spectralDynamics") }}</strong>
-              <InfoTip :text="t('spectralDynamicsTip')" />
-            </div>
+            <legend id="spectral-dynamics-heading" class="control-heading grouped-control-heading">
+              <span>{{ t("spectralDynamics") }} <InfoTip :text="t('spectralDynamicsTip')" /></span>
+            </legend>
             <div class="mini-control switch-control">
               <label for="high-pass-enabled">{{ t("highPass") }} <InfoTip :text="t('highPassTip')" /></label>
               <input id="high-pass-enabled" v-model="highPassEnabled" type="checkbox" @change="activeIntent = 'Custom'" />
@@ -957,7 +961,9 @@ watch(
           </fieldset>
 
           <fieldset class="advanced-dsp">
-            <legend>{{ t("transientControl") }} <InfoTip :text="t('transientControlTip')" /></legend>
+            <legend class="control-heading grouped-control-heading">
+              <span>{{ t("transientControl") }} <InfoTip :text="t('transientControlTip')" /></span>
+            </legend>
             <div class="mini-control">
               <label for="clipper-drive">{{ t("clipperDrive") }} <InfoTip :text="t('clipperDriveTip')" /></label>
               <output>{{ clipperDriveDb.toFixed(1) }} dB</output>
@@ -976,7 +982,9 @@ watch(
           </fieldset>
 
           <fieldset>
-            <legend>{{ t("aiAssistance") }} <InfoTip :text="t('aiAssistanceTip')" /></legend>
+            <legend class="control-heading">
+              <span>{{ t("aiAssistance") }} <InfoTip :text="t('aiAssistanceTip')" /></span>
+            </legend>
             <button
               class="ai-assistance-toggle"
               type="button"
@@ -991,7 +999,9 @@ watch(
           </fieldset>
 
           <fieldset>
-            <legend>{{ t("safeguards") }} <InfoTip :text="t('safeguardsTip')" /></legend>
+            <legend class="control-heading grouped-control-heading">
+              <span>{{ t("safeguards") }} <InfoTip :text="t('safeguardsTip')" /></span>
+            </legend>
             <div class="safeguard-grid">
               <button type="button" :class="{ active: extraHeadroom }" @click="toggleHeadroom" :title="t('extraHeadroomTip')">
                 <span>◇</span><strong>{{ t("extraHeadroom") }}</strong><small>{{ t("extraHeadroomSmall") }}</small>

@@ -104,8 +104,7 @@ class LamAiMasteringClient:
                 raise ValueError
             values = _policy_values(settings)
             if any(
-                values[field] != getattr(current_policy, field)
-                for field in _FIXED_TOPOLOGY_FIELDS
+                values[field] != getattr(current_policy, field) for field in _FIXED_TOPOLOGY_FIELDS
             ):
                 raise ValueError("Fixed DSP topology cannot be changed by LamAI")
             policy = MasteringPolicy(**values)

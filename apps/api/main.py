@@ -18,7 +18,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-app = FastAPI(title="OpenMaster API", version="3.6.0", lifespan=lifespan)
+app = FastAPI(title="OpenMaster API", version="3.6.1", lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(analysis_router)
 

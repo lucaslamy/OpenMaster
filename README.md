@@ -1,4 +1,4 @@
-# OpenMaster v3.6.0
+# OpenMaster v3.6.1
 
 OpenMaster is an open-source professional audio mastering platform. v3.6 adds
 administrator-approved user accounts, private per-user project ownership, revocable

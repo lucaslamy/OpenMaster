@@ -4,6 +4,14 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [3.6.1] - 2026-07-29
+
+### Fixed
+
+- Every settings section now uses the same `control-heading` legend structure; boxes
+  containing several controls receive a full-width internal separator without
+  browser-dependent fieldset border cut-outs.
+
 ## [3.6.0] - 2026-07-29
 
 ### Added
