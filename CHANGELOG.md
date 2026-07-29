@@ -4,6 +4,11 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- The source-code link now lives in the global footer instead of the primary header
+  navigation, while retaining isolated new-tab behavior.
+
 ## [3.6.1] - 2026-07-29
 
 ### Fixed

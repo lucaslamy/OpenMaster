@@ -206,9 +206,8 @@ without changing their DSP controls.
 Patch `3.6.1` normalizes every mastering-settings title as a `control-heading` legend
 and reserves full-width separators for boxes containing several related controls.
 
-Next release UI follow-up: remove the source-code link from the primary navigation and
-move it to a quieter, still discoverable location such as the global footer or the
-technical-reference page. It must continue to open GitHub in a separate isolated tab.
+Completed UI follow-up: the source-code link now lives in the global footer rather
+than the primary navigation and continues to open GitHub in a separate isolated tab.
 
 ## Planning rules
 

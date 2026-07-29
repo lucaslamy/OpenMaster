@@ -614,12 +614,6 @@ watch(
           <b>{{ currentUser.display_name }}</b>
           <small>{{ locale === "fr" ? "Déconnexion" : "Sign out" }}</small>
         </button>
-        <a
-          class="github-link"
-          href="https://github.com/lucaslamy/OpenMaster"
-          target="_blank"
-          rel="noopener noreferrer"
-        >{{ t("sourceLink") }}</a>
       </div>
     </nav>
 
@@ -1141,6 +1135,15 @@ watch(
       </section>
     </main>
 
-    <footer><span>OPENMASTER · 2026</span><span>{{ t("footer") }}</span></footer>
+    <footer class="site-footer">
+      <span>OPENMASTER · 2026</span>
+      <span>{{ t("footer") }}</span>
+      <a
+        class="source-link"
+        href="https://github.com/lucaslamy/OpenMaster"
+        target="_blank"
+        rel="noopener noreferrer"
+      >{{ t("sourceLink") }}</a>
+    </footer>
   </div>
 </template>
