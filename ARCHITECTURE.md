@@ -44,9 +44,10 @@ returns an immutable `AnalysisResult`. It has no network, database, or API depen
 | `packages/audio_core` | Reusable audio contracts, input safety, WAV and FFmpeg decoding | Implemented |
 | `packages/job_store` | Pure retry-safe analysis-job lifecycle contracts | Initial extraction |
 | `packages/analysis_jobs` | Idempotent upload and asynchronous dispatch service | Implemented |
-| `packages/database` | Alembic metadata and durable analysis-job repository | Implemented |
+| `packages/auth` | PBKDF2 account policy and opaque revocable session service | Implemented |
+| `packages/database` | Durable user, session, and analysis-job repositories | Implemented |
 | `packages/storage` | Internal MinIO transfers and public signed URLs | Implemented |
-| Auth, AI | Future platform concerns | Planned |
+| `packages/ai_mastering` | Bounded LamAI policy client | Implemented |
 
 Applications may depend on packages. Packages must not depend on applications. FastAPI
 routes must call services; DSP and analysis logic must remain in packages.
@@ -61,6 +62,22 @@ PDB resources. Atomic deploy, rollback, preflight, and smoke-test scripts provid
 operational boundary for k3s and upstream Kubernetes.
 Dedicated Celery deployments consume the `analysis`, `mastering`, and `export` queues;
 their commands and resource profiles are rendered from chart values.
+
+## Accounts and project ownership
+
+The Vue client authenticates through same-origin `/api/v1/auth` routes. New users remain
+pending until an active administrator approves them. The administrator is bootstrapped
+idempotently from deployment secrets and alone may review account requests. Passwords are
+stored as independently salted PBKDF2-SHA256 hashes with 600,000 iterations. Successful
+registration or login creates a random opaque session; only its SHA-256 digest is
+stored in PostgreSQL and the clear token is returned exclusively as a `Secure`,
+`HttpOnly`, `SameSite=Strict` cookie. Logout deletes that digest.
+
+Every browser-facing analysis, settings, mastering, preview, source, and download route
+requires the session. `analysis_jobs.user_id` is checked in SQL before a project is
+returned or mutated. Root history is limited to the twenty newest rows for that user.
+Pre-account rows retain a nullable owner for migration safety and are not exposed to
+any account. Workers continue to resolve jobs internally by UUID.
 
 ## Automatic mastering baseline
 

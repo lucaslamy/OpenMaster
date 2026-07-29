@@ -4,6 +4,25 @@ All notable changes to OpenMaster are documented in this file.
 
 ## [Unreleased]
 
+## [3.6.0] - 2026-07-29
+
+### Added
+
+- User registration, login, current-session and logout endpoints backed by salted
+  PBKDF2-SHA256 password hashes and revocable opaque HttpOnly cookies.
+- Per-account ownership for source uploads, the twenty-project history, settings,
+  rendering, previews and downloads, including a reversible Alembic migration.
+- A responsive bilingual account screen and compact signed-in identity control.
+- A secret-bootstrapped administrator and dedicated request-review interface; new
+  accounts remain pending until the administrator approves or rejects them.
+
+### Changed
+
+- Mastering submission now uses the authenticated account session instead of exposing
+  the shared mastering proof to browser JavaScript.
+- Settings section headings now render fully inside uninterrupted cards rather than as
+  browser-dependent fieldset border cut-outs.
+
 ## [3.5.0] - 2026-07-28
 
 ### Added

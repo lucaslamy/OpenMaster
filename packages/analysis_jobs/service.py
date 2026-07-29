@@ -83,6 +83,7 @@ class AnalysisJobService:
         saturation_amount: float = 0.0,
         ai_assist_enabled: bool = False,
         bit_depth: int = 24,
+        user_id: str | None = None,
     ) -> AnalysisJobRecord:
         """Validate, store, persist, and enqueue one upload exactly once."""
         key = idempotency_key.strip()
@@ -90,6 +91,8 @@ class AnalysisJobService:
             raise InvalidUploadError("Idempotency-Key must contain between 1 and 255 characters")
         existing = self._repository.get_by_idempotency_key(key)
         if existing is not None:
+            if user_id is not None and existing.user_id != user_id:
+                raise InvalidUploadError("Idempotency-Key is already in use")
             if existing.status == "queued":
                 self._enqueue(existing.id, existing.object_name)
             return existing
@@ -146,6 +149,7 @@ class AnalysisJobService:
             idempotency_key=key,
             object_name=object_name,
             original_filename=safe_filename,
+            user_id=user_id,
             target_lufs=target_lufs,
             maximum_gain_adjustment_db=maximum_gain_adjustment_db,
             ceiling_dbfs=ceiling_dbfs,
@@ -172,13 +176,17 @@ class AnalysisJobService:
         """Return one job without leaking its internal object name."""
         return self._repository.get(job_id)
 
-    def list_recent(self, limit: int = 20) -> list[AnalysisJobRecord]:
+    def list_recent(
+        self, limit: int = 20, *, user_id: str | None = None
+    ) -> list[AnalysisJobRecord]:
         """Return up to twenty durable projects for the studio history."""
-        return self._repository.list_recent(limit)
+        return self._repository.list_recent(limit, user_id=user_id)
 
-    def rename_project(self, job_id: str, project_name: str) -> AnalysisJobRecord | None:
+    def rename_project(
+        self, job_id: str, project_name: str, *, user_id: str | None = None
+    ) -> AnalysisJobRecord | None:
         """Persist a bounded display name without changing the source object."""
-        job = self._repository.get(job_id)
+        job = self._owned_job(job_id, user_id)
         if job is None:
             return None
         root_id = job.parent_job_id or job.id
@@ -188,20 +196,28 @@ class AnalysisJobService:
         return self._repository.rename_project(root_id, name)
 
     def save_settings(
-        self, job_id: str, settings: Mapping[str, float | int | bool]
+        self,
+        job_id: str,
+        settings: Mapping[str, float | int | bool],
+        *,
+        user_id: str | None = None,
     ) -> AnalysisJobRecord | None:
         """Validate and persist current browser settings without dispatching work."""
-        job = self._repository.get(job_id)
+        job = self._owned_job(job_id, user_id)
         if job is None:
             return None
         validated = _validated_settings(settings, job)
         return self._repository.save_interactive_settings(job_id, validated)
 
     def start_master(
-        self, job_id: str, settings: Mapping[str, float | int | bool]
+        self,
+        job_id: str,
+        settings: Mapping[str, float | int | bool],
+        *,
+        user_id: str | None = None,
     ) -> AnalysisJobRecord | None:
         """Persist the user's decision and dispatch mastering without re-analysis."""
-        job = self._repository.get(job_id)
+        job = self._owned_job(job_id, user_id)
         if job is None:
             return None
         if job.status == "mastering" or job.status == "succeeded":
@@ -218,9 +234,11 @@ class AnalysisJobService:
         job_id: str,
         settings: Mapping[str, float | int | bool],
         idempotency_key: str,
+        *,
+        user_id: str | None = None,
     ) -> AnalysisJobRecord | None:
         """Create a child render that reuses the source object and persisted analysis."""
-        parent = self._repository.get(job_id)
+        parent = self._owned_job(job_id, user_id)
         if parent is None:
             return None
         if (
@@ -243,9 +261,9 @@ class AnalysisJobService:
             self._enqueue_master(child.id, child.object_name)
         return child
 
-    def create_download_url(self, job_id: str) -> str | None:
+    def create_download_url(self, job_id: str, *, user_id: str | None = None) -> str | None:
         """Return a short-lived download URL only for a completed master."""
-        job = self._repository.get(job_id)
+        job = self._owned_job(job_id, user_id)
         if job is None or job.output_object_name is None:
             return None
         if self._signed_urls is None:
@@ -255,9 +273,9 @@ class AnalysisJobService:
             download_name=Path(job.output_object_name).name,
         )
 
-    def create_preview_url(self, job_id: str) -> str | None:
+    def create_preview_url(self, job_id: str, *, user_id: str | None = None) -> str | None:
         """Return a short-lived inline URL for before/after playback."""
-        job = self._repository.get(job_id)
+        job = self._owned_job(job_id, user_id)
         if job is None or job.output_object_name is None:
             return None
         if self._signed_urls is None:
@@ -267,9 +285,9 @@ class AnalysisJobService:
             expires_in_seconds=7200,
         )
 
-    def create_initial_preview_url(self, job_id: str) -> str | None:
+    def create_initial_preview_url(self, job_id: str, *, user_id: str | None = None) -> str | None:
         """Return the immutable first master for a final-render child."""
-        job = self._repository.get(job_id)
+        job = self._owned_job(job_id, user_id)
         if job is None or job.initial_output_object_name is None:
             return None
         if self._signed_urls is None:
@@ -279,9 +297,9 @@ class AnalysisJobService:
             expires_in_seconds=7200,
         )
 
-    def create_source_preview_url(self, job_id: str) -> str | None:
+    def create_source_preview_url(self, job_id: str, *, user_id: str | None = None) -> str | None:
         """Return the retained source used by pre-master live audition."""
-        job = self._repository.get(job_id)
+        job = self._owned_job(job_id, user_id)
         if job is None:
             return None
         if self._signed_urls is None:
@@ -289,6 +307,17 @@ class AnalysisJobService:
         return self._signed_urls.create_download_url(
             job.object_name,
             expires_in_seconds=7200,
+        )
+
+    def get_for_user(self, job_id: str, user_id: str) -> AnalysisJobRecord | None:
+        """Return one job only when it belongs to the supplied account."""
+        return self._repository.get_for_user(job_id, user_id)
+
+    def _owned_job(self, job_id: str, user_id: str | None) -> AnalysisJobRecord | None:
+        return (
+            self._repository.get_for_user(job_id, user_id)
+            if user_id is not None
+            else self._repository.get(job_id)
         )
 
     def _enqueue_master(self, job_id: str, object_name: str) -> None:

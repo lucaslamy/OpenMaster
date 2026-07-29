@@ -8,6 +8,9 @@ import {
   isTerminalStatus,
   type UploadProgress,
 } from "./api/analysis";
+import { AuthApiClient, type AuthUser } from "./api/auth";
+import AdminAccountsPanel from "./components/AdminAccountsPanel.vue";
+import AuthPanel from "./components/AuthPanel.vue";
 import AudioWaveform from "./components/AudioWaveform.vue";
 import AnalysisDashboard from "./components/AnalysisDashboard.vue";
 import AiMasteringChanges from "./components/AiMasteringChanges.vue";
@@ -51,7 +54,7 @@ const pipelineStages = computed(() => [
   { key: "mastering", label: t("mastering") },
   { key: "ready", label: t("ready") },
 ]);
-const page = ref<"studio" | "guide" | "technical">("studio");
+const page = ref<"studio" | "guide" | "technical" | "admin">("studio");
 const pointerX = ref(50);
 const pointerY = ref(12);
 const ambientStyle = computed(() => ({
@@ -96,7 +99,6 @@ const renameValue = ref("");
 const renameSaved = ref(false);
 const error = ref<string | null>(null);
 const submitting = ref(false);
-const authorizing = ref(false);
 const transferPhase = ref<TransferPhase>("idle");
 const uploadPercent = ref(0);
 const uploadLoadedBytes = ref(0);
@@ -120,11 +122,10 @@ const deEsserReductionDb = ref(0);
 const saturationAmount = ref(0);
 const aiAssistEnabled = ref(false);
 const showTechnical = ref(false);
-const passwordDialogOpen = ref(false);
-const masteringPassword = ref("");
-const passwordError = ref<string | null>(null);
-const passwordPurpose = ref<"initial" | "final">("initial");
 const client = new AnalysisApiClient();
+const authClient = new AuthApiClient();
+const authReady = ref(false);
+const currentUser = ref<AuthUser | null>(null);
 const defaultIntent = intents.find((intent) => intent.key === "Streaming");
 if (defaultIntent) applyIntent(defaultIntent);
 const canSubmit = computed(() => selectedFile.value !== null && !submitting.value);
@@ -337,55 +338,12 @@ async function renameProject(): Promise<void> {
 
 function requestMaster(): void {
   if (!canSubmit.value) return;
-  masteringPassword.value = "";
-  passwordPurpose.value = "initial";
-  passwordError.value = null;
-  passwordDialogOpen.value = true;
-}
-
-function resetPasswordDialog(): void {
-  passwordDialogOpen.value = false;
-  masteringPassword.value = "";
-  passwordError.value = null;
-}
-
-function closePasswordDialog(): void {
-  if (authorizing.value) return;
-  resetPasswordDialog();
-}
-
-async function confirmMaster(): Promise<void> {
-  if (authorizing.value) return;
-  if (!masteringPassword.value) {
-    passwordError.value = t("passwordRequired");
-    return;
-  }
-  authorizing.value = true;
-  passwordError.value = null;
-  const purpose = passwordPurpose.value;
-  try {
-    const authorization = await client.authorize(masteringPassword.value);
-    authorizing.value = false;
-    masteringPassword.value = "";
-    resetPasswordDialog();
-    if (purpose === "initial") await submit(authorization);
-    else await renderFinal(authorization);
-  } catch (reason) {
-    masteringPassword.value = "";
-    passwordError.value = reason instanceof Error
-      ? translateApiError(locale.value, reason.message)
-      : t("requestFailed");
-  } finally {
-    authorizing.value = false;
-  }
+  void submit();
 }
 
 function requestFinalRender(): void {
   if (!job.value || submitting.value) return;
-  passwordPurpose.value = "final";
-  masteringPassword.value = "";
-  passwordError.value = null;
-  passwordDialogOpen.value = true;
+  void renderFinal();
 }
 
 async function saveSettings(): Promise<void> {
@@ -422,7 +380,7 @@ async function startMasterDecision(): Promise<void> {
   }
 }
 
-async function renderFinal(authorization: string): Promise<void> {
+async function renderFinal(): Promise<void> {
   if (!job.value) return;
   submitting.value = true;
   try {
@@ -433,7 +391,7 @@ async function renderFinal(authorization: string): Promise<void> {
       bit_depth: bitDepth.value,
       ai_assist_enabled: aiAssistEnabled.value,
       high_pass_enabled: highPassEnabled.value,
-    }, authorization, createIdempotencyKey());
+    }, createIdempotencyKey());
     schedulePoll();
   } catch (reason) {
     error.value = reason instanceof Error ? translateApiError(locale.value, reason.message) : t("requestFailed");
@@ -458,7 +416,7 @@ function resetInteractiveSettings(): void {
   document.querySelector(".preset-grid")?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
-async function submit(authorization: string): Promise<void> {
+async function submit(): Promise<void> {
   if (!selectedFile.value) return;
   const sourceFile = selectedFile.value;
   const controller = new AbortController();
@@ -480,7 +438,6 @@ async function submit(authorization: string): Promise<void> {
       bitDepth.value,
       maximumGainAdjustmentDb.value,
       ceilingDbfs.value,
-      authorization,
       eqLowGainDb.value,
       eqMidGainDb.value,
       eqHighGainDb.value,
@@ -553,7 +510,38 @@ onBeforeUnmount(() => {
   stopPolling();
   if (sourceUrl.value?.startsWith("blob:")) URL.revokeObjectURL(sourceUrl.value);
 });
-onMounted(loadHistory);
+async function bootstrapAccount(): Promise<void> {
+  try {
+    currentUser.value = await authClient.me();
+    if (currentUser.value) await loadHistory();
+  } catch {
+    currentUser.value = null;
+  } finally {
+    authReady.value = true;
+  }
+}
+
+async function accountAuthenticated(user: AuthUser): Promise<void> {
+  currentUser.value = user;
+  page.value = "studio";
+  await loadHistory();
+}
+
+async function logout(): Promise<void> {
+  try {
+    await authClient.logout();
+  } finally {
+    stopPolling();
+    currentUser.value = null;
+    job.value = null;
+    recentProjects.value = [];
+    historyOpen.value = false;
+    selectedFile.value = null;
+    sourceUrl.value = null;
+  }
+}
+
+onMounted(bootstrapAccount);
 watch(
   locale,
   (value) => {
@@ -602,6 +590,12 @@ watch(
         <button type="button" :class="{ active: page === 'studio' }" @click="page = 'studio'">{{ t("studio") }}</button>
         <button type="button" :class="{ active: page === 'guide' }" @click="page = 'guide'">{{ t("guide") }}</button>
         <button type="button" :class="{ active: page === 'technical' }" @click="page = 'technical'">{{ t("technical") }}</button>
+        <button
+          v-if="currentUser?.role === 'admin'"
+          type="button"
+          :class="{ active: page === 'admin' }"
+          @click="page = 'admin'"
+        >Admin</button>
         <label class="language-selector">
           <span class="sr-only">Language</span>
           <select v-model="locale" aria-label="Language / Langue">
@@ -609,6 +603,17 @@ watch(
             <option value="fr">FR</option>
           </select>
         </label>
+        <button
+          v-if="currentUser"
+          class="account-chip"
+          type="button"
+          :title="currentUser.email"
+          @click="logout"
+        >
+          <span>{{ currentUser.display_name.slice(0, 1).toUpperCase() }}</span>
+          <b>{{ currentUser.display_name }}</b>
+          <small>{{ locale === "fr" ? "Déconnexion" : "Sign out" }}</small>
+        </button>
         <a
           class="github-link"
           href="https://github.com/lucaslamy/OpenMaster"
@@ -629,6 +634,19 @@ watch(
       :locale="locale"
       @back="page = 'guide'"
       @studio="page = 'studio'"
+    />
+    <AdminAccountsPanel
+      v-else-if="page === 'admin' && currentUser?.role === 'admin'"
+      :locale="locale"
+      @back="page = 'studio'"
+    />
+    <main v-else-if="!authReady" class="auth-loading" aria-live="polite">
+      <i></i><span>{{ locale === "fr" ? "Ouverture de la session…" : "Opening session…" }}</span>
+    </main>
+    <AuthPanel
+      v-else-if="!currentUser"
+      :locale="locale"
+      @authenticated="accountAuthenticated"
     />
     <main v-else>
       <header class="hero">
@@ -765,7 +783,7 @@ watch(
             </div>
           </div>
           <button v-if="selectedFile && !job" class="master-button" type="submit" :disabled="!canSubmit">
-            <span>{{ submitting ? t("uploadSource") : (locale === "fr" ? "Vérifier le mot de passe puis analyser" : "Verify password, then analyze") }}</span>
+            <span>{{ submitting ? t("uploadSource") : (locale === "fr" ? "Téléverser puis analyser" : "Upload and analyze") }}</span>
             <b>→</b>
           </button>
         </section>
@@ -1112,41 +1130,6 @@ watch(
         </div>
       </section>
     </main>
-
-    <div
-      v-if="passwordDialogOpen"
-      class="modal-backdrop"
-      role="presentation"
-      @click.self="closePasswordDialog"
-      @keydown.esc="closePasswordDialog"
-    >
-      <form class="password-dialog" role="dialog" aria-modal="true" :aria-labelledby="'password-title'" @submit.prevent="confirmMaster">
-        <button class="modal-close" type="button" :aria-label="t('cancel')" :disabled="authorizing" @click="closePasswordDialog">×</button>
-        <span class="lock-orb">⌁</span>
-        <p class="eyebrow">{{ t("safeguards") }}</p>
-        <h2 id="password-title">{{ t("unlockTitle") }}</h2>
-        <p>{{ t("unlockCopy") }}</p>
-        <label>
-          <span>{{ t("password") }}</span>
-          <input
-            v-model="masteringPassword"
-            type="password"
-            autocomplete="current-password"
-            :placeholder="t('passwordPlaceholder')"
-            :disabled="authorizing"
-            autofocus
-          />
-        </label>
-        <p v-if="passwordError" class="modal-error" role="alert">{{ passwordError }}</p>
-        <div class="modal-actions">
-          <button type="button" :disabled="authorizing" @click="closePasswordDialog">{{ t("cancel") }}</button>
-          <button type="submit" :disabled="authorizing">
-            {{ authorizing ? (locale === "fr" ? "Vérification…" : "Checking…") : t("authorize") }}
-            <span>→</span>
-          </button>
-        </div>
-      </form>
-    </div>
 
     <footer><span>OPENMASTER · 2026</span><span>{{ t("footer") }}</span></footer>
   </div>

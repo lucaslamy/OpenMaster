@@ -95,6 +95,8 @@ POSTGRES_PASSWORD
 MINIO_ROOT_USER
 MINIO_ROOT_PASSWORD
 MASTERING_ACCESS_PASSWORD
+OPENMASTER_ADMIN_EMAIL
+OPENMASTER_ADMIN_PASSWORD
 ```
 
 Avec les services internes, les trois URL ont typiquement cette forme :
@@ -118,6 +120,20 @@ echo
 printf '%s' "${MASTERING_ACCESS_PASSWORD}" \
   | vault kv patch -mount=secret openmaster MASTERING_ACCESS_PASSWORD=-
 unset MASTERING_ACCESS_PASSWORD
+```
+
+Ajoutez ensuite l’identité administrateur. L’e-mail et le mot de passe sont lus par
+l’API au démarrage et ne doivent pas apparaître dans les valeurs Helm :
+
+```bash
+read -rp "E-mail administrateur OpenMaster : " OPENMASTER_ADMIN_EMAIL
+read -rsp "Mot de passe administrateur OpenMaster : " OPENMASTER_ADMIN_PASSWORD
+echo
+printf '%s' "${OPENMASTER_ADMIN_EMAIL}" \
+  | vault kv patch -mount=secret openmaster OPENMASTER_ADMIN_EMAIL=-
+printf '%s' "${OPENMASTER_ADMIN_PASSWORD}" \
+  | vault kv patch -mount=secret openmaster OPENMASTER_ADMIN_PASSWORD=-
+unset OPENMASTER_ADMIN_EMAIL OPENMASTER_ADMIN_PASSWORD
 ```
 
 ### Option de démarrage sans Vault

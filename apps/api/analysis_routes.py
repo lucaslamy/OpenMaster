@@ -15,9 +15,16 @@ from pydantic import BaseModel
 from starlette.responses import RedirectResponse
 
 from packages.analysis_jobs import AnalysisJobService, InvalidUploadError
+from packages.auth import AuthUser
 from packages.database import AnalysisJobRecord
 
-router = APIRouter(prefix="/api/v1", tags=["analysis"])
+from .auth_routes import require_user
+
+router = APIRouter(
+    prefix="/api/v1",
+    tags=["analysis"],
+    dependencies=[Depends(require_user)],
+)
 
 MASTERING_TOKEN_TTL_ENV = "MASTERING_ACCESS_TOKEN_TTL_SECONDS"
 DEFAULT_MASTERING_TOKEN_TTL_SECONDS = 7_200
@@ -180,9 +187,7 @@ async def create_analysis_job(
     file: UploadFile,
     idempotency_key: Annotated[str, Header(alias="Idempotency-Key")],
     service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
-    mastering_authorization: Annotated[
-        str | None, Header(alias="X-Mastering-Authorization")
-    ] = None,
+    user: Annotated[AuthUser, Depends(require_user)],
     target_lufs: Annotated[float, Form()] = -14.0,
     maximum_gain_adjustment_db: Annotated[float, Form()] = 12.0,
     ceiling_dbfs: Annotated[float, Form()] = -1.0,
@@ -202,7 +207,6 @@ async def create_analysis_job(
     bit_depth: Annotated[int, Form()] = 24,
 ) -> AnalysisJobResponse:
     """Store one supported audio upload and queue its deterministic analysis."""
-    verify_mastering_token(mastering_authorization)
     try:
         length = file.size
         if length is None:
@@ -232,6 +236,7 @@ async def create_analysis_job(
             saturation_amount=saturation_amount,
             ai_assist_enabled=ai_assist_enabled,
             bit_depth=bit_depth,
+            user_id=user.id,
         )
     except InvalidUploadError as error:
         message = str(error)
@@ -251,9 +256,10 @@ def save_mastering_settings(
     job_id: str,
     request: MasteringSettingsRequest,
     service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+    user: Annotated[AuthUser, Depends(require_user)],
 ) -> AnalysisJobResponse:
     """Persist preview settings; this endpoint never dispatches audio work."""
-    job = service.save_settings(job_id, request.settings)
+    job = service.save_settings(job_id, request.settings, user_id=user.id)
     if job is None:
         raise HTTPException(status_code=404, detail="Analysis job not found")
     return _response(job)
@@ -268,10 +274,11 @@ def start_initial_master(
     job_id: str,
     request: MasteringSettingsRequest,
     service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+    user: Annotated[AuthUser, Depends(require_user)],
 ) -> AnalysisJobResponse:
     """Commit pre-master settings and enter mastering without repeating analysis."""
     try:
-        job = service.start_master(job_id, request.settings)
+        job = service.start_master(job_id, request.settings, user_id=user.id)
     except InvalidUploadError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
     if job is None:
@@ -282,9 +289,10 @@ def start_initial_master(
 @router.get("/analysis-jobs", response_model=list[AnalysisJobResponse])
 def list_analysis_jobs(
     service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+    user: Annotated[AuthUser, Depends(require_user)],
 ) -> list[AnalysisJobResponse]:
     """Return the twenty newest retained root projects."""
-    return [_response(job) for job in service.list_recent(20)]
+    return [_response(job) for job in service.list_recent(20, user_id=user.id)]
 
 
 @router.patch("/analysis-jobs/{job_id}", response_model=AnalysisJobResponse)
@@ -292,10 +300,11 @@ def rename_analysis_project(
     job_id: str,
     request: ProjectRenameRequest,
     service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+    user: Annotated[AuthUser, Depends(require_user)],
 ) -> AnalysisJobResponse:
     """Rename a project without touching its immutable source audio."""
     try:
-        job = service.rename_project(job_id, request.name)
+        job = service.rename_project(job_id, request.name, user_id=user.id)
     except InvalidUploadError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     if job is None:
@@ -313,14 +322,16 @@ def create_final_render(
     request: MasteringSettingsRequest,
     idempotency_key: Annotated[str, Header(alias="Idempotency-Key")],
     service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
-    mastering_authorization: Annotated[
-        str | None, Header(alias="X-Mastering-Authorization")
-    ] = None,
+    user: Annotated[AuthUser, Depends(require_user)],
 ) -> AnalysisJobResponse:
     """Authorize and dispatch a final render while reusing source and analysis."""
-    verify_mastering_token(mastering_authorization)
     try:
-        job = service.render_final(job_id, request.settings, idempotency_key)
+        job = service.render_final(
+            job_id,
+            request.settings,
+            idempotency_key,
+            user_id=user.id,
+        )
     except InvalidUploadError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
     if job is None:
@@ -332,9 +343,10 @@ def create_final_render(
 def download_master(
     job_id: str,
     service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+    user: Annotated[AuthUser, Depends(require_user)],
 ) -> RedirectResponse:
     """Redirect an authorized caller to a short-lived private master URL."""
-    url = service.create_download_url(job_id)
+    url = service.create_download_url(job_id, user_id=user.id)
     if url is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -347,9 +359,10 @@ def download_master(
 def preview_master(
     job_id: str,
     service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+    user: Annotated[AuthUser, Depends(require_user)],
 ) -> RedirectResponse:
     """Redirect an authorized caller to a short-lived inline master URL."""
-    url = service.create_preview_url(job_id)
+    url = service.create_preview_url(job_id, user_id=user.id)
     if url is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -362,9 +375,10 @@ def preview_master(
 def preview_initial_master(
     job_id: str,
     service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+    user: Annotated[AuthUser, Depends(require_user)],
 ) -> RedirectResponse:
     """Redirect final-render children to their immutable initial master."""
-    url = service.create_initial_preview_url(job_id)
+    url = service.create_initial_preview_url(job_id, user_id=user.id)
     if url is None:
         raise HTTPException(status_code=409, detail="Initial master is not available")
     return RedirectResponse(url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
@@ -374,9 +388,10 @@ def preview_initial_master(
 def preview_source(
     job_id: str,
     service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+    user: Annotated[AuthUser, Depends(require_user)],
 ) -> RedirectResponse:
     """Redirect to the retained project source for live pre-master audition."""
-    url = service.create_source_preview_url(job_id)
+    url = service.create_source_preview_url(job_id, user_id=user.id)
     if url is None:
         raise HTTPException(status_code=404, detail="Analysis job not found")
     return RedirectResponse(url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
@@ -386,9 +401,10 @@ def preview_source(
 def get_analysis_job(
     job_id: str,
     service: Annotated[AnalysisJobService, Depends(get_analysis_job_service)],
+    user: Annotated[AuthUser, Depends(require_user)],
 ) -> AnalysisJobResponse:
     """Return durable state for frontend polling."""
-    job = service.get(job_id)
+    job = service.get_for_user(job_id, user.id)
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis job not found")
     return _response(job)

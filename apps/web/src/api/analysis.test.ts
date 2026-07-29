@@ -47,7 +47,7 @@ class FakeXMLHttpRequest {
 }
 
 describe("AnalysisApiClient", () => {
-  it("authorizes before submitting an upload with the signed proof", async () => {
+  it("submits an authenticated same-origin upload without exposing credentials", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ id: "job-1", status: "queued" }), {
         status: 202,
@@ -64,7 +64,6 @@ describe("AnalysisApiClient", () => {
       24,
       12,
       -1,
-      "signed-proof",
     );
 
     expect(job.status).toBe("queued");
@@ -73,7 +72,6 @@ describe("AnalysisApiClient", () => {
       expect.objectContaining({
         headers: {
           "Idempotency-Key": "key-1",
-          "X-Mastering-Authorization": "signed-proof",
         },
         method: "POST",
       }),
@@ -97,24 +95,6 @@ describe("AnalysisApiClient", () => {
     expect((request.body as FormData).has("mastering_password")).toBe(false);
   });
 
-  it("returns a password error before any upload request is made", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ detail: "Invalid mastering password" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(new AnalysisApiClient("/v1").authorize("wrong")).rejects.toThrow(
-      "Invalid mastering password",
-    );
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("/v1/mastering-access");
-    const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect(request.body).toBe(JSON.stringify({ password: "wrong" }));
-  });
-
   it("reports real multipart upload progress before the API accepts the job", async () => {
     vi.stubGlobal("XMLHttpRequest", FakeXMLHttpRequest);
     const progress: number[] = [];
@@ -125,7 +105,6 @@ describe("AnalysisApiClient", () => {
       24,
       5,
       -1,
-      "signed-proof",
       0,
       0,
       0,
@@ -171,7 +150,7 @@ describe("AnalysisApiClient", () => {
     expect(xhr.method).toBe("POST");
     expect(xhr.url).toBe("/v1/analysis-jobs");
     expect(xhr.headers.get("Idempotency-Key")).toBe("upload-key");
-    expect(xhr.headers.get("X-Mastering-Authorization")).toBe("signed-proof");
+    expect(xhr.headers.has("X-Mastering-Authorization")).toBe(false);
     expect(xhr.headers.has("Content-Type")).toBe(false);
     expect((xhr.sentBody as FormData).get("target_lufs")).toBe("-11");
     expect((xhr.sentBody as FormData).get("bass_control_reduction_db")).toBe("3");
@@ -204,7 +183,6 @@ describe("AnalysisApiClient", () => {
       24,
       12,
       -1,
-      "signed-proof",
       0,
       0,
       0,
@@ -239,7 +217,6 @@ describe("AnalysisApiClient", () => {
       24,
       12,
       -1,
-      "signed-proof",
       0,
       0,
       0,

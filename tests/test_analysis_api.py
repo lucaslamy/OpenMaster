@@ -25,6 +25,13 @@ def test_api_registers_analysis_routes_under_ingress_prefix() -> None:
     assert "/api/v1/analysis-jobs/{job_id}/preview" in paths
     assert "/api/v1/analysis-jobs/{job_id}/source" in paths
     assert "/api/v1/analysis-jobs/{job_id}/master" in paths
+    assert "/api/v1/auth/register" in paths
+    assert "/api/v1/auth/login" in paths
+    assert "/api/v1/auth/me" in paths
+    assert "/api/v1/auth/logout" in paths
+    assert "/api/v1/auth/admin/requests" in paths
+    assert "/api/v1/auth/admin/requests/{user_id}/approve" in paths
+    assert "/api/v1/auth/admin/requests/{user_id}/reject" in paths
 
 
 def test_mastering_password_is_required_and_compared_safely(

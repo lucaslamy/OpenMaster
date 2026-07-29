@@ -14,7 +14,9 @@ The Vault record must expose these keys:
 - `CELERY_RESULT_BACKEND`
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
 - `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`
-- `MASTERING_ACCESS_PASSWORD` — shared studio password required only when submitting
+- `MASTERING_ACCESS_PASSWORD` — legacy shared password retained for compatibility
+- `OPENMASTER_ADMIN_EMAIL` — normalized login for the bootstrapped administrator
+- `OPENMASTER_ADMIN_PASSWORD` — long administrator password, rotated by updating Vault
   a new mastering job; use a long random value and never place it in Helm values.
 
 Limit the Vault role and Kubernetes service-account binding to the deployment

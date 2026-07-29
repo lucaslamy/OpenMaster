@@ -5,12 +5,22 @@ and Opus analysis and mastering.
 
 ## Contract
 
-Submit one file with a stable idempotency key:
+Create an account request once:
+
+```bash
+curl -fsS -c openmaster.cookies \
+  -H "Content-Type: application/json" \
+  -d '{"display_name":"Studio","email":"studio@example.com","password":"replace-with-a-long-password"}' \
+  https://openmaster.example.com/api/v1/auth/register
+```
+
+An administrator must approve the request before `/api/v1/auth/login` returns the
+secure session cookie. Submit one file with that cookie and a stable idempotency key:
 
 ```bash
 curl -fsS -X POST \
+  -b openmaster.cookies \
   -H "Idempotency-Key: $(uuidgen)" \
-  -H "X-Mastering-Password: $MASTERING_ACCESS_PASSWORD" \
   -F "file=@mix.mp3" \
   -F "target_lufs=-14" \
   -F "maximum_gain_adjustment_db=12" \
@@ -32,7 +42,7 @@ curl -fsS -X POST \
   https://openmaster.example.com/api/v1/analysis-jobs
 ```
 
-The API validates the extension and configured upload limit, stores the immutable
+The API validates account ownership, the extension, and configured upload limit, stores the immutable
 source under `analysis/<job-id>/source.<ext>` in the private MinIO bucket, persists
 the queued job in PostgreSQL, and publishes `openmaster.analysis_object` to the
 Celery `analysis` queue. After analysis, the worker publishes a mastering task. The
@@ -49,6 +59,7 @@ Poll the durable state:
 
 ```bash
 curl -fsS \
+  -b openmaster.cookies \
   https://openmaster.example.com/api/v1/analysis-jobs/JOB_ID
 ```
 
@@ -74,6 +85,7 @@ Download the final WAV:
 
 ```bash
 curl -fL \
+  -b openmaster.cookies \
   https://openmaster.example.com/api/v1/analysis-jobs/JOB_ID/download \
   -o master.wav
 ```
@@ -86,12 +98,16 @@ broker publication was interrupted.
 
 ## Operational requirements
 
-- Alembic revision `0009` must be applied.
+- Alembic revision `0012` must be applied.
 - API and analysis-worker images must contain FFmpeg and `python-multipart`.
 - `DATABASE_URL`, Celery URLs, and MinIO credentials must be present in the runtime
   Secret.
-- `MASTERING_ACCESS_PASSWORD` must be present in the runtime Secret. The API compares
-  it in constant time with `X-Mastering-Password` before accepting a new upload.
+- `AUTH_SESSION_DAYS` controls the bounded database session lifetime. Production keeps
+  `AUTH_COOKIE_SECURE=true`; local plain-HTTP development may set it to `false`.
+- `OPENMASTER_ADMIN_EMAIL` and `OPENMASTER_ADMIN_PASSWORD` must be supplied by the
+  runtime Secret before the API starts.
+- `MASTERING_ACCESS_PASSWORD` remains in the runtime Secret only for the deprecated
+  `/mastering-access` compatibility endpoint; browser uploads use the account session.
 - `MINIO_INTERNAL_ENDPOINT`, `MINIO_PUBLIC_ENDPOINT`, `MINIO_BUCKET`, and
   `MINIO_REGION` are rendered by Helm. The public endpoint must be reachable by the
   user's browser for signed downloads.

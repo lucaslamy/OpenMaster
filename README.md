@@ -1,9 +1,9 @@
-# OpenMaster v3.5.0
+# OpenMaster v3.6.0
 
-OpenMaster is an open-source professional audio mastering platform. v3.5 adds a
-dedicated interactive sound-engineer reference, code-native animated DSP diagrams,
-and a richer reduced-motion-safe visual system to the production Kubernetes-native
-platform.
+OpenMaster is an open-source professional audio mastering platform. v3.6 adds
+administrator-approved user accounts, private per-user project ownership, revocable
+browser sessions, and consistent settings-section presentation to the production
+Kubernetes-native platform.
 
 ## Current capability
 
@@ -17,7 +17,7 @@ dependency.
 ## Web client
 
 The Vue mastering studio in `apps/web` provides drag-and-drop upload with real byte
-progress, a persistent original/live-effects preview, twenty retained projects,
+progress, a persistent original/live-effects preview, private per-account project history,
 mastering-profile and WAV-depth controls, durable pipeline progress, specialized
 level/dynamics/stereo/spectral/source views, accessible control explanations, an
 integrated field guide, readable assistant findings, synchronized A/B playback, a
@@ -27,6 +27,14 @@ sound-engineer reference page that exposes the exact DSP chain, measurements, fo
 presets, AI boundary, and export path. It expects the
 versioned analysis-job API contract documented in
 [docs/analysis-jobs.md](docs/analysis-jobs.md).
+
+Accounts use salted PBKDF2 password hashes and revocable opaque sessions held in
+`Secure`, `HttpOnly`, `SameSite=Strict` cookies. Each account sees only its twenty most
+recent projects; ownership also protects settings, rendering, previews, and downloads.
+New accounts remain pending until the secret-bootstrapped administrator approves them
+from the dedicated Admin view.
+The complete security and API contract is documented in
+[docs/accounts.md](docs/accounts.md).
 
 ## DSP foundation
 

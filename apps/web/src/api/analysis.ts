@@ -41,23 +41,6 @@ export function isTerminalStatus(status: AnalysisJob["status"]): boolean {
 export class AnalysisApiClient {
   public constructor(private readonly baseUrl = "/api/v1") {}
 
-  public async authorize(password: string): Promise<string> {
-    const response = await fetch(`${this.baseUrl}/mastering-access`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-    });
-    const contentType = response.headers.get("content-type") ?? "";
-    if (!contentType.toLowerCase().includes("application/json")) {
-      throw new Error(`Analysis API returned a non-JSON response (HTTP ${response.status}).`);
-    }
-    const payload = (await response.json()) as { token?: string; detail?: string };
-    if (!response.ok || !payload.token) {
-      throw new Error(payload.detail ?? "Mastering authorization failed");
-    }
-    return payload.token;
-  }
-
   public async submit(
     file: File,
     idempotencyKey: string,
@@ -65,7 +48,6 @@ export class AnalysisApiClient {
     bitDepth = 24,
     maximumGainAdjustmentDb = 12,
     ceilingDbfs = -1,
-    masteringAuthorization = "",
     eqLowGainDb = 0,
     eqMidGainDb = 0,
     eqHighGainDb = 0,
@@ -105,7 +87,6 @@ export class AnalysisApiClient {
       return this.upload(
         body,
         idempotencyKey,
-        masteringAuthorization,
         onUploadProgress,
         signal,
       );
@@ -115,7 +96,6 @@ export class AnalysisApiClient {
       body,
       headers: {
         "Idempotency-Key": idempotencyKey,
-        "X-Mastering-Authorization": masteringAuthorization,
       },
     });
   }
@@ -163,7 +143,6 @@ export class AnalysisApiClient {
   public async renderFinal(
     jobId: string,
     settings: Record<string, number | boolean>,
-    masteringAuthorization: string,
     idempotencyKey: string,
   ): Promise<AnalysisJob> {
     return this.request(`/analysis-jobs/${encodeURIComponent(jobId)}/final-renders`, {
@@ -171,7 +150,6 @@ export class AnalysisApiClient {
       headers: {
         "Content-Type": "application/json",
         "Idempotency-Key": idempotencyKey,
-        "X-Mastering-Authorization": masteringAuthorization,
       },
       body: JSON.stringify({ settings }),
     });
@@ -195,7 +173,6 @@ export class AnalysisApiClient {
   private upload(
     body: FormData,
     idempotencyKey: string,
-    masteringAuthorization: string,
     onProgress?: UploadProgressHandler,
     signal?: AbortSignal,
   ): Promise<AnalysisJob> {
@@ -219,7 +196,6 @@ export class AnalysisApiClient {
 
       xhr.open("POST", `${this.baseUrl}/analysis-jobs`);
       xhr.setRequestHeader("Idempotency-Key", idempotencyKey);
-      xhr.setRequestHeader("X-Mastering-Authorization", masteringAuthorization);
       xhr.upload.onprogress = (event: ProgressEvent<EventTarget>): void => {
         if (settled || !event.lengthComputable || event.total <= 0) return;
         const percent = Math.max(

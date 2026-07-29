@@ -22,6 +22,7 @@ class AnalysisJobRecord:
     object_name: str
     original_filename: str
     attempt_count: int
+    user_id: str | None = None
     project_name: str | None = None
     result: dict[str, Any] | None = None
     recommendation: dict[str, Any] | None = None
@@ -77,6 +78,7 @@ class AnalysisJobRepository:
         idempotency_key: str,
         object_name: str,
         original_filename: str,
+        user_id: str | None = None,
         target_lufs: float = -14.0,
         maximum_gain_adjustment_db: float = 12.0,
         ceiling_dbfs: float = -1.0,
@@ -105,6 +107,7 @@ class AnalysisJobRepository:
                 connection.execute(
                     insert(analysis_jobs).values(
                         id=job_id,
+                        user_id=user_id,
                         idempotency_key=idempotency_key,
                         status="queued",
                         object_name=object_name,
@@ -150,6 +153,21 @@ class AnalysisJobRepository:
             )
         return _record(row) if row is not None else None
 
+    def get_for_user(self, job_id: str, user_id: str) -> AnalysisJobRecord | None:
+        """Return one project only when it belongs to the authenticated account."""
+        with self._engine.connect() as connection:
+            row = (
+                connection.execute(
+                    select(analysis_jobs).where(
+                        analysis_jobs.c.id == job_id,
+                        analysis_jobs.c.user_id == user_id,
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+        return _record(row) if row is not None else None
+
     def get_by_idempotency_key(self, key: str) -> AnalysisJobRecord | None:
         """Return the job previously created with an idempotency key."""
         with self._engine.connect() as connection:
@@ -162,16 +180,18 @@ class AnalysisJobRepository:
             )
         return _record(row) if row is not None else None
 
-    def list_recent(self, limit: int = 20) -> list[AnalysisJobRecord]:
-        """Return the newest root projects; their MinIO objects remain immutable."""
+    def list_recent(
+        self, limit: int = 20, *, user_id: str | None = None
+    ) -> list[AnalysisJobRecord]:
+        """Return the newest owned root projects; MinIO objects remain immutable."""
         bounded_limit = max(1, min(limit, 20))
+        query = select(analysis_jobs).where(analysis_jobs.c.parent_job_id.is_(None))
+        if user_id is not None:
+            query = query.where(analysis_jobs.c.user_id == user_id)
         with self._engine.connect() as connection:
             rows = (
                 connection.execute(
-                    select(analysis_jobs)
-                    .where(analysis_jobs.c.parent_job_id.is_(None))
-                    .order_by(desc(analysis_jobs.c.created_at))
-                    .limit(bounded_limit)
+                    query.order_by(desc(analysis_jobs.c.created_at)).limit(bounded_limit)
                 )
                 .mappings()
                 .all()
@@ -282,6 +302,7 @@ class AnalysisJobRepository:
                 connection.execute(
                     insert(analysis_jobs).values(
                         id=job_id,
+                        user_id=parent.user_id,
                         idempotency_key=idempotency_key,
                         status="mastering",
                         object_name=parent.object_name,
@@ -323,6 +344,7 @@ def _record(row: Any) -> AnalysisJobRecord:
         raise ValueError("Legacy analysis job does not contain an upload contract")
     return AnalysisJobRecord(
         id=row["id"],
+        user_id=row["user_id"],
         status=row["status"],
         object_name=object_name,
         original_filename=original_filename,

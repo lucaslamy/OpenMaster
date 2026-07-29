@@ -47,7 +47,7 @@ les traitements GPU sans augmenter la RAM réservée sur k3s.
 
 ```bash
 export RUNPOD_REGISTRY=harbor.lucaslamy.fr/library/openmaster-runpod
-export VERSION=3.5.0
+export VERSION=3.6.0
 
 docker build -f Dockerfile.runpod -t "${RUNPOD_REGISTRY}:${VERSION}" .
 docker push "${RUNPOD_REGISTRY}:${VERSION}"

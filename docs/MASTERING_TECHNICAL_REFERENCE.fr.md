@@ -37,8 +37,8 @@ fréquentiels réellement présents sont décrits ci-dessous.
 Le parcours de production est :
 
 1. **Choix du fichier** : aucune donnée audio n’est encore transférée.
-2. **Mot de passe** : l’API vérifie le mot de passe et émet une preuve signée avant
-   l’upload. Un refus n’envoie pas le fichier.
+2. **Compte** : l’API vérifie une session opaque `HttpOnly` avant l’upload. La source,
+   les réglages, les aperçus et les masters sont ensuite rattachés au même utilisateur.
 3. **Upload** : validation du format, stockage privé de la source dans MinIO et
    création du projet.
 4. **Analyse** : décodage puis calcul des mesures décrites à la section 4.

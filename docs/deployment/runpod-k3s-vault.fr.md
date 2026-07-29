@@ -259,6 +259,19 @@ printf '%s' "${MASTERING_ACCESS_PASSWORD}" \
 unset MASTERING_ACCESS_PASSWORD
 ```
 
+Ajoutez l’administrateur qui validera les futures demandes de comptes :
+
+```bash
+read -rp "E-mail administrateur OpenMaster : " OPENMASTER_ADMIN_EMAIL
+read -rsp "Mot de passe administrateur OpenMaster : " OPENMASTER_ADMIN_PASSWORD
+echo
+printf '%s' "${OPENMASTER_ADMIN_EMAIL}" \
+  | vault kv patch -mount=secret openmaster OPENMASTER_ADMIN_EMAIL=-
+printf '%s' "${OPENMASTER_ADMIN_PASSWORD}" \
+  | vault kv patch -mount=secret openmaster OPENMASTER_ADMIN_PASSWORD=-
+unset OPENMASTER_ADMIN_EMAIL OPENMASTER_ADMIN_PASSWORD
+```
+
 ## 8. Synchroniser le Secret Kubernetes
 
 Forcez External Secrets à relire Vault :
@@ -299,6 +312,8 @@ MINIO_ROOT_USER
 MINIO_ROOT_PASSWORD
 RUNPOD_API_KEY
 MASTERING_ACCESS_PASSWORD
+OPENMASTER_ADMIN_EMAIL
+OPENMASTER_ADMIN_PASSWORD
 ```
 
 ## 9. Préparer les valeurs k3s

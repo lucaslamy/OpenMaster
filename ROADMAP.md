@@ -194,6 +194,15 @@ differences, and PCM delivery. The studio gains pointer-reactive lighting, spect
 motion, animated metering, and panel depth while preserving reduced-motion behavior.
 The exhaustive repository reference remains the normative companion document.
 
+## v3.6 — Private accounts and administrator approval
+
+Released: `3.6.0`. Database-backed accounts use revocable browser sessions and require
+administrator approval before first login. The administrator is bootstrapped from
+deployment secrets and reviews pending requests in a dedicated web view. SQL-enforced
+ownership protects retained projects and every source, preview, settings, render, and
+download operation. Settings section headings now render consistently across browsers
+without changing their DSP controls.
+
 ## Planning rules
 
 - Do not start a version by adding its UI before its package-level contracts exist.

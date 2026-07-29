@@ -17,13 +17,15 @@ externalSecrets:
     - MINIO_ROOT_USER
     - MINIO_ROOT_PASSWORD
     - MASTERING_ACCESS_PASSWORD
+    - OPENMASTER_ADMIN_EMAIL
+    - OPENMASTER_ADMIN_PASSWORD
     # Required only when lamai.enabled=true; preflight enforces it conditionally.
     - LAMAI_API_KEY
 
 image:
   registry: registry.example.com
   repository: openmaster
-  tag: "3.5.0"
+  tag: "3.6.0"
   pullPolicy: IfNotPresent
 
 podSecurityContext:
@@ -104,6 +106,10 @@ workers:
 config:
   logLevel: INFO
   maxUploadBytes: "2147483648"
+  # Browser sessions are opaque, revocable and stored hashed in PostgreSQL.
+  authSessionDays: "30"
+  authCookieSecure: "true"
+  adminDisplayName: "OpenMaster Admin"
   # The proof is verified after multipart parsing, so it must cover slow uploads.
   masteringAccessTokenTtlSeconds: "7200"
   corsOrigins: ""

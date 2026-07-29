@@ -141,6 +141,18 @@ tests:
       - equal:
           path: data.MINIO_BUCKET
           value: openmaster
+  - it: configures secure bounded account sessions
+    template: templates/configmap.yaml
+    asserts:
+      - equal:
+          path: data.AUTH_SESSION_DAYS
+          value: "30"
+      - equal:
+          path: data.AUTH_COOKIE_SECURE
+          value: "true"
+      - equal:
+          path: data.OPENMASTER_ADMIN_DISPLAY_NAME
+          value: OpenMaster Admin
   - it: exposes LamAI configuration without its API key
     template: templates/configmap.yaml
     set:
