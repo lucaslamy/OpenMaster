@@ -21,6 +21,14 @@ tests:
           path: spec.template.spec.initContainers[0].command[2]
           value: chown -R 70:70 /var/lib/postgresql/data /var/run/postgresql
         documentIndex: 1
+      - equal:
+          path: spec.template.spec.containers[0].env[0].name
+          value: PGDATA
+        documentIndex: 1
+      - equal:
+          path: spec.template.spec.containers[0].env[0].value
+          value: /var/lib/postgresql/data/pgdata
+        documentIndex: 1
       - isKind:
           of: StatefulSet
         documentIndex: 3

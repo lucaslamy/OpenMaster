@@ -1,3 +1,7 @@
+# LEGACY INTEGRATION EXAMPLE — NOT FOR THE OpenMaster migration target.
+# This file intentionally models an existing external ClipForge namespace and must
+# not be applied as-is. The target deployment uses the Helm chart with internal MinIO,
+# Longhorn, and the values in helm/openmaster/values-production.yaml.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

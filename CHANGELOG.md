@@ -6,8 +6,24 @@ All notable changes to OpenMaster are documented in this file.
 
 ### Changed
 
+- Added a compact multi-agent routing, ownership, baseline and safety contract under
+  `AGENTS.md` and `docs/agents/`, without changing runtime behavior.
 - The source-code link now lives in the global footer instead of the primary header
   navigation, while retaining isolated new-tab behavior.
+- Production Helm values now target the Harbor image repositories, Traefik,
+  `openmaster.lucaslamy.fr`, `openmaster-tls`, and Longhorn; deployment and rollback
+  scripts accept an explicit Kubernetes context, with a k3s migration runbook covering
+  parallel validation and rollback.
+- API, Web and RunPod image builds now exclude build artefacts, avoid persisting the
+  Python wheelhouse and split runtime dependencies into inspectable layers; the
+  OpenMaster migration guide documents Redis as non-migrated ephemeral state. Production
+  values use the immutable image tag `3.6.1-layered` for this migration build.
+- PostgreSQL now stores its data below the Longhorn mount root through `PGDATA`, avoiding
+  initialization failures caused by the filesystem `lost+found` directory.
+- API and RunPod now copy static FFmpeg/FFprobe binaries instead of installing the full
+  Debian FFmpeg dependency tree in one image layer.
+- The deployment smoke test now uses local port-forwards instead of the Kubernetes API
+  service proxy, so it remains compatible with the production ingress NetworkPolicy.
 
 ## [3.6.1] - 2026-07-29
 

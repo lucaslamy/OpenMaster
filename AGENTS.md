@@ -1,477 +1,83 @@
-# AGENTS.md
+# OpenMaster — contrat de travail multi-agent
 
-> **Project:** OpenMaster
-> **Purpose:** Development guidelines for human contributors and AI coding agents (Codex, ChatGPT, etc.)
+Ce fichier décrit les règles d’intervention des agents et renvoie aux documents
+détaillés sous [`docs/agents/`](docs/agents/README.md). Il ne change pas le runtime.
 
----
+## Sources de vérité
 
-# 1. Mission
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) : architecture logicielle actuelle.
+- [`ROADMAP.md`](ROADMAP.md) : périmètre et séquencement produit.
+- [`docs/agents/baseline.md`](docs/agents/baseline.md) : état mesuré du dépôt.
+- [`docs/agents/routing.md`](docs/agents/routing.md) : routage, ownership et handoff.
+- [`docs/agents/testing-and-safety.md`](docs/agents/testing-and-safety.md) : validation et sécurité.
 
-OpenMaster is an open-source professional audio mastering platform.
+En cas de divergence, le code et les manifests déployés priment sur une description
+ancienne. Une modification d’architecture doit mettre à jour la documentation
+correspondante.
 
-The goal is **not** to reproduce iZotope Ozone feature-by-feature.
+## Architecture actuelle
 
-The goal is to build the best open-source mastering platform with:
+Le navigateur utilise l’application Vue/Vite, servie par Nginx, puis l’API FastAPI.
+L’API et les workers partagent les packages métier. PostgreSQL contient l’état
+durable, MinIO/S3 les objets audio, et Redis/Celery le dispatch éphémère :
 
-* modern architecture
-* modular DSP engine
-* AI-assisted mastering
-* Kubernetes-native deployment
-* high test coverage
-* production-grade quality
-
-Every contribution should improve the long-term maintainability of the project.
-
----
-
-# 2. Core Principles
-
-## Code Quality
-
-Prefer:
-
-* readable code
-* explicit code
-* typed code
-* modular code
-
-Avoid:
-
-* duplicated logic
-* hidden side effects
-* global mutable state
-* overly clever implementations
-
----
-
-## Simplicity
-
-Always choose the simplest architecture that remains extensible.
-
-Do not introduce abstraction before it becomes useful.
-
----
-
-## Incremental Development
-
-Every commit must leave the repository in a working state.
-
-Never merge partially broken implementations.
-
----
-
-## Production First
-
-Every feature should be designed as if it will be deployed in production.
-
----
-
-# 3. Technology Stack
-
-## Backend
-
-* Python 3.12+
-* FastAPI
-* SQLAlchemy 2.x
-* Alembic
-* Celery
-* Redis
-
-## Storage
-
-* PostgreSQL
-* MinIO
-
-## Audio
-
-* FFmpeg
-* Essentia
-* Librosa
-* SoX
-
-## AI
-
-* PyTorch
-* ONNX Runtime
-
-GPU support is optional.
-
-CPU execution must always work.
-
----
-
-# 4. Monorepo Structure
-
-```
-apps/
-
-    api/
-    web/
-    worker-analysis/
-    worker-master/
-    worker-export/
-
-packages/
-
-    audio-core/
-    analysis-engine/
-    dsp-engine/
-    ai-engine/
-    database/
-    auth/
-    storage/
-    shared/
-
-docs/
-
-tests/
-
-helm/
-
-deployment/
-
-sdk/
+```text
+Browser -> Web/Nginx -> FastAPI -> PostgreSQL
+                              -> MinIO/S3
+                              -> Redis/Celery -> analysis/mastering/export workers
 ```
 
-No application should directly depend on another application.
-
-Shared logic belongs in packages.
-
----
-
-# 5. Architecture Rules
-
-Business logic must never live inside FastAPI routes.
-
-Routes call services.
-
-Services call packages.
-
-Packages implement the actual logic.
-
-Keep dependency direction simple.
-
----
-
-# 6. Python Rules
-
-Mandatory:
-
-* Ruff
-* Black
-* MyPy
-* PyTest
-
-Every public function must be typed.
-
-Every module must contain a short description.
-
-Avoid files larger than approximately 600 lines.
-
-Prefer composition over inheritance.
-
----
-
-# 7. API Rules
-
-Every endpoint must:
-
-* validate inputs
-* return typed responses
-* expose OpenAPI documentation
-* use proper HTTP status codes
-
-Never return raw exceptions.
-
----
-
-# 8. Database Rules
-
-Use Alembic.
-
-Every migration must be reversible.
-
-Never modify production schemas manually.
-
-Use UUIDs for primary identifiers unless justified otherwise.
-
----
-
-# 9. Celery Rules
-
-Tasks must be:
-
-* idempotent
-* retry-safe
-* independently executable
-
-Long-running tasks should report progress.
-
----
-
-# 10. Kubernetes
-
-Target:
-
-* k3s
-* Kubernetes upstream
-
-Deployment must support:
-
-* Helm
-* Ingress
-* Horizontal scaling
-* Persistent volumes
-
-No hardcoded hostnames.
-
----
-
-# 11. Docker
-
-Use multi-stage builds.
-
-Keep images as small as possible.
-
-Do not install unnecessary packages.
-
-Run containers as non-root whenever practical.
-
----
-
-# 12. Audio Processing Pipeline
-
-Target pipeline:
-
-1. Upload
-2. Validation
-3. Metadata extraction
-4. Audio analysis
-5. DSP chain
-6. AI refinement
-7. Export
-8. Storage
-
-Each stage must be independently testable.
-
----
-
-# 13. Analysis Engine
-
-Support:
-
-* LUFS
-* RMS
-* Peak
-* True Peak
-* Dynamic Range
-* Crest Factor
-* BPM
-* Key Detection
-* Stereo Width
-* Phase Correlation
-* Spectral Centroid
-* Sample Rate
-* Bit Depth
-* Duration
-
----
-
-# 14. DSP Engine
-
-Modules should remain independent.
-
-Examples:
-
-* EQ
-* Dynamic EQ
-* Compressor
-* Multiband Compressor
-* Exciter
-* Saturation
-* Stereo Imager
-* Limiter
-* Maximizer
-
-Each processor should expose a consistent interface.
-
----
-
-# 15. AI Engine
-
-AI must never hide deterministic DSP.
-
-The assistant should recommend settings.
-
-The DSP engine remains deterministic and reproducible.
-
----
-
-# 16. Testing
-
-Minimum requirements:
-
-* unit tests
-* integration tests
-* API tests
-
-New features should include tests.
-
-Bug fixes should include regression tests when appropriate.
-
----
-
-# 17. Logging
-
-Use structured logging.
-
-Never log secrets.
-
-Never log audio content.
-
----
-
-# 18. Security
-
-Secrets must come from environment variables or secret managers.
-
-Never commit credentials.
-
-Validate uploaded files before processing.
-
-Reject unsupported formats.
-
----
-
-# 19. Performance
-
-Avoid unnecessary memory copies.
-
-Stream large files where practical.
-
-Profile before optimizing.
-
----
-
-# 20. Git Workflow
-
-Use Conventional Commits.
-
-Examples:
-
-```
-feat:
-fix:
-refactor:
-test:
-docs:
-perf:
-ci:
-build:
+Les frontières de packages et le déploiement Kubernetes sont détaillés dans
+[`docs/agents/architecture.md`](docs/agents/architecture.md).
+
+## Règles de code
+
+- Garder les routes minces : validation et orchestration dans l’API, logique métier
+  dans les services/packages.
+- Préférer du Python typé, des modules explicites, des tâches Celery idempotentes et
+  des migrations Alembic réversibles.
+- Le traitement audio CPU doit rester fonctionnel et déterministe ; l’IA ne doit pas
+  masquer le DSP déterministe.
+- Ne jamais committer, afficher ou copier un secret en clair, ni journaliser des
+  secrets ou du contenu audio.
+- Ne pas ajouter de dépendance applicative directe entre deux applications ; partager
+  le code dans `packages/`.
+
+## Validation locale
+
+```bash
+pytest -q
+cd apps/web && npm test -- --run
+helm lint helm/openmaster -f helm/openmaster/values-production.yaml
+deployment/scripts/validate-chart.sh
 ```
 
----
+Adapter les tests aux fichiers touchés ; voir la matrice dans
+[`docs/agents/testing-and-safety.md`](docs/agents/testing-and-safety.md).
 
-# 21. Semantic Versioning
+## Routage et ownership
 
-Use:
+- Petite tâche : Fast Path, un agent propriétaire.
+- Tâche moyenne : orchestrateur + deux ou trois spécialistes maximum.
+- Grande tâche : orchestrateur, spécialistes disjoints, puis revue QA/sécurité selon
+  le risque.
 
-MAJOR.MINOR.PATCH
+Le détail des domaines est dans [`docs/agents/routing.md`](docs/agents/routing.md).
+Un agent ne modifie pas le domaine d’un autre sans handoff explicite et vérifiable.
 
-Examples:
+## Production et Git
 
-0.7.0
+- Préserver les modifications préexistantes du worktree et les signaler ; ne pas les
+  écraser pour simplifier une tâche.
+- Toute mutation de cluster doit préciser namespace, release, images, migrations,
+  workloads stateful, downtime attendu et rollback avant exécution.
+- Ne jamais supprimer une ressource, un volume ou une donnée sans confirmation
+  explicite. Conserver un ancien environnement disponible pendant une bascule.
+- PostgreSQL se modifie via Alembic ; Redis est considéré comme état éphémère sauf
+  décision documentée contraire. Les volumes persistants utilisent les conventions
+  du cluster cible, notamment Longhorn si applicable.
+- Utiliser SemVer et Conventional Commits. Mettre à jour `CHANGELOG.md` et la doc
+  concernée pour tout changement significatif.
 
-0.7.1
-
-1.0.0
-
----
-
-# 22. Documentation
-
-Every major feature should include:
-
-* purpose
-* architecture
-* usage
-* examples
-* limitations
-
----
-
-# 23. Definition of Done
-
-A task is complete only if:
-
-* implementation finished
-* tests passing
-* documentation updated
-* changelog updated
-* formatting passes
-* lint passes
-* typing passes
-
----
-
-# 24. Roadmap
-
-## v0.7
-
-Complete the analysis engine and establish a reliable Python quality baseline.
-
-## v0.8
-
-Complete the deterministic DSP chain.
-
-## v0.9
-
-Deliver the Vue frontend.
-
-## v1.0
-
-Deliver automatic mastering.
-
-## v1.1
-
-Deliver the AI Master Assistant.
-
-## v1.2
-
-Deliver reference matching.
-
-## v2.0
-
-Deliver stem mastering, GPU acceleration, and the plugin system.
-
----
-
-# 25. Rules for AI Coding Agents
-
-When modifying the repository:
-
-1. Understand the existing architecture before coding.
-2. Prefer improving existing modules over creating duplicates.
-3. Keep commits focused and use Conventional Commits.
-4. Refactor when it clearly improves maintainability.
-5. Never leave intentionally broken code or a false implementation.
-6. Keep the project buildable after every commit.
-7. Update documentation whenever behavior changes.
-8. Add tests for new behavior whenever practical.
-9. Explain significant architectural trade-offs in an ADR or commit message.
-10. Optimize for long-term maintainability over short-term speed.
-
----
-
-# 26. Living Project Guidance
-
-`AGENTS.md` is the development contract. Keep it concise enough to be actionable and
-extend it when a decision repeatedly affects implementation work. Record substantial,
-time-bound technical decisions in `docs/adr/` and link their enduring rules here.
-
-`ROADMAP.md` is the source of truth for scope and sequencing. `ARCHITECTURE.md`
-describes the current system, not an aspirational one. Update all three documents when
-a change alters their respective contracts.
-
-OpenMaster should evolve as a professional open-source platform, not as a collection
-of isolated features.
+Les garde-fous complets et le format de rapport sont dans
+[`docs/agents/testing-and-safety.md`](docs/agents/testing-and-safety.md).

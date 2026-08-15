@@ -1,7 +1,7 @@
 # Vault and External Secrets
 
 OpenMaster consumes one existing Kubernetes Secret and never renders secret data.
-Install External Secrets Operator, configure a `ClusterSecretStore` named `vault`, and
+Install External Secrets Operator, configure a `ClusterSecretStore` named `vault-global`, and
 adapt `deployment/examples/cluster-external-secret.example.yaml`. The resulting
 `ClusterExternalSecret` creates an `ExternalSecret` in namespaces labelled
 `openmaster.io/secrets=enabled`; its target must be named

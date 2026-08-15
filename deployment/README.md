@@ -18,6 +18,12 @@ probe, or rollout causes Helm to restore the previous release.
 
 Un guide k3s complet en français est disponible dans
 [`docs/deployment/k3s-quickstart.fr.md`](../docs/deployment/k3s-quickstart.fr.md).
+Pour migrer vers le cluster cible Harbor/Traefik/Longhorn sans supprimer l’ancien
+environnement, utilisez le
+[`runbook de migration k3s`](../docs/deployment/migration-k3s.fr.md).
+La procédure de sauvegarde/restauration PostgreSQL et de vérification des références
+MinIO est détaillée dans le
+[`runbook OpenMaster détaillé`](../docs/deployment/migration-openmaster-detaillee.fr.md).
 Pour la mise à niveau `3.0.1`, utilisez le
 [runbook de release](../docs/deployment/release-3.0.1.fr.md).
 Le correctif d’autorisation instantanée `3.0.2` possède un

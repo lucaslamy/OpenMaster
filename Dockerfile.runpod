@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 FROM python:3.12-slim AS build
 
 WORKDIR /build
@@ -5,19 +7,40 @@ COPY pyproject.toml README.md ./
 COPY packages ./packages
 RUN pip wheel --no-cache-dir --wheel-dir /wheels ".[runpod]"
 
+FROM mwader/static-ffmpeg:8.1.1 AS ffmpeg
+
 FROM python:3.12-slim
 
-RUN apt-get update \
-    && apt-get install --no-install-recommends -y ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
 RUN groupadd --system --gid 10001 openmaster \
     && useradd --system --uid 10001 --gid 10001 --create-home openmaster
 
 WORKDIR /app
-COPY --from=build /wheels /wheels
-RUN python -m pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
-COPY apps/runpod_worker ./apps/runpod_worker
+COPY --from=ffmpeg /ffmpeg /usr/local/bin/ffmpeg
+COPY --from=ffmpeg /ffprobe /usr/local/bin/ffprobe
+RUN --mount=from=build,source=/wheels,target=/wheels,readonly \
+    python -m pip install --no-cache-dir --no-compile --no-index \
+      --find-links=/wheels 'numpy>=1.26'
+RUN --mount=from=build,source=/wheels,target=/wheels,readonly \
+    python -m pip install --no-cache-dir --no-compile --no-index \
+      --find-links=/wheels 'scipy>=1.11'
+RUN --mount=from=build,source=/wheels,target=/wheels,readonly \
+    python -m pip install --no-cache-dir --no-compile --no-index \
+      --find-links=/wheels \
+      'alembic>=1.13' \
+      'celery>=5.4' \
+      'fastapi>=0.115' \
+      'minio>=7.2,<8' \
+      'psycopg[binary]>=3.2' \
+      'python-multipart>=0.0.18' \
+      'redis>=5.0' \
+      'sqlalchemy>=2.0' \
+      'uvicorn>=0.30' \
+      'runpod>=1.8,<2'
+RUN --mount=from=build,source=/wheels,target=/wheels,readonly \
+    python -m pip install --no-cache-dir --no-compile --no-index --no-deps \
+      /wheels/openmaster-*.whl
 COPY apps/__init__.py ./apps/__init__.py
+COPY apps/runpod_worker ./apps/runpod_worker
 
 USER 10001:10001
 CMD ["python", "-m", "apps.runpod_worker.handler"]

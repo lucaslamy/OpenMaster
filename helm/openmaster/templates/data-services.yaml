@@ -43,6 +43,9 @@ spec:
         - name: postgres
           image: {{ .Values.postgresql.image | quote }}
           ports: [{name: postgres, containerPort: 5432}]
+          env:
+            - name: PGDATA
+              value: {{ .Values.postgresql.dataDir | quote }}
           envFrom: [{secretRef: {name: {{ include "openmaster.secretName" . }}}}]
           volumeMounts:
             - {name: data, mountPath: /var/lib/postgresql/data}

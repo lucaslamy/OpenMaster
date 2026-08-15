@@ -1,6 +1,11 @@
 global:
   environment: production
 
+image:
+  registry: harbor.lucaslamy.fr
+  repository: private/openmaster
+  tag: "3.6.1-layered"
+
 externalSecrets:
   enabled: true
   existingSecretName: openmaster-secrets
@@ -8,16 +13,38 @@ externalSecrets:
 ingress:
   enabled: true
   className: traefik
-  host: REPLACE_WITH_DOMAIN
+  host: openmaster.lucaslamy.fr
   tls:
     enabled: true
     secretName: openmaster-tls
 
 api:
+  image: harbor.lucaslamy.fr/private/openmaster/api:3.6.1-layered
   replicaCount: 2
 
 web:
+  image: harbor.lucaslamy.fr/private/openmaster/web:3.6.1-layered
   replicaCount: 2
+
+workers:
+  image: harbor.lucaslamy.fr/private/openmaster/api:3.6.1-layered
+
+postgresql:
+  persistence:
+    storageClassName: longhorn
+
+minio:
+  enabled: false
+  externalHost: minio.clipforge.svc.cluster.local
+  externalPort: 9000
+  externalPublicEndpoint: https://s3.lucaslamy.fr
+  externalNetworkPolicy:
+    namespaceSelector:
+      kubernetes.io/metadata.name: clipforge
+    podSelector:
+      app: minio
+  publicIngress:
+    enabled: false
 
 autoscaling:
   enabled: true
@@ -36,7 +63,3 @@ podDisruptionBudget:
 
 remoteCompute:
   enabled: false
-
-minio:
-  publicIngress:
-    enabled: false
